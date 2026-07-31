@@ -107,11 +107,12 @@ async function loadWikipediaVisualDiff() {
   try {
     const encodedTitle = encodeURIComponent(props.change.title.replaceAll(' ', '_'))
     const endpoint =
-      `/w/api.php?action=query&format=json` +
+      `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*` +
       `&formatversion=2&prop=revisions&titles=${encodedTitle}` +
       `&rvprop=ids&rvlimit=2`
     const response = await fetch(endpoint, {
       signal: diffRequest.signal,
+      headers: wikimediaApiFetchHeaders('review-changes-preview-revisions'),
     })
     if (!response.ok) throw new Error(`Wikipedia returned ${response.status}`)
     const data = await response.json()
@@ -122,10 +123,11 @@ async function loadWikipediaVisualDiff() {
     let comparisonMarkup = ''
     try {
       const compareEndpoint =
-        `/w/api.php?action=compare&format=json` +
+        `https://en.wikipedia.org/w/api.php?action=compare&format=json&origin=*` +
         `&fromrev=${previous.revid}&torev=${current.revid}&prop=diff`
       const compareResponse = await fetch(compareEndpoint, {
         signal: diffRequest.signal,
+        headers: wikimediaApiFetchHeaders('review-changes-preview-compare'),
       })
       if (compareResponse.ok) {
         const compareData = await compareResponse.json()

@@ -27,9 +27,14 @@ const slots = useSlots()
 
 <style scoped>
 .personal-dashboard-clone__primary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-100, 16px);
+  width: 100%;
   min-width: 0;
   box-sizing: border-box;
 }
+
 </style>
 
 <style>
@@ -38,6 +43,11 @@ const slots = useSlots()
   width: 100%;
   margin: 0 auto;
   font-size: var(--font-size-small);
+}
+
+.personal-dashboard-clone__primary > .dashboard-module {
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .dashboard-mobile-banner {
@@ -64,11 +74,11 @@ const slots = useSlots()
 }
 
 /* Mobile layout — follow ancestor data-skin (viewport ≥640px + SpecialPageWrapper padding can be <640px wide). */
-[data-skin='mobile'] .personal-dashboard-clone {
+.special-page-wrapper[data-skin='mobile'] .personal-dashboard-clone {
   font-size: var(--font-size-medium);
 }
 
-[data-skin='mobile'] .personal-dashboard-clone .dashboard-mobile-banner {
+.special-page-wrapper[data-skin='mobile'] .personal-dashboard-clone .dashboard-mobile-banner {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -76,7 +86,7 @@ const slots = useSlots()
   margin-bottom: 1rem;
 }
 
-[data-skin='mobile'] .personal-dashboard-clone .dashboard-mobile-banner__feedback {
+.special-page-wrapper[data-skin='mobile'] .personal-dashboard-clone .dashboard-mobile-banner__feedback {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -85,15 +95,15 @@ const slots = useSlots()
   font-size: inherit;
 }
 
-[data-skin='mobile'] .personal-dashboard-clone .dashboard-mobile-banner__feedback:hover {
+.special-page-wrapper[data-skin='mobile'] .personal-dashboard-clone .dashboard-mobile-banner__feedback:hover {
   text-decoration: underline;
 }
 
-[data-skin='mobile'] .personal-dashboard-clone .dashboard-main {
+.special-page-wrapper[data-skin='mobile'] .personal-dashboard-clone .dashboard-main {
   display: none;
 }
 
-[data-skin='mobile'] .personal-dashboard-clone .dashboard-mobile-cards {
+.special-page-wrapper[data-skin='mobile'] .personal-dashboard-clone .dashboard-mobile-cards {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-125, 1.25rem);

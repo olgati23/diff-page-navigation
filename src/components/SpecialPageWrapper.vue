@@ -94,6 +94,7 @@ const showHeaderNav = computed(
           <h1 v-if="hasInnerTitle" class="special-page-wrapper__title">
             <slot name="title">{{ props.title }}</slot>
           </h1>
+          <slot name="title-actions" />
         </slot>
       </span>
       <span class="special-page-wrapper__header-aside">

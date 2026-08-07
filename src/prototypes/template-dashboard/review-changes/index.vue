@@ -41,6 +41,7 @@ function navigateDiff(direction: -1 | 1) {
 
 <template>
   <main class="review-changes-page">
+    <template v-if="!selectedChange">
     <header class="review-changes-page__header">
       <RouterLink to="/template-dashboard" class="review-changes-page__back" aria-label="Back to dashboard">
         <CdxIcon :icon="cdxIconArrowPrevious" />
@@ -79,6 +80,7 @@ function navigateDiff(direction: -1 | 1) {
         <p class="review-queue-card__summary">{{ change.summary }}</p>
       </article>
     </section>
+    </template>
 
     <DiffPreviewModal
       v-if="selectedChange"
@@ -87,6 +89,7 @@ function navigateDiff(direction: -1 | 1) {
       :variant="previewVariant"
       :change-index="selectedChangeIndex ?? 0"
       :change-count="reviewChanges.length"
+      page
       @navigate="navigateDiff"
       @close="selectedChangeIndex = null"
     />

@@ -10,6 +10,14 @@ export interface ReviewChange {
 
 export const reviewChanges: ReviewChange[] = [
   {
+    title: 'Giant panda',
+    description: 'Bear species native to south central China',
+    editor: 'BambooEditor',
+    time: '1 hour ago',
+    revisionDate: '31 July 2026, 06:58',
+    summary: 'Clarified the description of its diet',
+  },
+  {
     title: 'Monarch butterfly',
     description: 'Milkweed butterfly found across North America',
     editor: 'WildlifeWatcher',
@@ -19,23 +27,6 @@ export const reviewChanges: ReviewChange[] = [
     tags: ['Visual edit', 'Mobile edit'],
   },
   {
-    title: 'Venus flytrap',
-    description: 'Carnivorous plant native to North Carolina and South Carolina',
-    editor: 'PlantLore',
-    time: '24 minutes ago',
-    revisionDate: '31 July 2026, 07:36',
-    summary: 'Expanded the section on its natural habitat',
-    tags: ['Visual edit'],
-  },
-  {
-    title: 'Giant panda',
-    description: 'Bear species native to south central China',
-    editor: 'BambooEditor',
-    time: '1 hour ago',
-    revisionDate: '31 July 2026, 06:58',
-    summary: 'Clarified the description of its diet',
-  },
-  {
     title: 'California redwood',
     description: 'Tall evergreen tree native to coastal California',
     editor: 'ForestFriend',
@@ -43,6 +34,15 @@ export const reviewChanges: ReviewChange[] = [
     revisionDate: '31 July 2026, 05:43',
     summary: 'Added an internal link to redwood conservation',
     tags: ['Visual edit', 'DiscussionTools'],
+  },
+  {
+    title: 'Venus flytrap',
+    description: 'Carnivorous plant native to North Carolina and South Carolina',
+    editor: 'PlantLore',
+    time: '24 minutes ago',
+    revisionDate: '31 July 2026, 07:36',
+    summary: 'Expanded the section on its natural habitat',
+    tags: ['Visual edit'],
   },
   {
     title: 'Axolotl',

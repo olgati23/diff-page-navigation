@@ -5,30 +5,34 @@ import {
   CdxIcon,
   CdxMessage,
   CdxProgressBar,
+  CdxToast,
 } from '@wikimedia/codex'
 import {
   cdxIconArrowNext,
   cdxIconArrowPrevious,
-  cdxIconCheck,
+  cdxIconHeartOutline,
   cdxIconClose,
   cdxIconCollapse,
   cdxIconEditUndo,
   cdxIconExpand,
   cdxIconInfoFilled,
   cdxIconLinkExternal,
-  cdxIconSpeechBubble,
+  cdxIconUserTalk,
   cdxIconUserAvatar,
 } from '@wikimedia/codex-icons'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { wikimediaApiFetchHeaders } from '@/config'
 import type { ReviewChange } from '../reviewChanges'
+import ThankConfirmationDialog from './ThankConfirmationDialog.vue'
+import UndoConfirmationDialog from './UndoConfirmationDialog.vue'
 
 const props = defineProps<{
   change: ReviewChange
   variant: 'card' | 'toolbar' | 'simplified'
   changeIndex: number
   changeCount: number
+  page?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -36,7 +40,6 @@ const emit = defineEmits<{
   navigate: [direction: -1 | 1]
 }>()
 
-const detailsOpen = ref(false)
 const editorCardOpen = ref(true)
 const diffUrl = ref<string | null>(null)
 const diffDocumentHtml = ref<string | null>(null)
@@ -44,6 +47,9 @@ const diffFrame = ref<HTMLIFrameElement | null>(null)
 const changedSection = ref<string | null>(null)
 const diffLoading = ref(false)
 const diffError = ref<string | null>(null)
+const undoDialogOpen = ref(false)
+const thankDialogOpen = ref(false)
+const confirmationToast = ref('')
 let diffRequest: AbortController | null = null
 
 function findFirstChangedSection(diffMarkup: string): string | null {
@@ -75,24 +81,58 @@ function buildDiffOnlyDocument(diffMarkup: string, section: string | null): stri
   )
   const rows = changedRows
     .map((row) => {
-      const deleted = row.querySelector('.diff-deletedline > div')?.innerHTML
-      const added = row.querySelector('.diff-addedline > div')?.innerHTML
-      return `${deleted ? `<div class="change change--removed">${deleted}</div>` : ''}${
-        added ? `<div class="change change--added">${added}</div>` : ''
-      }`
+      const removed = row.querySelector('.diff-deletedline > div')?.cloneNode(true) as
+        | HTMLElement
+        | undefined
+      const added = row.querySelector('.diff-addedline > div')?.cloneNode(true) as
+        | HTMLElement
+        | undefined
+
+      if (added) {
+        added.querySelectorAll('.diffchange, ins').forEach((change) =>
+          change.classList.add('inline-added'),
+        )
+        const removedChanges = removed
+          ? [...removed.querySelectorAll('.diffchange, del')]
+              .filter((change, index, changes) =>
+                !changes.some((parent, parentIndex) => parentIndex < index && parent.contains(change)),
+              )
+          : []
+        const firstAddition = added.querySelector('.inline-added')
+        removedChanges.forEach((change) => {
+          const deletion = documentModel.createElement('del')
+          deletion.className = 'inline-removed'
+          deletion.textContent = change.textContent
+          if (firstAddition?.parentNode) {
+            firstAddition.parentNode.insertBefore(deletion, firstAddition)
+            firstAddition.parentNode.insertBefore(documentModel.createTextNode(' '), firstAddition)
+          } else {
+            added.append(deletion)
+          }
+        })
+        return `<div class="change-inline">${added.innerHTML}</div>`
+      }
+
+      if (removed) {
+        removed.querySelectorAll('.diffchange, del').forEach((change) =>
+          change.classList.add('inline-removed'),
+        )
+        return `<div class="change-inline">${removed.innerHTML}</div>`
+      }
+
+      return ''
     })
     .join('')
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     html, body { margin: 0; color: #202122; background: #fff; font: 16px/1.6 sans-serif; }
-    main { padding: 0 16px 24px; }
-    h2 { margin: 0 -16px 16px; padding: 8px 16px; color: #72777d; background: #eaecf0;
-      font-size: 20px; line-height: 1.4; }
-    .change { margin: 0 0 12px; padding: 12px; border-inline-start: 4px solid; }
-    .change--removed { background: #ffe9e5; border-color: #d73333; text-decoration: line-through; }
-    .change--added { background: #d5fdf4; border-color: #14866d; }
-    del { background: #ffdad3; text-decoration: line-through; }
-    ins { background: #a3e6d4; text-decoration: underline; }
+    main { padding: 0 0 24px; }
+    h2 { margin: 0 0 6px; padding: 13px 0 0; border-top: 1px solid #c8ccd1;
+      color: #54595d; background: transparent;
+      font-size: 16px; font-weight: 700; line-height: 1.6; }
+    .change-inline { margin: 0 0 12px; padding: 0; }
+    .inline-removed, del { background: #ff9f9b; text-decoration: line-through; }
+    .inline-added, ins { background: #a3e6d4; text-decoration: underline; }
   </style></head><body><main><h2>${section?.replaceAll('_', ' ') ?? 'Changed content'}</h2>${rows}</main></body></html>`
 }
 
@@ -157,6 +197,18 @@ async function loadWikipediaVisualDiff() {
 function onVisualDiffLoaded() {
   diffLoading.value = false
   scrollToChangedSection()
+}
+
+function showUndoConfirmation(): void {
+  confirmationToast.value = 'Your edit was saved.'
+}
+
+function showThankConfirmation(): void {
+  confirmationToast.value = `You thanked ${props.change.editor}.`
+}
+
+function clearConfirmationToast(): void {
+  confirmationToast.value = ''
 }
 
 function scrollToChangedSection(attempt = 0) {
@@ -226,7 +278,6 @@ function scrollToChangedSection(attempt = 0) {
 watch(
   () => props.change,
   () => {
-    detailsOpen.value = false
     void loadWikipediaVisualDiff()
   },
   { immediate: true },
@@ -284,16 +335,35 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="diff-preview-backdrop" @click.self="emit('close')">
+  <div
+    class="diff-preview-backdrop"
+    :class="{ 'diff-preview-backdrop--page': props.page }"
+    @click.self="props.page ? undefined : emit('close')"
+  >
     <section
       class="diff-preview"
-      role="dialog"
-      aria-modal="true"
+      :class="{
+        'diff-preview--page': props.page,
+        'diff-preview--card': props.variant === 'card',
+      }"
+      :role="props.page ? 'main' : 'dialog'"
+      :aria-modal="props.page ? undefined : true"
       aria-labelledby="diff-preview-title"
     >
       <header class="diff-preview__header">
+        <CdxButton
+          v-if="props.page"
+          class="diff-preview__back"
+          weight="quiet"
+          :icon-only="true"
+          aria-label="Back to review changes"
+          @click="emit('close')"
+        >
+          <CdxIcon :icon="cdxIconArrowPrevious" />
+        </CdxButton>
         <strong id="diff-preview-title">Diff preview</strong>
         <CdxButton
+          v-if="!props.page"
           class="diff-preview__close"
           weight="quiet"
           :icon-only="true"
@@ -346,7 +416,6 @@ onBeforeUnmount(() => {
 
         <CdxAccordion
           v-if="props.variant !== 'toolbar'"
-          v-model="detailsOpen"
           class="edit-details-accordion"
           separation="minimal"
           heading-level="h3"
@@ -452,8 +521,8 @@ onBeforeUnmount(() => {
             <CdxIcon :icon="cdxIconInfoFilled" size="small" icon-label="About user groups" />
             </span>
           </p>
-          <CdxButton action="progressive">Thank</CdxButton>
-          <CdxButton>Undo</CdxButton>
+          <CdxButton action="progressive" @click="thankDialogOpen = true">Thank</CdxButton>
+          <CdxButton @click="undoDialogOpen = true">Undo</CdxButton>
         </div>
       </footer>
 
@@ -481,16 +550,44 @@ onBeforeUnmount(() => {
           <CdxIcon :icon="cdxIconArrowNext" />
         </CdxButton>
         <CdxButton weight="quiet" :icon-only="true" aria-label="Comment">
-          <CdxIcon :icon="cdxIconSpeechBubble" />
+          <CdxIcon :icon="cdxIconUserTalk" />
         </CdxButton>
-        <CdxButton weight="quiet" :icon-only="true" aria-label="Accept change">
-          <CdxIcon :icon="cdxIconCheck" />
+        <CdxButton
+          weight="quiet"
+          :icon-only="true"
+          aria-label="Thank"
+          @click="thankDialogOpen = true"
+        >
+          <CdxIcon :icon="cdxIconHeartOutline" />
         </CdxButton>
-        <CdxButton weight="quiet" :icon-only="true" aria-label="Revert change">
+        <CdxButton
+          weight="quiet"
+          :icon-only="true"
+          aria-label="Revert change"
+          @click="undoDialogOpen = true"
+        >
           <CdxIcon :icon="cdxIconEditUndo" />
         </CdxButton>
       </footer>
     </section>
+    <UndoConfirmationDialog
+      v-model:open="undoDialogOpen"
+      @confirmed="showUndoConfirmation"
+    />
+    <ThankConfirmationDialog
+      v-model:open="thankDialogOpen"
+      @confirmed="showThankConfirmation"
+    />
+    <CdxToast
+      v-if="confirmationToast"
+      standalone
+      type="success"
+      :auto-dismiss="true"
+      @auto-dismissed="clearConfirmationToast"
+      @user-dismissed="clearConfirmationToast"
+    >
+      {{ confirmationToast }}
+    </CdxToast>
   </div>
 </template>
 
@@ -527,6 +624,24 @@ onBeforeUnmount(() => {
 .diff-preview__close {
   position: absolute;
   inset-inline-end: var(--spacing-50, 8px);
+}
+
+.diff-preview__back {
+  position: absolute;
+  inset-inline-start: var(--spacing-50, 8px);
+}
+
+.diff-preview-backdrop--page {
+  position: static;
+  min-height: 100vh;
+  background: var(--background-color-base);
+}
+
+.diff-preview--page {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  box-shadow: none;
 }
 
 .diff-preview__body {
@@ -586,8 +701,9 @@ onBeforeUnmount(() => {
 }
 
 .edit-details-accordion {
+  flex: 0 0 auto;
   width: 100%;
-  margin-bottom: var(--spacing-75, 12px);
+  margin-bottom: 0;
   font-size: var(--font-size-small);
   font-weight: var(--font-weight-normal);
 }
@@ -601,12 +717,18 @@ onBeforeUnmount(() => {
 }
 
 .edit-details-accordion__content {
+  position: relative;
+  z-index: 1;
   padding: 0 var(--spacing-75, 12px) var(--spacing-100, 16px);
-  border-bottom: var(--border-subtle);
+  background: var(--background-color-base);
 }
 
 .edit-details-accordion__content section + section {
   margin-top: var(--spacing-100, 16px);
+}
+
+.diff-preview--card .edit-details-accordion__content section + section {
+  margin-top: var(--spacing-50, 8px);
 }
 
 .edit-details-accordion__username + section {
@@ -663,7 +785,7 @@ onBeforeUnmount(() => {
 
 .edit-details-accordion__full-diff {
   justify-content: flex-start;
-  margin-top: var(--spacing-100, 16px);
+  margin-top: var(--spacing-50, 8px);
   padding-inline: 0;
   font-weight: var(--font-weight-bold);
 }
@@ -690,10 +812,15 @@ onBeforeUnmount(() => {
 
 .visual-diff-frame {
   flex: 1 1 auto;
+  width: 100%;
   min-height: 240px;
-  margin-top: var(--spacing-75, 12px);
+  margin-top: 10px;
   overflow: hidden;
   background: var(--background-color-base);
+}
+
+.edit-details-accordion[open] ~ .visual-diff-frame {
+  margin-top: 0;
 }
 
 .visual-diff {
@@ -796,6 +923,16 @@ onBeforeUnmount(() => {
     height: min(760px, calc(100vh - 64px));
     border-radius: var(--border-radius-base, 2px);
     overflow: hidden;
+  }
+
+  .diff-preview-backdrop--page {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .diff-preview--page {
+    height: 100vh;
+    border-radius: 0;
   }
 }
 </style>

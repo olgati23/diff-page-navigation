@@ -1,13 +1,38 @@
 <script setup lang="ts">
-import { CdxIcon } from '@wikimedia/codex'
-import { cdxIconCheck, cdxIconEdit, cdxIconMessage, cdxIconUserTalk } from '@wikimedia/codex-icons'
+import {
+  CdxButton,
+  CdxDialog,
+  CdxIcon,
+  CdxTextInput,
+  CdxToast,
+  CdxToggleButtonGroup,
+} from '@wikimedia/codex'
+import {
+  cdxIconCheck,
+  cdxIconEdit,
+  cdxIconEditUndo,
+  cdxIconCollapse,
+  cdxIconArrowNext,
+  cdxIconArrowPrevious,
+  cdxIconExpand,
+  cdxIconHeartOutline,
+  cdxIconMessage,
+  cdxIconUserAvatar,
+  cdxIconUserTalk,
+} from '@wikimedia/codex-icons'
+import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
+import { useSkin } from '@/composables/useSkin'
 import Dashboard from '@/components/dashboard/Dashboard.vue'
 import DashboardModule from '@/components/dashboard/DashboardModule.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
+import type { Skin } from '@/theme'
+import WikipediaDiffContent from './review-changes/WikipediaDiffContent.vue'
+import ThankConfirmationDialog from './review-changes/ThankConfirmationDialog.vue'
+import UndoConfirmationDialog from './review-changes/UndoConfirmationDialog.vue'
 import { reviewChanges } from './reviewChanges'
 
 definePage({
@@ -18,6 +43,92 @@ definePage({
 })
 
 const { pageTitle } = useConfig()
+const currentSkin = useSkin()
+const dashboardView = ref<Skin>(currentSkin.value)
+const expandedReviewChange = ref<string | null>(null)
+const desktopReviewPresentation = ref('icons')
+const modalReviewIndex = ref<number | null>(null)
+const undoDialogOpen = ref(false)
+const thankDialogOpen = ref(false)
+const confirmationToast = ref('')
+const modalConfirmation = ref<'undo' | 'thank' | null>(null)
+const modalUndoReason = ref('')
+const dashboardViewButtons = [
+  { value: 'mobile', label: 'Mobile' },
+  { value: 'desktop', label: 'Desktop' },
+]
+const desktopReviewPresentationButtons = [
+  { value: 'icons', label: 'Icons' },
+  { value: 'labels', label: 'Labels' },
+  { value: 'modal', label: 'Modal' },
+]
+
+watch(desktopReviewPresentation, () => {
+  expandedReviewChange.value = null
+  modalReviewIndex.value = null
+  undoDialogOpen.value = false
+  thankDialogOpen.value = false
+  modalConfirmation.value = null
+})
+
+const desktopReviewChanges = reviewChanges
+
+const modalReviewChange = computed(
+  () => desktopReviewChanges[modalReviewIndex.value ?? 0],
+)
+const activeReviewEditor = computed(() => {
+  if (modalReviewIndex.value !== null) return modalReviewChange.value.editor
+  return desktopReviewChanges.find((change) => change.title === expandedReviewChange.value)?.editor ??
+    desktopReviewChanges[0].editor
+})
+
+function openReviewModal(index: number): void {
+  if (desktopReviewPresentation.value === 'modal') modalReviewIndex.value = index
+}
+
+function moveReviewModal(direction: -1 | 1): void {
+  if (modalReviewIndex.value === null) return
+  const next = modalReviewIndex.value + direction
+  if (next >= 0 && next < desktopReviewChanges.length) modalReviewIndex.value = next
+}
+
+function updateReviewModalOpen(open: boolean): void {
+  if (!open) {
+    modalReviewIndex.value = null
+    modalConfirmation.value = null
+  }
+}
+
+function showUndoConfirmation(): void {
+  confirmationToast.value = 'Your edit was saved.'
+}
+
+function showThankConfirmation(): void {
+  confirmationToast.value = `You thanked ${activeReviewEditor.value}.`
+}
+
+function clearConfirmationToast(): void {
+  confirmationToast.value = ''
+}
+
+
+function openModalConfirmation(action: 'undo' | 'thank'): void {
+  modalConfirmation.value = action
+  if (action === 'undo') modalUndoReason.value = ''
+}
+
+function confirmModalAction(): void {
+  if (modalConfirmation.value === 'undo') showUndoConfirmation()
+  if (modalConfirmation.value === 'thank') showThankConfirmation()
+
+  if (
+    modalReviewIndex.value !== null &&
+    modalReviewIndex.value < desktopReviewChanges.length - 1
+  ) {
+    modalReviewIndex.value += 1
+  }
+  modalConfirmation.value = null
+}
 
 /** Gallery / app home (file-based route `/`). */
 const HOME = '/'
@@ -42,8 +153,21 @@ const impact = {
 </script>
 
 <template>
-  <ChromeWrapper :last-edited-notice="false">
-    <SpecialPageWrapper :title="pageTitle" help>
+  <ChromeWrapper :skin="dashboardView" :last-edited-notice="false">
+    <SpecialPageWrapper :title="pageTitle" actions>
+      <template #actions>
+        <div class="dashboard-view-control">
+          <RouterLink :to="HOME" class="dashboard-header-feedback">
+            Share feedback
+          </RouterLink>
+          <CdxToggleButtonGroup
+            v-model="dashboardView"
+            :buttons="dashboardViewButtons"
+            aria-label="Dashboard view"
+          />
+        </div>
+      </template>
+
       <div class="template-dashboard-shell">
         <Dashboard>
           <template #banner>
@@ -65,7 +189,12 @@ const impact = {
               </p>
             </DashboardModule>
 
-            <DashboardModule :to="HOME" title="Active discussions" cta="View more">
+            <DashboardModule
+              class="dashboard-active-discussions-mobile"
+              :to="HOME"
+              title="Active discussions"
+              cta="View more"
+            >
               <p class="dashboard-preview-line dashboard-preview-line--stacked">
                 <CdxIcon :icon="cdxIconMessage" size="small" aria-hidden="true" />
                 <span><em>What should mentorship be?</em><br />Latest comment: <span class="dashboard-preview-link">18 minutes ago</span></span>
@@ -105,20 +234,122 @@ const impact = {
           </template>
 
           <template #primary>
-            <DashboardModule :to="REVIEW_CHANGES_ROUTE" :title="MODULE.thankTitle" cta="View more edits">
-              <p class="dashboard-preview-line">
-                <CdxIcon :icon="cdxIconEdit" size="small" aria-hidden="true" />
-                <span>{{ reviewChanges[0].editor }} edited the {{ reviewChanges[0].title }} article</span>
+            <div class="desktop-preview-style">
+              <span id="desktop-preview-style-label">Preview style</span>
+              <CdxToggleButtonGroup
+                v-model="desktopReviewPresentation"
+                :buttons="desktopReviewPresentationButtons"
+                aria-labelledby="desktop-preview-style-label"
+              />
+            </div>
+            <DashboardModule class="desktop-review-module" :title="MODULE.thankTitle">
+              <p class="dashboard-module-intro">
+                These edits were made by other users. Stay up to date and help maintain Wikipedia’s quality by reviewing them.
               </p>
+              <div class="desktop-review-list">
+                <article
+                  v-for="(change, changeIndex) in desktopReviewChanges"
+                  :key="change.title"
+                  class="desktop-review-item"
+                  :class="{ 'desktop-review-item--modal': desktopReviewPresentation === 'modal' }"
+                  :role="desktopReviewPresentation === 'modal' ? 'button' : undefined"
+                  :tabindex="desktopReviewPresentation === 'modal' ? 0 : undefined"
+                  @click="openReviewModal(changeIndex)"
+                  @keydown.enter.prevent="openReviewModal(changeIndex)"
+                  @keydown.space.prevent="openReviewModal(changeIndex)"
+                >
+                  <div class="desktop-review-item__title">
+                    <strong>{{ change.title }}</strong>
+                    <span v-if="change.description">{{ change.description }}</span>
+                  </div>
+                  <div class="desktop-review-item__meta">
+                    <CdxIcon :icon="cdxIconUserAvatar" size="x-small" />
+                    <strong>{{ change.editor }}</strong>
+                    <span>· {{ change.time }}</span>
+                  </div>
+                  <div class="desktop-review-item__footer">
+                    <p>{{ change.summary }}</p>
+                    <CdxButton
+                      v-if="desktopReviewPresentation !== 'modal'"
+                      weight="quiet"
+                      :icon-only="true"
+                      aria-label="Preview change"
+                      :aria-expanded="expandedReviewChange === change.title"
+                      class="preview-change-button"
+                      @click="expandedReviewChange = expandedReviewChange === change.title ? null : change.title"
+                    >
+                      <CdxIcon :icon="expandedReviewChange === change.title ? cdxIconCollapse : cdxIconExpand" />
+                    </CdxButton>
+                  </div>
+                  <div
+                    v-if="expandedReviewChange === change.title"
+                    class="desktop-inline-diff"
+                  >
+                    <div
+                      v-if="desktopReviewPresentation === 'labels'"
+                      class="desktop-inline-diff__label-actions"
+                      aria-label="Review actions"
+                    >
+                      <CdxButton>
+                        <CdxIcon :icon="cdxIconUserTalk" />
+                        Message
+                      </CdxButton>
+                      <CdxButton @click.stop="undoDialogOpen = true">
+                        <CdxIcon :icon="cdxIconEditUndo" />
+                        Undo
+                      </CdxButton>
+                      <CdxButton @click.stop="thankDialogOpen = true">
+                        <CdxIcon :icon="cdxIconHeartOutline" />
+                        Thank
+                      </CdxButton>
+                    </div>
+                    <div class="desktop-inline-diff__content">
+                      <WikipediaDiffContent :change="change" />
+                    </div>
+                    <div
+                      v-if="desktopReviewPresentation === 'icons'"
+                      class="desktop-inline-diff__actions"
+                      aria-label="Review actions"
+                    >
+                      <CdxButton weight="quiet" :icon-only="true" aria-label="Leave a message">
+                        <CdxIcon :icon="cdxIconUserTalk" />
+                      </CdxButton>
+                      <CdxButton
+                        weight="quiet"
+                        :icon-only="true"
+                        aria-label="Thank"
+                        @click.stop="thankDialogOpen = true"
+                      >
+                        <CdxIcon :icon="cdxIconHeartOutline" />
+                      </CdxButton>
+                      <CdxButton
+                        weight="quiet"
+                        :icon-only="true"
+                        aria-label="Undo"
+                        @click.stop="undoDialogOpen = true"
+                      >
+                        <CdxIcon :icon="cdxIconEditUndo" />
+                      </CdxButton>
+                    </div>
+                  </div>
+                </article>
+              </div>
+              <p class="discussion-footer">View more edits in the <a href="#">recent changes page</a></p>
             </DashboardModule>
-            <DashboardModule :to="HOME" title="Active discussions" cta="View more">
-              <p class="dashboard-preview-line dashboard-preview-line--stacked">
-                <CdxIcon :icon="cdxIconMessage" size="small" aria-hidden="true" />
-                <span><em>What should mentorship be?</em><br />Latest comment: <span class="dashboard-preview-link">18 minutes ago</span></span>
-              </p>
-            </DashboardModule>
-            <DashboardModule title="Policies and guidelines">
-              <p class="dashboard-template-placeholder">Review best practices to create a free and reliable encyclopedia.</p>
+            <DashboardModule title="Active discussions">
+              <div class="discussion-list">
+                <article v-for="discussion in [
+                  ['We need to get rid of the &quot;suggested links&quot; tool', 'Wikipedia:Village pump (proposals)', '22 minutes ago', '53', '16'],
+                  ['Category:Category', 'Wikipedia:Village pump (technical)', '2 hours ago', '2', '2'],
+                  ['Merge PROSPLIT into AfD?', 'Wikipedia:Village pump (idea_lab)', '2 hours ago', '3', '2'],
+                ]" :key="discussion[0]" class="discussion-item">
+                  <strong>{{ discussion[0] }}</strong>
+                  <span class="discussion-item__counts"><CdxIcon :icon="cdxIconMessage" size="x-small" /> {{ discussion[3] }} &nbsp; <CdxIcon :icon="cdxIconUserAvatar" size="x-small" /> {{ discussion[4] }}</span>
+                  <span>{{ discussion[1] }}</span>
+                  <span>Latest comment: <a href="#">{{ discussion[2] }}</a></span>
+                </article>
+              </div>
+              <p class="discussion-footer">View more edits in the <a href="#">recent changes page</a></p>
             </DashboardModule>
           </template>
 
@@ -148,9 +379,122 @@ const impact = {
                 </div>
               </div>
             </DashboardModule>
+            <DashboardModule title="Policies and guidelines">
+              <p class="dashboard-module-intro">Check what is acceptable and expected on Wikipedia.</p>
+              <details v-for="policy in [
+                ['Neutral point of view', 'Content must represent significant views fairly, proportionately, and without bias.'],
+                ['No original research', 'Articles should summarise published sources, and not contain users’ own interpretation or knowledge.'],
+                ['Verifiability', 'New additions should include a citation, providing the source of the information.'],
+                ['Assume good faith', 'Remember that Wikipedia editors are trying to improve Wikipedia and not deliberately reduce its quality.'],
+              ]" :key="policy[0]" class="policy-item" open>
+                <summary>{{ policy[0] }}</summary>
+                <p>{{ policy[1] }}</p>
+              </details>
+            </DashboardModule>
           </template>
         </Dashboard>
       </div>
+
+      <CdxDialog
+        :open="modalReviewIndex !== null"
+        :title="modalConfirmation === 'undo'
+          ? 'Undo'
+          : modalConfirmation === 'thank'
+            ? 'Publicly send ‘Thanks’'
+            : modalReviewChange.title"
+        :subtitle="modalConfirmation ? undefined : 'Revision from 12:41, 23 October 2025'"
+        :use-close-button="!modalConfirmation"
+        class="desktop-review-dialog"
+        :class="{ 'desktop-review-dialog--confirmation': modalConfirmation }"
+        @update:open="updateReviewModalOpen"
+      >
+        <template v-if="modalConfirmation === 'undo'">
+          <p class="desktop-modal-confirmation__description">
+            This will undo the change(s) shown in this revision. Please provide a reason for
+            undoing the edit(s).
+          </p>
+          <CdxTextInput
+            v-model="modalUndoReason"
+            placeholder="eg. Inaccurate information"
+            aria-label="Reason for undoing the edit"
+          />
+          <div class="desktop-modal-confirmation__actions">
+            <CdxButton @click="modalConfirmation = null">Cancel</CdxButton>
+            <CdxButton action="progressive" weight="normal" @click="confirmModalAction">
+              Undo
+            </CdxButton>
+          </div>
+        </template>
+        <template v-else-if="modalConfirmation === 'thank'">
+          <p class="desktop-modal-confirmation__description">
+            It is an easy way to show appreciation for an editor’s work on Wikipedia. ‘Thanks’
+            cannot be undone and are publicly viewable.
+          </p>
+          <div class="desktop-modal-confirmation__actions">
+            <CdxButton @click="modalConfirmation = null">Cancel</CdxButton>
+            <CdxButton action="progressive" weight="normal" @click="confirmModalAction">
+              Thank
+            </CdxButton>
+          </div>
+        </template>
+        <template v-else>
+        <a href="#" class="desktop-review-dialog__user" @click.prevent>
+          <CdxIcon :icon="cdxIconUserAvatar" size="small" />
+          {{ modalReviewChange.editor }}
+        </a>
+        <div class="desktop-review-dialog__diff">
+          <WikipediaDiffContent :change="modalReviewChange" tall :show-heading="false" />
+        </div>
+        <div class="desktop-review-dialog__footer">
+          <CdxButton size="medium" @click="openModalConfirmation('undo')">
+            <CdxIcon :icon="cdxIconEditUndo" /> Undo
+          </CdxButton>
+          <CdxButton size="medium" @click="openModalConfirmation('thank')">
+            <CdxIcon :icon="cdxIconHeartOutline" /> Thank
+          </CdxButton>
+          <div class="desktop-review-dialog__navigation">
+            <CdxButton
+              size="small"
+              :icon-only="true"
+              aria-label="Previous review change"
+              :disabled="modalReviewIndex === 0"
+              @click="moveReviewModal(-1)"
+            >
+              <CdxIcon :icon="cdxIconArrowPrevious" />
+            </CdxButton>
+            <CdxButton
+              size="small"
+              :icon-only="true"
+              aria-label="Next review change"
+              :disabled="modalReviewIndex === desktopReviewChanges.length - 1"
+              @click="moveReviewModal(1)"
+            >
+              <CdxIcon :icon="cdxIconArrowNext" />
+            </CdxButton>
+          </div>
+        </div>
+        </template>
+      </CdxDialog>
+      <UndoConfirmationDialog
+        v-model:open="undoDialogOpen"
+        desktop
+        @confirmed="showUndoConfirmation"
+      />
+      <ThankConfirmationDialog
+        v-model:open="thankDialogOpen"
+        desktop
+        @confirmed="showThankConfirmation"
+      />
+      <CdxToast
+        v-if="confirmationToast"
+        standalone
+        type="success"
+        :auto-dismiss="true"
+        @auto-dismissed="clearConfirmationToast"
+        @user-dismissed="clearConfirmationToast"
+      >
+        {{ confirmationToast }}
+      </CdxToast>
     </SpecialPageWrapper>
   </ChromeWrapper>
 </template>
@@ -162,11 +506,336 @@ const impact = {
   min-width: 0;
 }
 
+.dashboard-view-control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-100, 16px);
+}
+
+.dashboard-header-feedback {
+  display: none;
+  color: var(--color-progressive, #36c);
+  text-decoration: none;
+}
+
+.dashboard-header-feedback:hover {
+  text-decoration: underline;
+}
+
+.desktop-preview-style {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-100, 16px);
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--spacing-75, 12px);
+  border: 1px solid var(--border-color-subtle, #c8ccd1);
+  border-radius: 2px;
+  background: var(--background-color-base, #fff);
+}
+
+.desktop-preview-style > span {
+  font-size: var(--font-size-small, 0.875rem);
+  font-weight: var(--font-weight-bold, 700);
+}
+
 .dashboard-template-placeholder {
   margin: 0;
   font-size: 14px;
   line-height: 1.4;
   color: var(--color-base--subtle, #54595d);
+}
+
+.dashboard-module-intro {
+  margin: 0 0 var(--spacing-100, 16px);
+  line-height: 1.6;
+}
+
+.desktop-review-list {
+  box-sizing: border-box;
+  width: calc(100% + var(--spacing-200, 32px));
+  margin-inline: calc(var(--spacing-100, 16px) * -1);
+  border: 3px solid #eaecf0;
+}
+
+.desktop-review-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-25, 4px);
+  min-width: 0;
+  padding: var(--spacing-100, 16px);
+  border-bottom: 3px solid #eaecf0;
+  border-radius: 2px;
+}
+
+.desktop-review-item:last-child {
+  border-bottom: 0;
+}
+
+.desktop-review-item--modal {
+  cursor: pointer;
+}
+
+.desktop-review-item--modal:hover,
+.desktop-review-item--modal:focus-visible {
+  background: var(--background-color-interactive-subtle, #f8f9fa);
+}
+
+.desktop-review-item--modal:focus-visible {
+  outline: 2px solid var(--color-progressive, #36c);
+  outline-offset: -2px;
+}
+
+.desktop-review-item__title,
+.desktop-review-item__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-50, 8px);
+  min-width: 0;
+}
+
+.desktop-review-item__title span,
+.desktop-review-item__footer > p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desktop-review-item__meta {
+  gap: var(--spacing-25, 4px);
+}
+
+.desktop-review-item__footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--spacing-100, 16px);
+  min-width: 0;
+}
+
+.desktop-review-item p {
+  min-width: 0;
+  margin: 0;
+}
+
+.preview-change-button {
+  flex-shrink: 0;
+}
+
+.desktop-inline-diff {
+  margin: var(--spacing-75, 12px) calc(var(--spacing-100, 16px) * -1)
+    calc(var(--spacing-100, 16px) * -1);
+  border-top: 1px solid var(--border-color-subtle, #c8ccd1);
+}
+
+.desktop-inline-diff__content {
+  padding: 0;
+  background: #f8f9fa;
+  color: var(--color-base--subtle, #54595d);
+  font-size: var(--font-size-small, 0.875rem);
+  line-height: var(--line-height-small, 1.43);
+}
+
+.desktop-inline-diff__content p {
+  margin: 0 0 var(--spacing-75, 12px);
+  white-space: normal;
+}
+
+.desktop-inline-diff__content p:last-child {
+  margin-bottom: 0;
+}
+
+.diff-addition {
+  background: var(--background-color-success-subtle, #d5fdf4);
+  text-decoration: underline;
+  text-decoration-color: var(--border-color-success, #14866d);
+  text-decoration-thickness: 2px;
+}
+
+.diff-removal {
+  background: var(--background-color-error-subtle, #fee7e6);
+  text-decoration: line-through;
+  text-decoration-color: var(--border-color-error, #b32424);
+  text-decoration-thickness: 2px;
+}
+
+.desktop-inline-diff__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-75, 12px);
+  padding: var(--spacing-50, 8px) var(--spacing-100, 16px);
+  background: #f8f9fa;
+}
+
+.desktop-inline-diff__label-actions {
+  display: flex;
+  gap: var(--spacing-100, 16px);
+  padding: var(--spacing-100, 16px);
+  background: #f8f9fa;
+}
+
+.desktop-inline-diff__label-actions .cdx-button {
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-50, 8px);
+  min-height: 32px;
+  padding: var(--spacing-25, 4px) var(--spacing-75, 12px);
+  font-size: var(--font-size-small, 0.875rem);
+  font-weight: var(--font-weight-bold, 700);
+}
+
+.desktop-review-dialog__user {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-25, 4px);
+  margin: calc(var(--spacing-100, 16px) * -1) -24px 0;
+  padding: var(--spacing-75, 12px) var(--spacing-100, 16px);
+  border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
+  color: var(--color-progressive, #36c);
+  font-weight: var(--font-weight-bold, 700);
+  text-decoration: none;
+}
+
+.desktop-review-dialog__diff {
+  margin-inline: -24px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+  font-size: var(--font-size-small, 0.875rem);
+  line-height: 1.6;
+}
+
+.desktop-review-dialog__diff p {
+  margin: 0 0 var(--spacing-100, 16px);
+}
+
+.desktop-review-dialog__unchanged {
+  color: var(--color-base--subtle, #72777d);
+}
+
+.desktop-review-dialog__footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--spacing-50, 8px);
+  margin: 0 -24px -24px;
+  padding: var(--spacing-75, 12px) var(--spacing-100, 16px);
+  border-top: 1px solid var(--border-color-subtle, #c8ccd1);
+  background: var(--background-color-base, #fff);
+}
+
+.desktop-review-dialog__footer > .cdx-button {
+  justify-content: center;
+  font-weight: var(--font-weight-bold, 700);
+}
+
+.desktop-review-dialog__navigation {
+  display: flex;
+  gap: var(--spacing-50, 8px);
+}
+
+.desktop-review-dialog__navigation .cdx-button {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+}
+
+.desktop-modal-confirmation__description {
+  margin: 0 0 var(--spacing-100, 16px);
+  font-size: var(--font-size-medium, 1rem);
+  line-height: 1.6;
+}
+
+.desktop-modal-confirmation__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-75, 12px);
+  margin-top: var(--spacing-150, 24px);
+}
+
+.desktop-modal-confirmation__actions .cdx-button {
+  min-width: 88px;
+}
+
+:deep(.desktop-review-dialog .cdx-dialog__frame) {
+  width: min(512px, calc(100vw - 32px));
+}
+
+:deep(.desktop-review-dialog .cdx-dialog__body) {
+  overflow: hidden;
+}
+
+:deep(.desktop-review-dialog--confirmation .cdx-dialog__header__close-button) {
+  display: none;
+}
+
+:deep(.desktop-review-dialog__diff iframe) {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+}
+
+.discussion-list {
+  box-sizing: border-box;
+  width: calc(100% + var(--spacing-200, 32px));
+  margin-inline: calc(var(--spacing-100, 16px) * -1);
+  border: 3px solid #eaecf0;
+}
+
+.discussion-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-25, 4px);
+  padding: var(--spacing-100, 16px);
+  border-bottom: 3px solid #eaecf0;
+  border-radius: 2px;
+}
+
+.discussion-item:last-child {
+  border-bottom: 0;
+}
+
+.discussion-item__counts {
+  position: absolute;
+  inset-block-start: var(--spacing-100, 16px);
+  inset-inline-end: var(--spacing-100, 16px);
+  display: flex;
+  align-items: center;
+}
+
+.discussion-item a,
+.discussion-footer a {
+  color: var(--color-progressive, #36c);
+  text-decoration: none;
+}
+
+.discussion-footer {
+  margin: var(--spacing-100, 16px) 0 0;
+}
+
+.policy-item {
+  padding: var(--spacing-75, 12px) 0;
+  border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
+}
+
+.policy-item:last-child {
+  border-bottom: 0;
+}
+
+.policy-item summary {
+  font-weight: var(--font-weight-bold, 700);
+  cursor: pointer;
+}
+
+.policy-item p {
+  margin: var(--spacing-25, 4px) 0 0 var(--spacing-125, 20px);
+  line-height: 1.5;
 }
 
 .dashboard-impact-rows {
@@ -218,7 +887,41 @@ const impact = {
   min-height: 3rem;
 }
 
+:deep(.dashboard-active-discussions-mobile .mobile-card__button) {
+  background: var(--background-color-interactive-subtle, #f8f9fa);
+  color: var(--color-base, #202122);
+  border: 1px solid var(--border-color-interactive, #72777d);
+}
+
 :deep(.dashboard-slot--desktop-primary .dashboard-module) {
   min-height: 8rem;
+  width: 100%;
 }
+
+@media (max-width: 639px) {
+  :deep(.special-page-wrapper[data-skin='mobile'] .special-page-wrapper__header) {
+    row-gap: 0;
+  }
+
+  :deep(.special-page-wrapper[data-skin='mobile'] .special-page-wrapper__header-aside),
+  :deep(.special-page-wrapper[data-skin='mobile'] .special-page-wrapper__actions) {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .special-page-wrapper[data-skin='mobile'] .dashboard-view-control {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-50, 8px);
+  }
+
+  .special-page-wrapper[data-skin='mobile'] .dashboard-header-feedback {
+    display: inline-flex;
+  }
+
+  :deep(.special-page-wrapper[data-skin='mobile'] .personal-dashboard-clone .dashboard-mobile-banner) {
+    display: none;
+  }
+}
+
 </style>

@@ -33,7 +33,7 @@ import type { Skin } from '@/theme'
 import WikipediaDiffContent from './review-changes/WikipediaDiffContent.vue'
 import ThankConfirmationDialog from './review-changes/ThankConfirmationDialog.vue'
 import UndoConfirmationDialog from './review-changes/UndoConfirmationDialog.vue'
-import { reviewChanges } from './reviewChanges'
+import { reviewChanges, type ReviewChange } from './reviewChanges'
 
 definePage({
   meta: {
@@ -105,6 +105,35 @@ function showUndoConfirmation(): void {
 
 function showThankConfirmation(): void {
   confirmationToast.value = `You thanked ${activeReviewEditor.value}.`
+}
+
+function markEditReviewed(): void {
+  confirmationToast.value = 'Edit marked as reviewed'
+}
+
+function openFullDiff(change: ReviewChange): void {
+  const title = encodeURIComponent(change.title.replaceAll(' ', '_'))
+  const url =
+    `https://en.wikipedia.org/w/index.php?title=${title}` +
+    `&diff=${change.revisionId}` +
+    `&oldid=${change.oldRevisionId}&diffmode=visual`
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+function userPageUrl(editor: string): string {
+  return `https://en.wikipedia.org/wiki/User:${encodeURIComponent(editor.replaceAll(' ', '_'))}`
+}
+
+function userTalkPageUrl(editor: string): string {
+  return `https://en.wikipedia.org/wiki/User_talk:${encodeURIComponent(editor.replaceAll(' ', '_'))}`
+}
+
+function userContributionsUrl(editor: string): string {
+  return `https://en.wikipedia.org/wiki/Special:Contributions/${encodeURIComponent(editor.replaceAll(' ', '_'))}`
+}
+
+function openUserTalkPage(editor: string): void {
+  window.open(userTalkPageUrl(editor), '_blank', 'noopener,noreferrer')
 }
 
 function clearConfirmationToast(): void {
@@ -264,7 +293,17 @@ const impact = {
                   </div>
                   <div class="desktop-review-item__meta">
                     <CdxIcon :icon="cdxIconUserAvatar" size="x-small" />
-                    <strong>{{ change.editor }}</strong>
+                    <a
+                      v-if="desktopReviewPresentation === 'icons' || desktopReviewPresentation === 'labels'"
+                      :href="userPageUrl(change.editor)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="desktop-review-item__username"
+                      @click.stop
+                    >
+                      {{ change.editor }}
+                    </a>
+                    <strong v-else>{{ change.editor }}</strong>
                     <span>· {{ change.time }}</span>
                   </div>
                   <div class="desktop-review-item__footer">
@@ -290,9 +329,9 @@ const impact = {
                       class="desktop-inline-diff__label-actions"
                       aria-label="Review actions"
                     >
-                      <CdxButton>
-                        <CdxIcon :icon="cdxIconUserTalk" />
-                        Message
+                      <CdxButton @click.stop="markEditReviewed">
+                        <CdxIcon :icon="cdxIconCheck" />
+                        Reviewed
                       </CdxButton>
                       <CdxButton @click.stop="undoDialogOpen = true">
                         <CdxIcon :icon="cdxIconEditUndo" />
@@ -311,7 +350,21 @@ const impact = {
                       class="desktop-inline-diff__actions"
                       aria-label="Review actions"
                     >
-                      <CdxButton weight="quiet" :icon-only="true" aria-label="Leave a message">
+                      <CdxButton
+                        action="progressive"
+                        weight="quiet"
+                        size="small"
+                        class="desktop-inline-diff__full-diff"
+                        @click.stop="openFullDiff(change)"
+                      >
+                        Full diff
+                      </CdxButton>
+                      <CdxButton
+                        weight="quiet"
+                        :icon-only="true"
+                        aria-label="Open user talk page"
+                        @click.stop="openUserTalkPage(change.editor)"
+                      >
                         <CdxIcon :icon="cdxIconUserTalk" />
                       </CdxButton>
                       <CdxButton
@@ -329,6 +382,14 @@ const impact = {
                         @click.stop="undoDialogOpen = true"
                       >
                         <CdxIcon :icon="cdxIconEditUndo" />
+                      </CdxButton>
+                      <CdxButton
+                        weight="quiet"
+                        :icon-only="true"
+                        aria-label="Mark edit as reviewed"
+                        @click.stop="markEditReviewed"
+                      >
+                        <CdxIcon :icon="cdxIconCheck" />
                       </CdxButton>
                     </div>
                   </div>
@@ -438,14 +499,47 @@ const impact = {
           </div>
         </template>
         <template v-else>
-        <a href="#" class="desktop-review-dialog__user" @click.prevent>
-          <CdxIcon :icon="cdxIconUserAvatar" size="small" />
-          {{ modalReviewChange.editor }}
-        </a>
+        <div class="desktop-review-dialog__meta">
+          <div class="desktop-review-dialog__user-links">
+            <a
+              :href="userPageUrl(modalReviewChange.editor)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="desktop-review-dialog__user"
+            >
+              <CdxIcon :icon="cdxIconUserAvatar" size="small" />
+              {{ modalReviewChange.editor }}
+            </a>
+            <span aria-hidden="true">(</span>
+            <a
+              :href="userTalkPageUrl(modalReviewChange.editor)"
+              target="_blank"
+              rel="noopener noreferrer"
+            >talk</a>
+            <span aria-hidden="true">|</span>
+            <a
+              :href="userContributionsUrl(modalReviewChange.editor)"
+              target="_blank"
+              rel="noopener noreferrer"
+            >contribs</a>
+            <span aria-hidden="true">)</span>
+          </div>
+          <CdxButton
+            action="progressive"
+            weight="quiet"
+            class="desktop-review-dialog__full-diff"
+            @click="openFullDiff(modalReviewChange)"
+          >
+            Full diff
+          </CdxButton>
+        </div>
         <div class="desktop-review-dialog__diff">
           <WikipediaDiffContent :change="modalReviewChange" tall :show-heading="false" />
         </div>
         <div class="desktop-review-dialog__footer">
+          <CdxButton size="medium" @click="markEditReviewed">
+            <CdxIcon :icon="cdxIconCheck" /> Reviewed
+          </CdxButton>
           <CdxButton size="medium" @click="openModalConfirmation('undo')">
             <CdxIcon :icon="cdxIconEditUndo" /> Undo
           </CdxButton>
@@ -606,6 +700,16 @@ const impact = {
   gap: var(--spacing-25, 4px);
 }
 
+.desktop-review-item__username {
+  color: var(--color-progressive, #36c);
+  font-weight: var(--font-weight-bold, 700);
+  text-decoration: none;
+}
+
+.desktop-review-item__username:hover {
+  text-decoration: underline;
+}
+
 .desktop-review-item__footer {
   display: flex;
   align-items: flex-end;
@@ -662,10 +766,16 @@ const impact = {
 
 .desktop-inline-diff__actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: var(--spacing-75, 12px);
   padding: var(--spacing-50, 8px) var(--spacing-100, 16px);
   background: #f8f9fa;
+}
+
+.desktop-inline-diff__full-diff {
+  margin-right: auto;
+  font-weight: var(--font-weight-bold, 700);
 }
 
 .desktop-inline-diff__label-actions {
@@ -687,16 +797,44 @@ const impact = {
   font-weight: var(--font-weight-bold, 700);
 }
 
+.desktop-review-dialog__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: calc(var(--spacing-100, 16px) * -1) -24px 0;
+  padding: var(--spacing-75, 12px) var(--spacing-100, 16px);
+  border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
+}
+
 .desktop-review-dialog__user {
   display: flex;
   align-items: center;
   gap: var(--spacing-25, 4px);
-  margin: calc(var(--spacing-100, 16px) * -1) -24px 0;
-  padding: var(--spacing-75, 12px) var(--spacing-100, 16px);
-  border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
   color: var(--color-progressive, #36c);
   font-weight: var(--font-weight-bold, 700);
   text-decoration: none;
+}
+
+.desktop-review-dialog__user-links {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-25, 4px);
+}
+
+.desktop-review-dialog__user-links > a:not(.desktop-review-dialog__user) {
+  color: var(--color-progressive, #36c);
+  text-decoration: none;
+}
+
+.desktop-review-dialog__user-links > a:hover {
+  text-decoration: underline;
+}
+
+.desktop-review-dialog__full-diff {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-25, 4px);
+  font-weight: var(--font-weight-bold, 700);
 }
 
 .desktop-review-dialog__diff {
@@ -719,7 +857,7 @@ const impact = {
 
 .desktop-review-dialog__footer {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
   gap: var(--spacing-50, 8px);
   margin: 0 -24px -24px;
   padding: var(--spacing-75, 12px) var(--spacing-100, 16px);

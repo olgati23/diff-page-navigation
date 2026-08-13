@@ -3,6 +3,8 @@ export interface ReviewChange {
   description: string
   editor: string
   time: string
+  oldRevisionId: number
+  revisionId: number
   revisionDate: string
   summary: string
   tags?: string[]
@@ -12,44 +14,51 @@ export const reviewChanges: ReviewChange[] = [
   {
     title: 'Giant panda',
     description: 'Bear species native to south central China',
-    editor: 'BambooEditor',
-    time: '1 hour ago',
-    revisionDate: '31 July 2026, 06:58',
-    summary: 'Clarified the description of its diet',
-  },
-  {
-    title: 'Monarch butterfly',
-    description: 'Milkweed butterfly found across North America',
-    editor: 'WildlifeWatcher',
-    time: '8 minutes ago',
-    revisionDate: '31 July 2026, 07:52',
-    summary: 'Added a citation about the autumn migration route',
-    tags: ['Visual edit', 'Mobile edit'],
-  },
-  {
-    title: 'California redwood',
-    description: 'Tall evergreen tree native to coastal California',
-    editor: 'ForestFriend',
-    time: '2 hours ago',
-    revisionDate: '31 July 2026, 05:43',
-    summary: 'Added an internal link to redwood conservation',
-    tags: ['Visual edit', 'DiscussionTools'],
-  },
-  {
-    title: 'Venus flytrap',
-    description: 'Carnivorous plant native to North Carolina and South Carolina',
-    editor: 'PlantLore',
-    time: '24 minutes ago',
-    revisionDate: '31 July 2026, 07:36',
-    summary: 'Expanded the section on its natural habitat',
-    tags: ['Visual edit'],
+    editor: 'LeandroPucha',
+    time: '1 minute ago',
+    oldRevisionId: 1321031198,
+    revisionId: 1322193759,
+    revisionDate: '14 November 2025, 21:51',
+    summary: 'Added information about the bite force of giant pandas',
   },
   {
     title: 'Axolotl',
-    description: 'Salamander native to lakes near Mexico City',
-    editor: 'AmphibianAtlas',
-    time: '3 hours ago',
-    revisionDate: '31 July 2026, 04:51',
-    summary: 'Updated the conservation-status citation',
+    description: 'Aquatic salamander native to lakes near Mexico City',
+    editor: 'ARoseThorn',
+    time: '2 minutes ago',
+    oldRevisionId: 1356709509,
+    revisionId: 1356738410,
+    revisionDate: '29 May 2026, 14:59',
+    summary: 'Expanded the article with information about axolotls in human care',
+  },
+  {
+    title: 'Tiger',
+    description: 'Largest living cat species, native to Asia',
+    editor: 'BhagyaMani',
+    time: '3 minutes ago',
+    oldRevisionId: 1367202289,
+    revisionId: 1367220244,
+    revisionDate: '1 August 2026, 20:06',
+    summary: 'Shortened and clarified the description of tiger anatomy',
+  },
+  {
+    title: 'Orchid',
+    description: 'Diverse family of flowering plants',
+    editor: 'Chiswick Chap',
+    time: '4 minutes ago',
+    oldRevisionId: 1307714448,
+    revisionId: 1307742282,
+    revisionDate: '25 August 2025, 12:34',
+    summary: 'Clarified the variation in orchid flower forms',
+  },
+  {
+    title: 'Blue whale',
+    description: 'Marine mammal and the largest animal known to have existed',
+    editor: 'Oxymetheus',
+    time: '5 minutes ago',
+    oldRevisionId: 1331474466,
+    revisionId: 1331917300,
+    revisionDate: '8 January 2026, 22:25',
+    summary: 'Clarified a paragraph about an early blue whale fetus',
   },
 ]

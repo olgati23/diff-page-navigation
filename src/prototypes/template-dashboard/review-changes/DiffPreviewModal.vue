@@ -10,14 +10,13 @@ import {
 import {
   cdxIconArrowNext,
   cdxIconArrowPrevious,
+  cdxIconCheck,
   cdxIconHeartOutline,
   cdxIconClose,
   cdxIconCollapse,
   cdxIconEditUndo,
   cdxIconExpand,
   cdxIconInfoFilled,
-  cdxIconLinkExternal,
-  cdxIconUserTalk,
   cdxIconUserAvatar,
 } from '@wikimedia/codex-icons'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -26,6 +25,7 @@ import { wikimediaApiFetchHeaders } from '@/config'
 import type { ReviewChange } from '../reviewChanges'
 import ThankConfirmationDialog from './ThankConfirmationDialog.vue'
 import UndoConfirmationDialog from './UndoConfirmationDialog.vue'
+import { buildVisualDiffDocument } from './visualDiff'
 
 const props = defineProps<{
   change: ReviewChange
@@ -71,71 +71,6 @@ function findFirstChangedSection(diffMarkup: string): string | null {
   return null
 }
 
-function buildDiffOnlyDocument(diffMarkup: string, section: string | null): string {
-  const documentModel = new DOMParser().parseFromString(
-    `<table><tbody>${diffMarkup}</tbody></table>`,
-    'text/html',
-  )
-  const changedRows = [...documentModel.querySelectorAll('tr')].filter((row) =>
-    row.querySelector('.diff-addedline, .diff-deletedline'),
-  )
-  const rows = changedRows
-    .map((row) => {
-      const removed = row.querySelector('.diff-deletedline > div')?.cloneNode(true) as
-        | HTMLElement
-        | undefined
-      const added = row.querySelector('.diff-addedline > div')?.cloneNode(true) as
-        | HTMLElement
-        | undefined
-
-      if (added) {
-        added.querySelectorAll('.diffchange, ins').forEach((change) =>
-          change.classList.add('inline-added'),
-        )
-        const removedChanges = removed
-          ? [...removed.querySelectorAll('.diffchange, del')]
-              .filter((change, index, changes) =>
-                !changes.some((parent, parentIndex) => parentIndex < index && parent.contains(change)),
-              )
-          : []
-        const firstAddition = added.querySelector('.inline-added')
-        removedChanges.forEach((change) => {
-          const deletion = documentModel.createElement('del')
-          deletion.className = 'inline-removed'
-          deletion.textContent = change.textContent
-          if (firstAddition?.parentNode) {
-            firstAddition.parentNode.insertBefore(deletion, firstAddition)
-            firstAddition.parentNode.insertBefore(documentModel.createTextNode(' '), firstAddition)
-          } else {
-            added.append(deletion)
-          }
-        })
-        return `<div class="change-inline">${added.innerHTML}</div>`
-      }
-
-      if (removed) {
-        removed.querySelectorAll('.diffchange, del').forEach((change) =>
-          change.classList.add('inline-removed'),
-        )
-        return `<div class="change-inline">${removed.innerHTML}</div>`
-      }
-
-      return ''
-    })
-    .join('')
-
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
-    html, body { margin: 0; color: #202122; background: #fff; font: 16px/1.6 sans-serif; }
-    main { padding: 0 0 24px; }
-    h2 { margin: 0 0 6px; padding: 13px 0 0; border-top: 1px solid #c8ccd1;
-      color: #54595d; background: transparent;
-      font-size: 16px; font-weight: 700; line-height: 1.6; }
-    .change-inline { margin: 0 0 12px; padding: 0; }
-    .inline-removed, del { background: #ff9f9b; text-decoration: line-through; }
-    .inline-added, ins { background: #a3e6d4; text-decoration: underline; }
-  </style></head><body><main><h2>${section?.replaceAll('_', ' ') ?? 'Changed content'}</h2>${rows}</main></body></html>`
-}
-
 async function loadWikipediaVisualDiff() {
   diffRequest?.abort()
   diffRequest = new AbortController()
@@ -145,26 +80,12 @@ async function loadWikipediaVisualDiff() {
   diffDocumentHtml.value = null
 
   try {
-    const encodedTitle = encodeURIComponent(props.change.title.replaceAll(' ', '_'))
-    const endpoint =
-      `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*` +
-      `&formatversion=2&prop=revisions&titles=${encodedTitle}` +
-      `&rvprop=ids&rvlimit=2`
-    const response = await fetch(endpoint, {
-      signal: diffRequest.signal,
-      headers: wikimediaApiFetchHeaders('review-changes-preview-revisions'),
-    })
-    if (!response.ok) throw new Error(`Wikipedia returned ${response.status}`)
-    const data = await response.json()
-    const [current, previous] = data.query?.pages?.[0]?.revisions ?? []
-    if (!current || !previous) throw new Error('Not enough revisions to compare')
-
     let section: string | null = null
     let comparisonMarkup = ''
     try {
       const compareEndpoint =
         `https://en.wikipedia.org/w/api.php?action=compare&format=json&origin=*` +
-        `&fromrev=${previous.revid}&torev=${current.revid}&prop=diff`
+        `&fromrev=${props.change.oldRevisionId}&torev=${props.change.revisionId}&prop=diff`
       const compareResponse = await fetch(compareEndpoint, {
         signal: diffRequest.signal,
         headers: wikimediaApiFetchHeaders('review-changes-preview-compare'),
@@ -184,7 +105,11 @@ async function loadWikipediaVisualDiff() {
     if (!comparisonMarkup) throw new Error('Wikipedia returned an empty comparison')
     changedSection.value = section
     diffUrl.value = 'local-diff-document'
-    diffDocumentHtml.value = buildDiffOnlyDocument(comparisonMarkup, section)
+    diffDocumentHtml.value = await buildVisualDiffDocument(
+      comparisonMarkup,
+      diffRequest.signal,
+      { heading: section, mobile: true },
+    )
   } catch (error) {
     if ((error as Error).name !== 'AbortError') {
       diffError.value = 'The Wikipedia visual diff could not be loaded.'
@@ -205,6 +130,10 @@ function showUndoConfirmation(): void {
 
 function showThankConfirmation(): void {
   confirmationToast.value = `You thanked ${props.change.editor}.`
+}
+
+function markEditReviewed(): void {
+  confirmationToast.value = 'Edit marked as reviewed'
 }
 
 function clearConfirmationToast(): void {
@@ -303,24 +232,9 @@ async function openFullDiff(mobile = false) {
   const fallbackUrl = `https://${wikiHost}/w/index.php?title=${encodedTitle}&action=history`
 
   try {
-    const endpoint =
-      `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*` +
-      `&prop=revisions&titles=${encodedTitle}&rvprop=ids%7Ctimestamp&rvlimit=2`
-    const response = await fetch(endpoint, {
-      headers: wikimediaApiFetchHeaders('review-changes-full-diff'),
-    })
-    if (!response.ok) throw new Error('Could not load revisions')
-
-    const data = await response.json()
-    const page = Object.values(data.query?.pages ?? {})[0] as {
-      revisions?: { revid: number }[]
-    }
-    const [current, previous] = page.revisions ?? []
-    if (!current || !previous) throw new Error('Not enough revisions')
-
     const diffUrl =
       `https://${wikiHost}/w/index.php?title=${encodedTitle}` +
-      `&diff=${current.revid}&oldid=${previous.revid}&diffmode=visual`
+      `&diff=${props.change.revisionId}&oldid=${props.change.oldRevisionId}&diffmode=visual`
     if (popup) popup.location.href = diffUrl
   } catch {
     if (popup) popup.location.href = fallbackUrl
@@ -390,8 +304,7 @@ onBeforeUnmount(() => {
             weight="quiet"
             @click="openFullDiff(false)"
           >
-            Open full diff
-            <CdxIcon :icon="cdxIconLinkExternal" size="x-small" aria-hidden="true" />
+            Full diff
           </CdxButton>
 
           <div class="diff-preview__revision-navigation" aria-label="Revision navigation">
@@ -452,8 +365,7 @@ onBeforeUnmount(() => {
               weight="quiet"
               @click="openFullDiff(false)"
             >
-              Open full diff
-              <CdxIcon :icon="cdxIconLinkExternal" size="x-small" aria-hidden="true" />
+              Full diff
             </CdxButton>
           </div>
         </CdxAccordion>
@@ -469,8 +381,7 @@ onBeforeUnmount(() => {
             {{ props.change.editor }}
           </a>
           <CdxButton action="progressive" weight="quiet" @click="openFullDiff(true)">
-            Open full diff
-            <CdxIcon :icon="cdxIconLinkExternal" size="x-small" aria-hidden="true" />
+            Full diff
           </CdxButton>
         </div>
 
@@ -504,7 +415,10 @@ onBeforeUnmount(() => {
           :aria-expanded="editorCardOpen"
           @click="editorCardOpen = !editorCardOpen"
         >
-          <span>{{ props.change.editor }}</span>
+          <span class="diff-preview__editor-card-username">
+            <CdxIcon :icon="cdxIconUserAvatar" size="small" aria-hidden="true" />
+            {{ props.change.editor }}
+          </span>
           <CdxIcon
             :icon="editorCardOpen ? cdxIconCollapse : cdxIconExpand"
             size="small"
@@ -523,6 +437,9 @@ onBeforeUnmount(() => {
           </p>
           <CdxButton action="progressive" @click="thankDialogOpen = true">Thank</CdxButton>
           <CdxButton @click="undoDialogOpen = true">Undo</CdxButton>
+          <CdxButton @click="markEditReviewed">
+            Reviewed
+          </CdxButton>
         </div>
       </footer>
 
@@ -549,9 +466,6 @@ onBeforeUnmount(() => {
         >
           <CdxIcon :icon="cdxIconArrowNext" />
         </CdxButton>
-        <CdxButton weight="quiet" :icon-only="true" aria-label="Comment">
-          <CdxIcon :icon="cdxIconUserTalk" />
-        </CdxButton>
         <CdxButton
           weight="quiet"
           :icon-only="true"
@@ -567,6 +481,14 @@ onBeforeUnmount(() => {
           @click="undoDialogOpen = true"
         >
           <CdxIcon :icon="cdxIconEditUndo" />
+        </CdxButton>
+        <CdxButton
+          weight="quiet"
+          :icon-only="true"
+          aria-label="Mark edit as reviewed"
+          @click="markEditReviewed"
+        >
+          <CdxIcon :icon="cdxIconCheck" />
         </CdxButton>
       </footer>
     </section>
@@ -876,6 +798,12 @@ onBeforeUnmount(() => {
 .diff-preview__editor-card-toggle:focus-visible {
   outline: 2px solid var(--border-color-progressive--focus);
   outline-offset: -2px;
+}
+
+.diff-preview__editor-card-username {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-25, 4px);
 }
 
 .diff-preview__editor-card-body {

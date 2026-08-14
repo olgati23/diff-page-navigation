@@ -551,7 +551,9 @@ onBeforeUnmount(() => {
     <CdxToast
       v-if="confirmationToast"
       standalone
+      class="mobile-prototype-toast"
       type="success"
+      :prevent-user-dismiss="false"
       :auto-dismiss="true"
       @auto-dismissed="clearConfirmationToast"
       @user-dismissed="clearConfirmationToast"
@@ -562,6 +564,14 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+:global(.mobile-prototype-toast .cdx-message__dismiss-button) {
+  display: none;
+}
+
+:global(.mobile-prototype-toast .cdx-message--user-dismissable) {
+  padding-right: var(--spacing-75, 12px);
+}
+
 .diff-preview-backdrop {
   position: fixed;
   inset: 0;

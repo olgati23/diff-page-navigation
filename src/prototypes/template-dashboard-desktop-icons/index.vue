@@ -48,6 +48,7 @@ const modalReviewIndex = ref<number | null>(null)
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
 const confirmationToast = ref('')
+const reviewedChanges = ref<Set<string>>(new Set())
 const modalConfirmation = ref<'undo' | 'thank' | null>(null)
 const modalUndoReason = ref('')
 
@@ -95,7 +96,10 @@ function showThankConfirmation(): void {
   confirmationToast.value = `You thanked ${activeReviewEditor.value}.`
 }
 
-function markEditReviewed(): void {
+function markEditReviewed(changeTitle?: string): void {
+  if (changeTitle) {
+    reviewedChanges.value = new Set([...reviewedChanges.value, changeTitle])
+  }
   confirmationToast.value = 'Edit marked as reviewed'
 }
 
@@ -265,6 +269,13 @@ const impact = {
                   <div class="desktop-review-item__title">
                     <strong>{{ change.title }}</strong>
                     <span v-if="change.description">{{ change.description }}</span>
+                    <CdxIcon
+                      v-if="reviewedChanges.has(change.title)"
+                      :icon="cdxIconCheck"
+                      size="small"
+                      class="desktop-review-item__reviewed-status"
+                      icon-label="Edit reviewed"
+                    />
                   </div>
                   <div class="desktop-review-item__meta">
                     <CdxIcon :icon="cdxIconUserAvatar" size="x-small" />
@@ -359,7 +370,7 @@ const impact = {
                         weight="quiet"
                         :icon-only="true"
                         aria-label="Mark edit as reviewed"
-                        @click.stop="markEditReviewed"
+                        @click.stop="markEditReviewed(change.title)"
                       >
                         <CdxIcon :icon="cdxIconCheck" />
                       </CdxButton>
@@ -665,6 +676,12 @@ const impact = {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.desktop-review-item__reviewed-status {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  color: var(--color-icon-success, #099979);
 }
 
 .desktop-review-item__meta {

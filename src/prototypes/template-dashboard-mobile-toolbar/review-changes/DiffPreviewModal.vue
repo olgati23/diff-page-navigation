@@ -18,7 +18,6 @@ import {
   cdxIconInfoFilled,
   cdxIconNext,
   cdxIconPrevious,
-  cdxIconSuccess,
   cdxIconUserAvatar,
 } from '@wikimedia/codex-icons'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -462,7 +461,7 @@ onBeforeUnmount(() => {
           </span>
           <CdxIcon
             v-if="reviewedChanges.has(props.change.title)"
-            :icon="cdxIconSuccess"
+            :icon="cdxIconCheck"
             size="small"
             class="diff-preview__reviewed-status"
             icon-label="Edit reviewed"
@@ -537,7 +536,7 @@ onBeforeUnmount(() => {
           :class="{ 'diff-preview__reviewed-action--complete': reviewedChanges.has(props.change.title) }"
           @click="markEditReviewed"
         >
-          <CdxIcon :icon="reviewedChanges.has(props.change.title) ? cdxIconSuccess : cdxIconCheck" />
+          <CdxIcon :icon="cdxIconCheck" />
         </CdxButton>
       </footer>
     </section>

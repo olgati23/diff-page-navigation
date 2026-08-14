@@ -16,7 +16,6 @@ import {
   cdxIconExpand,
   cdxIconHeartOutline,
   cdxIconMessage,
-  cdxIconSuccess,
   cdxIconUserAvatar,
   cdxIconUserTalk,
 } from '@wikimedia/codex-icons'
@@ -273,7 +272,7 @@ const impact = {
                     <span v-if="change.description">{{ change.description }}</span>
                     <CdxIcon
                       v-if="reviewedChanges.has(change.title)"
-                      :icon="cdxIconSuccess"
+                      :icon="cdxIconCheck"
                       size="small"
                       class="desktop-review-item__reviewed-status"
                       icon-label="Edit reviewed"
@@ -533,7 +532,7 @@ const impact = {
             :class="{ 'desktop-review-dialog__reviewed--complete': reviewedChanges.has(modalReviewChange.title) }"
             @click="markEditReviewed"
           >
-            <CdxIcon :icon="reviewedChanges.has(modalReviewChange.title) ? cdxIconSuccess : cdxIconCheck" /> Reviewed
+            <CdxIcon :icon="cdxIconCheck" /> Reviewed
           </CdxButton>
           <div class="desktop-review-dialog__navigation">
             <CdxButton

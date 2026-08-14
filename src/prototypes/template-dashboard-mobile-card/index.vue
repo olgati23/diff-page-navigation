@@ -25,7 +25,6 @@ import { RouterLink } from 'vue-router'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
-import { useSkin } from '@/composables/useSkin'
 import Dashboard from '@/components/dashboard/Dashboard.vue'
 import DashboardModule from '@/components/dashboard/DashboardModule.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
@@ -43,8 +42,7 @@ definePage({
 })
 
 const { pageTitle } = useConfig()
-const currentSkin = useSkin()
-const dashboardView = ref<Skin>(currentSkin.value)
+const dashboardView: Skin = 'mobile'
 const expandedReviewChange = ref<string | null>(null)
 const desktopReviewPresentation = ref('icons')
 const modalReviewIndex = ref<number | null>(null)
@@ -53,10 +51,6 @@ const thankDialogOpen = ref(false)
 const confirmationToast = ref('')
 const modalConfirmation = ref<'undo' | 'thank' | null>(null)
 const modalUndoReason = ref('')
-const dashboardViewButtons = [
-  { value: 'mobile', label: 'Mobile' },
-  { value: 'desktop', label: 'Desktop' },
-]
 const desktopReviewPresentationButtons = [
   { value: 'icons', label: 'Icons' },
   { value: 'labels', label: 'Labels' },
@@ -189,11 +183,6 @@ const impact = {
           <RouterLink :to="HOME" class="dashboard-header-feedback">
             Share feedback
           </RouterLink>
-          <CdxToggleButtonGroup
-            v-model="dashboardView"
-            :buttons="dashboardViewButtons"
-            aria-label="Dashboard view"
-          />
         </div>
       </template>
 

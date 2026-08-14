@@ -18,6 +18,7 @@ import {
   cdxIconInfoFilled,
   cdxIconNext,
   cdxIconPrevious,
+  cdxIconSuccess,
   cdxIconUserAvatar,
 } from '@wikimedia/codex-icons'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -51,6 +52,7 @@ const diffError = ref<string | null>(null)
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
 const confirmationToast = ref('')
+const reviewedChanges = ref<Set<string>>(new Set())
 let diffRequest: AbortController | null = null
 
 function findFirstChangedSection(diffMarkup: string): string | null {
@@ -153,6 +155,7 @@ function showThankConfirmation(): void {
 }
 
 function markEditReviewed(): void {
+  reviewedChanges.value = new Set([...reviewedChanges.value, props.change.title])
   confirmationToast.value = 'Edit marked as reviewed'
 }
 
@@ -456,6 +459,13 @@ onBeforeUnmount(() => {
             {{ props.change.editor }}
           </span>
           <CdxIcon
+            v-if="reviewedChanges.has(props.change.title)"
+            :icon="cdxIconSuccess"
+            size="small"
+            class="diff-preview__reviewed-status"
+            icon-label="Edit reviewed"
+          />
+          <CdxIcon
             :icon="editorCardOpen ? cdxIconCollapse : cdxIconExpand"
             size="small"
             aria-hidden="true"
@@ -522,9 +532,10 @@ onBeforeUnmount(() => {
           weight="quiet"
           :icon-only="true"
           aria-label="Mark edit as reviewed"
+          :class="{ 'diff-preview__reviewed-action--complete': reviewedChanges.has(props.change.title) }"
           @click="markEditReviewed"
         >
-          <CdxIcon :icon="cdxIconCheck" />
+          <CdxIcon :icon="reviewedChanges.has(props.change.title) ? cdxIconSuccess : cdxIconCheck" />
         </CdxButton>
       </footer>
     </section>
@@ -854,6 +865,17 @@ onBeforeUnmount(() => {
   font: inherit;
   font-weight: var(--font-weight-bold);
   cursor: pointer;
+  gap: var(--spacing-50, 8px);
+}
+
+.diff-preview__reviewed-status {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  color: var(--color-icon-success, #099979);
+}
+
+.diff-preview__reviewed-action--complete {
+  color: var(--color-icon-success, #099979);
 }
 
 .diff-preview__editor-card-toggle:focus-visible {

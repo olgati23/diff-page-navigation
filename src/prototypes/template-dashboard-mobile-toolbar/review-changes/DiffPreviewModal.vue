@@ -52,6 +52,7 @@ const diffError = ref<string | null>(null)
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
 const confirmationToast = ref('')
+const reviewedChanges = ref<Set<string>>(new Set())
 let diffRequest: AbortController | null = null
 
 function findFirstChangedSection(diffMarkup: string): string | null {
@@ -154,6 +155,7 @@ function showThankConfirmation(): void {
 }
 
 function markEditReviewed(): void {
+  reviewedChanges.value = new Set([...reviewedChanges.value, props.change.title])
   emit('reviewed', props.change.title)
   confirmationToast.value = 'Edit marked as reviewed'
 }
@@ -524,6 +526,7 @@ onBeforeUnmount(() => {
           weight="quiet"
           :icon-only="true"
           aria-label="Mark edit as reviewed"
+          :class="{ 'diff-preview__reviewed-action--complete': reviewedChanges.has(props.change.title) }"
           @click="markEditReviewed"
         >
           <CdxIcon :icon="cdxIconCheck" />
@@ -876,6 +879,10 @@ onBeforeUnmount(() => {
 
 .diff-preview__editor-card-toggle > .cdx-icon:not(:last-child) {
   display: none;
+}
+
+.diff-preview__reviewed-action--complete {
+  color: var(--color-icon-success, #099979);
 }
 
 .diff-preview__editor-card-username {

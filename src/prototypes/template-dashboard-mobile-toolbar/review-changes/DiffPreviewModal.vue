@@ -874,6 +874,10 @@ onBeforeUnmount(() => {
   outline-offset: -2px;
 }
 
+.diff-preview__editor-card-toggle > .cdx-icon:not(:last-child) {
+  display: none;
+}
+
 .diff-preview__editor-card-username {
   display: inline-flex;
   align-items: center;

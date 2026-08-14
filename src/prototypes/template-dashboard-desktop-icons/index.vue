@@ -335,7 +335,7 @@ const impact = {
                       aria-label="Review actions"
                     >
                       <CdxButton
-                        weight="quiet"
+                        weight="normal"
                         size="small"
                         class="desktop-inline-diff__full-diff"
                         @click.stop="openFullDiff(change)"

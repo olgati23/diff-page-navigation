@@ -881,7 +881,8 @@ onBeforeUnmount(() => {
   display: none;
 }
 
-.diff-preview__reviewed-action--complete {
+.diff-preview__reviewed-action--complete.cdx-button:enabled,
+.diff-preview__reviewed-action--complete.cdx-button:enabled .cdx-icon {
   color: var(--color-icon-success, #099979);
 }
 

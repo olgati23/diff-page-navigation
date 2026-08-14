@@ -324,7 +324,6 @@ const impact = {
                       aria-label="Review actions"
                     >
                       <CdxButton
-                        action="progressive"
                         weight="quiet"
                         size="small"
                         class="desktop-inline-diff__full-diff"

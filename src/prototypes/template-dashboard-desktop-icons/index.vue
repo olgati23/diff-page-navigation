@@ -5,7 +5,6 @@ import {
   CdxIcon,
   CdxTextInput,
   CdxToast,
-  CdxToggleButtonGroup,
 } from '@wikimedia/codex'
 import {
   cdxIconCheck,
@@ -25,7 +24,6 @@ import { RouterLink } from 'vue-router'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
-import { useSkin } from '@/composables/useSkin'
 import Dashboard from '@/components/dashboard/Dashboard.vue'
 import DashboardModule from '@/components/dashboard/DashboardModule.vue'
 import SpecialPageWrapper from '@/components/SpecialPageWrapper.vue'
@@ -43,8 +41,7 @@ definePage({
 })
 
 const { pageTitle } = useConfig()
-const currentSkin = useSkin()
-const dashboardView = ref<Skin>(currentSkin.value)
+const dashboardView: Skin = 'desktop'
 const expandedReviewChange = ref<string | null>(null)
 const desktopReviewPresentation = ref('icons')
 const modalReviewIndex = ref<number | null>(null)
@@ -53,15 +50,6 @@ const thankDialogOpen = ref(false)
 const confirmationToast = ref('')
 const modalConfirmation = ref<'undo' | 'thank' | null>(null)
 const modalUndoReason = ref('')
-const dashboardViewButtons = [
-  { value: 'mobile', label: 'Mobile' },
-  { value: 'desktop', label: 'Desktop' },
-]
-const desktopReviewPresentationButtons = [
-  { value: 'icons', label: 'Icons' },
-  { value: 'labels', label: 'Labels' },
-  { value: 'modal', label: 'Modal' },
-]
 
 watch(desktopReviewPresentation, () => {
   expandedReviewChange.value = null
@@ -189,11 +177,6 @@ const impact = {
           <RouterLink :to="HOME" class="dashboard-header-feedback">
             Share feedback
           </RouterLink>
-          <CdxToggleButtonGroup
-            v-model="dashboardView"
-            :buttons="dashboardViewButtons"
-            aria-label="Dashboard view"
-          />
         </div>
       </template>
 
@@ -263,14 +246,6 @@ const impact = {
           </template>
 
           <template #primary>
-            <div class="desktop-preview-style">
-              <span id="desktop-preview-style-label">Preview style</span>
-              <CdxToggleButtonGroup
-                v-model="desktopReviewPresentation"
-                :buttons="desktopReviewPresentationButtons"
-                aria-labelledby="desktop-preview-style-label"
-              />
-            </div>
             <DashboardModule class="desktop-review-module" :title="MODULE.thankTitle">
               <p class="dashboard-module-intro">
                 These edits were made by other users. Stay up to date and help maintain Wikipedia’s quality by reviewing them.

@@ -40,6 +40,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   navigate: [direction: -1 | 1]
+  reviewed: [title: string]
 }>()
 
 const editorCardOpen = ref(true)
@@ -156,6 +157,7 @@ function showThankConfirmation(): void {
 
 function markEditReviewed(): void {
   reviewedChanges.value = new Set([...reviewedChanges.value, props.change.title])
+  emit('reviewed', props.change.title)
   confirmationToast.value = 'Edit marked as reviewed'
 }
 

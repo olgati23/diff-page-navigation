@@ -432,7 +432,7 @@ const impact = {
       <CdxDialog
         :open="modalReviewIndex !== null"
         :title="modalConfirmation === 'undo'
-          ? 'Undo'
+          ? 'Undo edit'
           : modalConfirmation === 'thank'
             ? 'Publicly send ‘Thanks’'
             : modalReviewChange.title"

@@ -40,7 +40,7 @@ function confirm(): void {
 <template>
   <CdxDialog
     :open="props.open"
-    title="Undo"
+    title="Undo edit"
     class="undo-confirmation-dialog"
     :class="{ 'undo-confirmation-dialog--desktop': props.desktop }"
     @update:open="emit('update:open', $event)"

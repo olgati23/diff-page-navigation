@@ -576,18 +576,19 @@ const impact = {
         desktop
         @confirmed="showThankConfirmation"
       />
-      <CdxToast
-        v-if="confirmationToast"
-        standalone
-        type="success"
-        :auto-dismiss="true"
-        @auto-dismissed="clearConfirmationToast"
-        @user-dismissed="clearConfirmationToast"
-      >
-        {{ confirmationToast }}
-      </CdxToast>
     </SpecialPageWrapper>
   </ChromeWrapper>
+  <CdxToast
+    v-if="confirmationToast"
+    standalone
+    target="body"
+    type="success"
+    :auto-dismiss="true"
+    @auto-dismissed="clearConfirmationToast"
+    @user-dismissed="clearConfirmationToast"
+  >
+    {{ confirmationToast }}
+  </CdxToast>
 </template>
 
 <style scoped>

@@ -68,6 +68,7 @@ async function loadDiff(): Promise<void> {
     documentHtml.value = await buildVisualDiffDocument(markup, request.signal, {
       heading: firstChangedSection(markup),
       showHeading: props.showHeading,
+      mobile: true,
     })
   } catch (caught) {
     if ((caught as Error).name !== 'AbortError') error.value = true
@@ -115,7 +116,7 @@ onBeforeUnmount(() => request?.abort())
 <style scoped>
 .wikipedia-diff-content {
   min-height: 160px;
-  background: #f8f9fa;
+  background: #fff;
 }
 
 .wikipedia-diff-content--tall {
@@ -127,6 +128,6 @@ onBeforeUnmount(() => request?.abort())
   width: 100%;
   height: 224px;
   border: 0;
-  background: #f8f9fa;
+  background: #fff;
 }
 </style>

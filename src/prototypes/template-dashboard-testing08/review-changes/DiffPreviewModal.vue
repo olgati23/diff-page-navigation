@@ -121,7 +121,31 @@ async function loadWikipediaVisualDiff() {
 
 function onVisualDiffLoaded() {
   diffLoading.value = false
-  scrollToChangedSection()
+  if (props.page && props.variant === 'card') {
+    fitCardDiffToPage()
+  } else {
+    scrollToChangedSection()
+  }
+}
+
+function fitCardDiffToPage(attempt = 0) {
+  if (!props.page || props.variant !== 'card') return
+
+  const frame = diffFrame.value
+  const frameDocument = frame?.contentDocument
+  if (!frame || !frameDocument) return
+
+  frame.setAttribute('scrolling', 'no')
+  frameDocument.documentElement.style.overflow = 'hidden'
+  frameDocument.body.style.overflow = 'hidden'
+
+  const content = frameDocument.querySelector('main') ?? frameDocument.body
+  const contentHeight = Math.ceil(content.scrollHeight)
+  if (contentHeight > 0) frame.style.height = `${contentHeight}px`
+
+  if (attempt < 20) {
+    window.setTimeout(() => fitCardDiffToPage(attempt + 1), 200)
+  }
 }
 
 function showUndoConfirmation(): void {
@@ -397,6 +421,7 @@ onBeforeUnmount(() => {
           <iframe
             ref="diffFrame"
             class="visual-diff"
+            scrolling="no"
             :srcdoc="diffDocumentHtml"
             :title="`${props.change.title}: Wikipedia visual diff`"
             @load="onVisualDiffLoaded"
@@ -839,6 +864,47 @@ onBeforeUnmount(() => {
 
 .diff-preview__toolbar {
   justify-content: space-between;
+}
+
+@media (max-width: 639px) {
+  .diff-preview--page .diff-preview__header {
+    position: sticky;
+    z-index: 3;
+    top: 0;
+    background: var(--background-color-base);
+  }
+
+  .diff-preview--page.diff-preview--card {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .diff-preview--page.diff-preview--card .diff-preview__body {
+    overflow: visible;
+    padding-bottom: calc(var(--spacing-100, 16px) + 52px);
+  }
+
+  .diff-preview--page.diff-preview--card .diff-preview__body--editor-card-open {
+    padding-bottom: calc(var(--spacing-100, 16px) + 224px);
+  }
+
+  .diff-preview--page.diff-preview--card .visual-diff-frame {
+    flex: 0 0 auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .diff-preview--page.diff-preview--card .diff-preview__editor-card {
+    position: fixed;
+    z-index: 2;
+    inset-inline-start: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    transform: none;
+  }
 }
 
 @media (min-width: 640px) {

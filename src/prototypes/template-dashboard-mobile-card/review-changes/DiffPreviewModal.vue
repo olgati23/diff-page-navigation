@@ -123,8 +123,11 @@ async function loadWikipediaVisualDiff() {
 
 function onVisualDiffLoaded() {
   diffLoading.value = false
-  scrollToChangedSection()
-  fitCardDiffToPage()
+  if (props.page && props.variant === 'card') {
+    fitCardDiffToPage()
+  } else {
+    scrollToChangedSection()
+  }
 }
 
 function fitCardDiffToPage(attempt = 0) {
@@ -134,13 +137,15 @@ function fitCardDiffToPage(attempt = 0) {
   const frameDocument = frame?.contentDocument
   if (!frame || !frameDocument) return
 
-  const contentHeight = Math.max(
-    frameDocument.body?.scrollHeight ?? 0,
-    frameDocument.documentElement?.scrollHeight ?? 0,
-  )
+  frame.setAttribute('scrolling', 'no')
+  frameDocument.documentElement.style.overflow = 'hidden'
+  frameDocument.body.style.overflow = 'hidden'
+
+  const content = frameDocument.querySelector('main') ?? frameDocument.body
+  const contentHeight = Math.ceil(content.scrollHeight)
   if (contentHeight > 0) frame.style.height = `${contentHeight}px`
 
-  if (attempt < 6) {
+  if (attempt < 20) {
     window.setTimeout(() => fitCardDiffToPage(attempt + 1), 200)
   }
 }
@@ -435,6 +440,7 @@ onBeforeUnmount(() => {
           <iframe
             ref="diffFrame"
             class="visual-diff"
+            scrolling="no"
             :srcdoc="diffDocumentHtml"
             :title="`${props.change.title}: Wikipedia visual diff`"
             @load="onVisualDiffLoaded"

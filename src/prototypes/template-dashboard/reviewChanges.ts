@@ -54,11 +54,11 @@ export const reviewChanges: ReviewChange[] = [
   {
     title: 'Blue whale',
     description: 'Marine mammal and the largest animal known to have existed',
-    editor: 'Oxymetheus',
+    editor: 'JaierRT',
     time: '5 minutes ago',
-    oldRevisionId: 1331474466,
-    revisionId: 1331917300,
-    revisionDate: '8 January 2026, 22:25',
-    summary: 'Clarified a paragraph about an early blue whale fetus',
+    oldRevisionId: 1338474943,
+    revisionId: 1338719751,
+    revisionDate: '16 February 2026, 21:04',
+    summary: 'Reframed the description of orca attacks on blue whales',
   },
 ]

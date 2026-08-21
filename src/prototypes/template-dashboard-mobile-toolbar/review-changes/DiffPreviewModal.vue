@@ -10,6 +10,7 @@ import {
 import {
   cdxIconArrowPrevious,
   cdxIconCheck,
+  cdxIconSuccess,
   cdxIconHeart,
   cdxIconHeartOutline,
   cdxIconClose,
@@ -585,7 +586,7 @@ onBeforeUnmount(() => {
           :class="{ 'diff-preview__reviewed-action--complete': reviewedChanges.has(props.change.title) }"
           @click="markEditReviewed"
         >
-          <CdxIcon :icon="cdxIconCheck" />
+          <CdxIcon :icon="cdxIconSuccess" />
         </CdxButton>
       </footer>
     </section>

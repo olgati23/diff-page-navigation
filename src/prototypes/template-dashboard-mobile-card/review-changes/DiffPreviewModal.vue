@@ -36,6 +36,7 @@ const props = defineProps<{
   changeCount: number
   page?: boolean
   reviewed?: boolean
+  undone?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -43,6 +44,7 @@ const emit = defineEmits<{
   navigate: [direction: -1 | 1]
   reviewed: [title: string, reviewed: boolean]
   undone: [title: string]
+  restored: [title: string]
 }>()
 
 const editorCardOpen = ref(true)
@@ -172,6 +174,16 @@ function showUndoConfirmation(): void {
   confirmationToast.value = 'Your edit was saved.'
   emit('undone', props.change.title)
   if (props.changeIndex < props.changeCount - 1) emit('navigate', 1)
+}
+
+function requestUndo(): void {
+  if (props.undone) {
+    confirmationToastType.value = 'success'
+    confirmationToast.value = 'Edit restored on your dashboard only.'
+    emit('restored', props.change.title)
+    return
+  }
+  undoDialogOpen.value = true
 }
 
 function showThankConfirmation(): void {
@@ -526,9 +538,9 @@ onBeforeUnmount(() => {
           <CdxButton action="progressive" @click="requestThanks">
             {{ thankedChanges.has(props.change.title) ? 'Thanked' : 'Thank' }}
           </CdxButton>
-          <CdxButton @click="undoDialogOpen = true">Undo</CdxButton>
+          <CdxButton @click="requestUndo">{{ props.undone ? 'Restore' : 'Undo' }}</CdxButton>
           <CdxButton @click="markEditReviewed">
-            {{ reviewedChanges.has(props.change.title) ? 'Unreview' : 'Review' }}
+            {{ reviewedChanges.has(props.change.title) ? 'Reviewed' : 'Review' }}
           </CdxButton>
         </div>
       </footer>
@@ -568,7 +580,7 @@ onBeforeUnmount(() => {
           weight="quiet"
           :icon-only="true"
           aria-label="Revert change"
-          @click="undoDialogOpen = true"
+          @click="requestUndo"
         >
           <CdxIcon :icon="cdxIconEditUndo" />
         </CdxButton>

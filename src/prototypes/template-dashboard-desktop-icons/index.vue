@@ -117,6 +117,20 @@ function displayedChange(change: ReviewChange): ReviewChange {
   return { ...change, revisionId: change.oldRevisionId, oldRevisionId: change.revisionId, summary: `Undo: ${change.summary}` }
 }
 
+function requestUndo(changeTitle?: string): void {
+  const title = changeTitle ?? modalReviewChange.value.title
+  if (undoneChanges.value.has(title)) {
+    const next = new Set(undoneChanges.value)
+    next.delete(title)
+    undoneChanges.value = next
+    confirmationToastType.value = 'success'
+    confirmationToast.value = 'Edit restored on your dashboard only.'
+    return
+  }
+  if (modalReviewIndex.value !== null) openModalConfirmation('undo')
+  else undoDialogOpen.value = true
+}
+
 function showThankConfirmation(): void {
   const title = modalReviewIndex.value !== null ? modalReviewChange.value.title : expandedReviewChange.value
   if (title) {
@@ -372,11 +386,11 @@ const impact = {
                     >
                       <CdxButton @click.stop="markEditReviewed(change.title)">
                         <CdxIcon :icon="cdxIconCheck" />
-                        {{ reviewedChanges.has(change.title) ? 'Unreview' : 'Review' }}
+                        {{ reviewedChanges.has(change.title) ? 'Reviewed' : 'Review' }}
                       </CdxButton>
-                      <CdxButton @click.stop="undoDialogOpen = true">
+                      <CdxButton @click.stop="requestUndo(change.title)">
                         <CdxIcon :icon="cdxIconEditUndo" />
-                        Undo
+                        {{ undoneChanges.has(change.title) ? 'Restore' : 'Undo' }}
                       </CdxButton>
                       <CdxButton @click.stop="requestThanks(change.title)">
                         <CdxIcon :icon="thankedChanges.has(change.title) ? cdxIconHeart : cdxIconHeartOutline" />
@@ -419,7 +433,7 @@ const impact = {
                         weight="quiet"
                         :icon-only="true"
                         aria-label="Undo"
-                        @click.stop="undoDialogOpen = true"
+                        @click.stop="requestUndo(change.title)"
                       >
                         <CdxIcon :icon="cdxIconEditUndo" />
                       </CdxButton>
@@ -580,12 +594,12 @@ const impact = {
           <CdxButton size="medium" @click="openModalConfirmation('thank')">
             <CdxIcon :icon="cdxIconHeartOutline" /> Thank
           </CdxButton>
-          <CdxButton size="medium" @click="openModalConfirmation('undo')">
-            <CdxIcon :icon="cdxIconEditUndo" /> Undo
+          <CdxButton size="medium" @click="requestUndo(modalReviewChange.title)">
+            <CdxIcon :icon="cdxIconEditUndo" /> {{ undoneChanges.has(modalReviewChange.title) ? 'Restore' : 'Undo' }}
           </CdxButton>
           <CdxButton size="medium" @click="markEditReviewed(modalReviewChange.title)">
             <CdxIcon :icon="cdxIconCheck" />
-            {{ reviewedChanges.has(modalReviewChange.title) ? 'Unreview' : 'Review' }}
+            {{ reviewedChanges.has(modalReviewChange.title) ? 'Reviewed' : 'Review' }}
           </CdxButton>
           <div class="desktop-review-dialog__navigation">
             <CdxButton

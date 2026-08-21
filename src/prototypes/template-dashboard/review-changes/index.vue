@@ -62,6 +62,12 @@ function markUndone(title: string) {
   next.add(title)
   undoneChanges.value = next
 }
+
+function markRestored(title: string) {
+  const next = new Set(undoneChanges.value)
+  next.delete(title)
+  undoneChanges.value = next
+}
 </script>
 
 <template>
@@ -131,10 +137,12 @@ function markUndone(title: string) {
       :change-index="selectedChangeIndex ?? 0"
       :change-count="reviewChanges.length"
       :reviewed="reviewedChanges.has(selectedChange.title)"
+      :undone="undoneChanges.has(selectedChange.title)"
       page
       @navigate="navigateDiff"
       @reviewed="markReviewed"
       @undone="markUndone"
+      @restored="markRestored"
       @close="selectedChangeIndex = null"
     />
   </main>

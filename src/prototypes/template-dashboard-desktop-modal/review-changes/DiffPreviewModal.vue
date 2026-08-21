@@ -485,7 +485,7 @@ onBeforeUnmount(() => {
           <CdxButton action="progressive" @click="thankDialogOpen = true">Thank</CdxButton>
           <CdxButton @click="undoDialogOpen = true">Undo</CdxButton>
           <CdxButton @click="markEditReviewed">
-            {{ reviewedChanges.has(props.change.title) ? 'Unreview' : 'Review' }}
+            {{ reviewedChanges.has(props.change.title) ? 'Reviewed' : 'Review' }}
           </CdxButton>
         </div>
       </footer>

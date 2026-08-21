@@ -341,7 +341,7 @@ const impact = {
                     >
                       <CdxButton @click.stop="markEditReviewed(change.title)">
                         <CdxIcon :icon="cdxIconCheck" />
-                        {{ reviewedChanges.has(change.title) ? 'Unreview' : 'Review' }}
+                        {{ reviewedChanges.has(change.title) ? 'Reviewed' : 'Review' }}
                       </CdxButton>
                       <CdxButton @click.stop="undoDialogOpen = true">
                         <CdxIcon :icon="cdxIconEditUndo" />
@@ -550,7 +550,7 @@ const impact = {
         <div class="desktop-review-dialog__footer">
           <CdxButton size="medium" @click="markEditReviewed(modalReviewChange.title)">
             <CdxIcon :icon="cdxIconCheck" />
-            {{ reviewedChanges.has(modalReviewChange.title) ? 'Unreview' : 'Review' }}
+            {{ reviewedChanges.has(modalReviewChange.title) ? 'Reviewed' : 'Review' }}
           </CdxButton>
           <CdxButton size="medium" @click="openModalConfirmation('undo')">
             <CdxIcon :icon="cdxIconEditUndo" /> Undo

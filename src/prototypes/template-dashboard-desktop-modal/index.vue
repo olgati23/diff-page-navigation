@@ -943,12 +943,6 @@ const impact = {
   white-space: normal;
 }
 
-:global(html[lang='de']) .desktop-review-dialog__footer > .cdx-button {
-  width: fit-content;
-  max-width: 100%;
-  justify-self: center;
-}
-
 .desktop-review-dialog__navigation {
   display: flex;
   gap: var(--spacing-50, 8px);
@@ -981,6 +975,10 @@ const impact = {
 
 :deep(.desktop-review-dialog .cdx-dialog__frame) {
   width: min(512px, calc(100vw - 32px));
+}
+
+:global(html[lang='de']) :deep(.desktop-review-dialog .cdx-dialog__frame) {
+  width: min(640px, calc(100vw - 32px));
 }
 
 :deep(.desktop-review-dialog .cdx-dialog__body) {

@@ -19,7 +19,7 @@ import {
   cdxIconUserAvatar,
   cdxIconUserTalk,
 } from '@wikimedia/codex-icons'
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
@@ -43,6 +43,10 @@ definePage({
 const { pageTitle } = useConfig()
 const dashboardView: Skin = 'desktop'
 const isGermanPrototype = window.location.pathname.includes('-de')
+const viewportWidth = ref(window.innerWidth)
+const germanMetadataWrapped = computed(
+  () => isGermanPrototype && viewportWidth.value < 760,
+)
 const expandedReviewChange = ref<string | null>(null)
 const desktopReviewPresentation = ref('modal')
 const modalReviewIndex = ref<number | null>(null)
@@ -63,6 +67,13 @@ watch(desktopReviewPresentation, () => {
   thankDialogOpen.value = false
   modalConfirmation.value = null
 })
+
+function updateViewportWidth(): void {
+  viewportWidth.value = window.innerWidth
+}
+
+onMounted(() => window.addEventListener('resize', updateViewportWidth))
+onBeforeUnmount(() => window.removeEventListener('resize', updateViewportWidth))
 
 const desktopReviewChanges = reviewChanges
 
@@ -554,7 +565,12 @@ const impact = {
           </CdxButton>
         </div>
         <div class="desktop-review-dialog__diff">
-          <WikipediaDiffContent :change="displayedChange(modalReviewChange)" tall :show-heading="false" />
+          <WikipediaDiffContent
+            :change="displayedChange(modalReviewChange)"
+            tall
+            :show-heading="false"
+            :height-offset="germanMetadataWrapped ? 36 : 0"
+          />
         </div>
         <div
           class="desktop-review-dialog__footer"
@@ -854,7 +870,7 @@ const impact = {
 
 .desktop-review-dialog__meta--german {
   flex-wrap: wrap;
-  gap: var(--spacing-75, 12px);
+  gap: var(--spacing-25, 4px);
 }
 
 .desktop-review-dialog__user {

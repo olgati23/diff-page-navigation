@@ -577,7 +577,10 @@ const impact = {
         <div class="desktop-review-dialog__diff">
           <WikipediaDiffContent :change="displayedChange(modalReviewChange)" tall :show-heading="false" />
         </div>
-        <div class="desktop-review-dialog__footer">
+        <div
+          class="desktop-review-dialog__footer"
+          :class="{ 'desktop-review-dialog__footer--german': isGermanPrototype }"
+        >
           <CdxButton size="medium" @click="requestThanks(modalReviewChange.title)">
             <CdxIcon :icon="cdxIconHeartOutline" />
             {{ thankedChanges.has(modalReviewChange.title) ? 'Thanked' : 'Thank' }}
@@ -927,6 +930,14 @@ const impact = {
   padding: var(--spacing-75, 12px) var(--spacing-100, 16px);
   border-top: 1px solid var(--border-color-subtle, #c8ccd1);
   background: var(--background-color-base, #fff);
+}
+
+.desktop-review-dialog__footer--german {
+  grid-template-columns:
+    minmax(0, 0.85fr)
+    minmax(0, 1.35fr)
+    minmax(0, 0.85fr)
+    auto;
 }
 
 .desktop-review-dialog__footer > .cdx-button {

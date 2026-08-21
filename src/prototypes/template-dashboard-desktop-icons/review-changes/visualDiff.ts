@@ -2,6 +2,7 @@ interface VisualDiffOptions {
   heading?: string | null
   showHeading?: boolean
   mobile?: boolean
+  wikiHost?: string
 }
 
 function escapeHtml(value: string): string {
@@ -24,7 +25,7 @@ function cleanRenderedText(html: string): string {
   return (content.textContent ?? '').replace(/\s+/g, ' ').trim()
 }
 
-async function renderWikitext(source: string, signal: AbortSignal): Promise<string> {
+async function renderWikitext(source: string, signal: AbortSignal, wikiHost = 'en.wikipedia.org'): Promise<string> {
   if (!source.trim()) return ''
 
   const body = new URLSearchParams({
@@ -38,7 +39,7 @@ async function renderWikitext(source: string, signal: AbortSignal): Promise<stri
     disablelimitreport: '1',
     text: source,
   })
-  const response = await fetch('https://en.wikipedia.org/w/api.php', {
+  const response = await fetch(`https://${wikiHost}/w/api.php`, {
     method: 'POST',
     body,
     signal,
@@ -124,8 +125,8 @@ export async function buildVisualDiffDocument(
     const removedSource = row.querySelector('.diff-deletedline > div')?.textContent ?? ''
     const addedSource = row.querySelector('.diff-addedline > div')?.textContent ?? ''
     const [removed, added] = await Promise.all([
-      renderWikitext(removedSource, signal),
-      renderWikitext(addedSource, signal),
+      renderWikitext(removedSource, signal, options.wikiHost),
+      renderWikitext(addedSource, signal, options.wikiHost),
     ])
     if (!removed && !added) return ''
     return `<p class="change-inline">${inlineWordDiff(removed, added)}</p>`
@@ -133,7 +134,7 @@ export async function buildVisualDiffDocument(
 
   const showHeading = options.showHeading !== false
   const heading = showHeading
-    ? `<h2>${escapeHtml(options.heading?.replaceAll('_', ' ') || 'Changed content')}</h2>`
+    ? `<h2>${escapeHtml(options.heading?.replaceAll('_', ' ') || (options.wikiHost === 'de.wikipedia.org' ? 'Geänderter Inhalt' : 'Changed content'))}</h2>`
     : ''
   const fontSize = options.mobile ? '16px' : '14px'
   const background = options.mobile ? '#fff' : '#f8f9fa'

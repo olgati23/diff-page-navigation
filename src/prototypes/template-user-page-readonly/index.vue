@@ -3,6 +3,7 @@ import { CdxButton, CdxIcon, CdxMessage } from '@wikimedia/codex'
 import { cdxIconArrowPrevious, cdxIconUserAvatar } from '@wikimedia/codex-icons'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useGermanPrototype } from '@/composables/useGermanPrototype'
 
 definePage({
   meta: {
@@ -12,6 +13,7 @@ definePage({
 })
 
 const route = useRoute()
+if (route.query.lang === 'de') useGermanPrototype()
 const username = computed(() => String(route.query.username || 'Wikipedia editor'))
 
 function goBack(): void {

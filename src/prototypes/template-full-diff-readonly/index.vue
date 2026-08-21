@@ -3,6 +3,8 @@ import { CdxButton, CdxDialog, CdxIcon } from '@wikimedia/codex'
 import { cdxIconArrowPrevious } from '@wikimedia/codex-icons'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useGermanPrototype } from '@/composables/useGermanPrototype'
+import { germanReviewChanges } from '../germanReviewChanges'
 
 import WikipediaDiffContent from '../template-dashboard/review-changes/WikipediaDiffContent.vue'
 import { reviewChanges } from '../template-dashboard/reviewChanges'
@@ -15,10 +17,15 @@ definePage({
 })
 
 const route = useRoute()
+const isGerman = computed(() => route.query.lang === 'de')
+if (route.query.lang === 'de') useGermanPrototype()
 const requestedTitle = computed(() => String(route.query.title || ''))
 const warningOpen = ref(true)
 const change = computed(
-  () => reviewChanges.find((item) => item.title === requestedTitle.value) ?? reviewChanges[0],
+  () => {
+    const changes = isGerman.value ? germanReviewChanges : reviewChanges
+    return changes.find((item) => item.title === requestedTitle.value) ?? changes[0]
+  },
 )
 
 function goBack(): void {
@@ -31,7 +38,7 @@ function goBack(): void {
 function openWikipedia(): void {
   const title = encodeURIComponent(change.value.title.replaceAll(' ', '_'))
   window.location.href =
-    `https://en.wikipedia.org/w/index.php?title=${title}` +
+    `https://${change.value.wikiHost ?? 'en.wikipedia.org'}/w/index.php?title=${title}` +
     `&diff=${change.value.revisionId}` +
     `&oldid=${change.value.oldRevisionId}&diffmode=visual`
 }

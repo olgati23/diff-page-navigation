@@ -105,7 +105,7 @@ async function loadWikipediaVisualDiff() {
     let comparisonMarkup = ''
     try {
       const compareEndpoint =
-        `https://en.wikipedia.org/w/api.php?action=compare&format=json&origin=*` +
+        `https://${props.change.wikiHost ?? 'en.wikipedia.org'}/w/api.php?action=compare&format=json&origin=*` +
         `&fromrev=${props.change.oldRevisionId}&torev=${props.change.revisionId}&prop=diff`
       const compareResponse = await fetch(compareEndpoint, {
         signal: diffRequest.signal,
@@ -129,7 +129,7 @@ async function loadWikipediaVisualDiff() {
     diffDocumentHtml.value = await buildVisualDiffDocument(
       comparisonMarkup,
       diffRequest.signal,
-      { heading: section, mobile: true },
+      { heading: section, mobile: true, wikiHost: props.change.wikiHost },
     )
   } catch (error) {
     if ((error as Error).name !== 'AbortError') {
@@ -300,7 +300,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 function userPageUrl(): string {
-  return `${import.meta.env.BASE_URL}template-user-page-readonly?username=${encodeURIComponent(props.change.editor)}`
+  return `${import.meta.env.BASE_URL}template-user-page-readonly?username=${encodeURIComponent(props.change.editor)}${window.location.pathname.includes('-de') ? '&lang=de' : ''}`
 }
 
 function openUserPage() {
@@ -308,7 +308,7 @@ function openUserPage() {
 }
 
 function openFullDiff(_mobile = false) {
-  const url = `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(props.change.title)}`
+  const url = `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(props.change.title)}${window.location.pathname.includes('-de') ? '&lang=de' : ''}`
   window.open(url, '_blank', 'noopener,noreferrer')
 }
 

@@ -52,7 +52,7 @@ async function loadDiff(): Promise<void> {
 
   try {
     const compareResponse = await fetch(
-      `https://en.wikipedia.org/w/api.php?action=compare&format=json&origin=*&fromrev=${props.change.oldRevisionId}&torev=${props.change.revisionId}&prop=diff`,
+      `https://${props.change.wikiHost ?? 'en.wikipedia.org'}/w/api.php?action=compare&format=json&origin=*&fromrev=${props.change.oldRevisionId}&torev=${props.change.revisionId}&prop=diff`,
       {
         signal: request.signal,
         headers: wikimediaApiFetchHeaders('desktop-review-changes-compare'),
@@ -68,6 +68,7 @@ async function loadDiff(): Promise<void> {
     documentHtml.value = await buildVisualDiffDocument(markup, request.signal, {
       heading: firstChangedSection(markup),
       showHeading: props.showHeading,
+      wikiHost: props.change.wikiHost,
       mobile: true,
     })
   } catch (caught) {

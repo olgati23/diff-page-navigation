@@ -15,6 +15,9 @@ definePage({
 })
 
 const previewVariant = ref<'card' | 'toolbar' | 'simplified'>('card')
+const dashboardRoute = window.location.pathname.includes('-de')
+  ? '/template-dashboard-mobile-card-de'
+  : '/template-dashboard-mobile-card'
 const selectedChangeIndex = ref<number | null>(null)
 const reviewedChanges = ref<Set<string>>(new Set())
 const undoneChanges = ref<Set<string>>(new Set())
@@ -68,7 +71,7 @@ function markRestored(title: string) {
   <main class="review-changes-page">
     <template v-if="!selectedChange">
     <header class="review-changes-page__header">
-      <RouterLink to="/template-dashboard-mobile-card" class="review-changes-page__back" aria-label="Back to dashboard">
+      <RouterLink :to="dashboardRoute" class="review-changes-page__back" aria-label="Back to dashboard">
         <CdxIcon :icon="cdxIconArrowPrevious" />
       </RouterLink>
       <h1 class="review-changes-page__title">Review changes</h1>

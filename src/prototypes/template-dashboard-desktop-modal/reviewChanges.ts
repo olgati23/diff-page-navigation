@@ -1,3 +1,5 @@
+import { germanReviewChanges } from '../germanReviewChanges'
+
 export interface ReviewChange {
   title: string
   description: string
@@ -8,9 +10,10 @@ export interface ReviewChange {
   revisionDate: string
   summary: string
   tags?: string[]
+  wikiHost?: string
 }
 
-export const reviewChanges: ReviewChange[] = [
+const englishReviewChanges: ReviewChange[] = [
   {
     title: 'Giant panda',
     description: 'Bear species native to south central China',
@@ -62,3 +65,7 @@ export const reviewChanges: ReviewChange[] = [
     summary: 'Reframed the description of orca attacks on blue whales',
   },
 ]
+
+export const reviewChanges: ReviewChange[] = window.location.pathname.includes('-de')
+  ? germanReviewChanges
+  : englishReviewChanges

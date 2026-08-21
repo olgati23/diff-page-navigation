@@ -179,20 +179,20 @@ function markEditReviewed(changeTitle?: string): void {
 }
 
 function openFullDiff(change: ReviewChange): void {
-  const url = `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(change.title)}`
+  const url = `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(change.title)}${window.location.pathname.includes('-de') ? '&lang=de' : ''}`
   window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 function userPageUrl(editor: string): string {
-  return `${import.meta.env.BASE_URL}template-user-page-readonly?username=${encodeURIComponent(editor)}`
+  return `${import.meta.env.BASE_URL}template-user-page-readonly?username=${encodeURIComponent(editor)}${window.location.pathname.includes('-de') ? '&lang=de' : ''}`
 }
 
 function userTalkPageUrl(editor: string): string {
-  return `https://en.wikipedia.org/wiki/User_talk:${encodeURIComponent(editor.replaceAll(' ', '_'))}`
+  return `https://${window.location.pathname.includes('-de') ? 'de' : 'en'}.wikipedia.org/wiki/User_talk:${encodeURIComponent(editor.replaceAll(' ', '_'))}`
 }
 
 function userContributionsUrl(editor: string): string {
-  return `https://en.wikipedia.org/wiki/Special:Contributions/${encodeURIComponent(editor.replaceAll(' ', '_'))}`
+  return `https://${window.location.pathname.includes('-de') ? 'de' : 'en'}.wikipedia.org/wiki/Special:Contributions/${encodeURIComponent(editor.replaceAll(' ', '_'))}`
 }
 
 function openUserTalkPage(editor: string): void {

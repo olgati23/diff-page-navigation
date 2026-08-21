@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CdxIcon, CdxToggleButtonGroup } from '@wikimedia/codex'
-import { cdxIconArrowPrevious, cdxIconInfoFilled, cdxIconUserAvatar } from '@wikimedia/codex-icons'
+import { cdxIconArrowPrevious, cdxIconCheck, cdxIconInfoFilled, cdxIconUserAvatar } from '@wikimedia/codex-icons'
 import { RouterLink } from 'vue-router'
 import { computed, ref } from 'vue'
 
@@ -16,6 +16,7 @@ definePage({
 
 const previewVariant = ref<'card' | 'toolbar' | 'simplified'>('card')
 const selectedChangeIndex = ref<number | null>(null)
+const reviewedChanges = ref<Set<string>>(new Set())
 const selectedChange = computed(() =>
   selectedChangeIndex.value === null ? null : reviewChanges[selectedChangeIndex.value],
 )
@@ -36,6 +37,13 @@ function navigateDiff(direction: -1 | 1) {
   if (nextIndex >= 0 && nextIndex < reviewChanges.length) {
     selectedChangeIndex.value = nextIndex
   }
+}
+
+function markReviewed(title: string, reviewed: boolean) {
+  const next = new Set(reviewedChanges.value)
+  if (reviewed) next.add(title)
+  else next.delete(title)
+  reviewedChanges.value = next
 }
 </script>
 
@@ -71,7 +79,16 @@ function navigateDiff(direction: -1 | 1) {
         @keydown.enter="openDiff(change)"
         @keydown.space.prevent="openDiff(change)"
       >
-        <h2>{{ change.title }}</h2>
+        <div class="review-queue-card__heading">
+          <h2>{{ change.title }}</h2>
+          <CdxIcon
+            v-if="reviewedChanges.has(change.title)"
+            :icon="cdxIconCheck"
+            size="small"
+            class="review-queue-card__reviewed-status"
+            icon-label="Edit reviewed"
+          />
+        </div>
         <p class="review-queue-card__description">{{ change.description }}</p>
         <p class="review-queue-card__editor">
           <CdxIcon :icon="cdxIconUserAvatar" size="small" aria-hidden="true" />
@@ -89,8 +106,10 @@ function navigateDiff(direction: -1 | 1) {
       :variant="previewVariant"
       :change-index="selectedChangeIndex ?? 0"
       :change-count="reviewChanges.length"
+      :reviewed="reviewedChanges.has(selectedChange.title)"
       page
       @navigate="navigateDiff"
+      @reviewed="markReviewed"
       @close="selectedChangeIndex = null"
     />
   </main>
@@ -203,6 +222,22 @@ function navigateDiff(direction: -1 | 1) {
   font-size: var(--font-size-medium);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-medium);
+}
+
+.review-queue-card__heading {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-50, 8px);
+}
+
+.review-queue-card__heading h2 {
+  min-width: 0;
+}
+
+.review-queue-card__reviewed-status {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  color: var(--color-icon-success, #099979);
 }
 
 .review-queue-card__description,

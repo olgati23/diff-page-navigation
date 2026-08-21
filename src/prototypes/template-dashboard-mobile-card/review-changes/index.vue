@@ -91,6 +91,7 @@ function markReviewed(title: string, reviewed: boolean) {
       :variant="previewVariant"
       :change-index="selectedChangeIndex ?? 0"
       :change-count="reviewChanges.length"
+      :reviewed="reviewedChanges.has(selectedChange.title)"
       page
       @navigate="navigateDiff"
       @reviewed="markReviewed"

@@ -34,6 +34,7 @@ const props = defineProps<{
   changeIndex: number
   changeCount: number
   page?: boolean
+  reviewed?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -54,6 +55,17 @@ const thankDialogOpen = ref(false)
 const confirmationToast = ref('')
 const reviewedChanges = ref<Set<string>>(new Set())
 let diffRequest: AbortController | null = null
+
+watch(
+  () => [props.change.title, props.reviewed] as const,
+  ([title, reviewed]) => {
+    const next = new Set(reviewedChanges.value)
+    if (reviewed) next.add(title)
+    else next.delete(title)
+    reviewedChanges.value = next
+  },
+  { immediate: true },
+)
 
 function findFirstChangedSection(diffMarkup: string): string | null {
   const documentModel = new DOMParser().parseFromString(
@@ -162,6 +174,7 @@ function markEditReviewed(): void {
     confirmationToast.value = 'Edit marked as reviewed'
   } else {
     next.delete(props.change.title)
+    confirmationToast.value = 'Edit marked as unreviewed'
   }
   reviewedChanges.value = next
   emit('reviewed', props.change.title, reviewed)

@@ -101,6 +101,7 @@ function markEditReviewed(changeTitle?: string): void {
   const next = new Set(reviewedChanges.value)
   if (next.has(title)) {
     next.delete(title)
+    confirmationToast.value = 'Edit marked as unreviewed'
   } else {
     next.add(title)
     confirmationToast.value = 'Edit marked as reviewed'

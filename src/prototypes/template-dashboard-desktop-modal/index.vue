@@ -557,13 +557,13 @@ const impact = {
               :href="userTalkPageUrl(modalReviewChange.editor)"
               target="_blank"
               rel="noopener noreferrer"
-            >talk</a>
+            >{{ isGermanPrototype ? 'Diskussion' : 'talk' }}</a>
             <span aria-hidden="true">|</span>
             <a
               :href="userContributionsUrl(modalReviewChange.editor)"
               target="_blank"
               rel="noopener noreferrer"
-            >contribs</a>
+            >{{ isGermanPrototype ? 'Beiträge' : 'contribs' }}</a>
             <span aria-hidden="true">)</span>
           </div>
           <CdxButton

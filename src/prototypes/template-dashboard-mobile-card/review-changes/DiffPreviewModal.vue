@@ -977,6 +977,53 @@ onBeforeUnmount(() => {
   color: var(--color-icon-success, #099979);
 }
 
+/* This dedicated mobile prototype must retain its page-scrolling behavior even
+   when the preview pane is wider than the mobile CSS breakpoint. */
+.diff-preview--page .diff-preview__header {
+  position: sticky;
+  z-index: 3;
+  top: 0;
+  background: var(--background-color-base);
+}
+
+.diff-preview--page.diff-preview--card {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.diff-preview--page.diff-preview--card .diff-preview__body {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: calc(var(--spacing-100, 16px) + 52px);
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.diff-preview--page.diff-preview--card .diff-preview__body--editor-card-open {
+  padding-bottom: calc(var(--spacing-100, 16px) + 224px);
+}
+
+.diff-preview--page.diff-preview--card .visual-diff-frame {
+  flex: 0 0 auto;
+  min-height: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.diff-preview--page.diff-preview--card .diff-preview__editor-card {
+  position: fixed;
+  z-index: 2;
+  inset-inline-start: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: none;
+  transform: none;
+}
+
 @media (max-width: 639px) {
   .diff-preview--page .diff-preview__header {
     position: sticky;
@@ -986,15 +1033,19 @@ onBeforeUnmount(() => {
   }
 
   .diff-preview--page.diff-preview--card {
-    height: auto;
-    min-height: 100vh;
-    min-height: 100dvh;
-    overflow: visible;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .diff-preview--page.diff-preview--card .diff-preview__body {
-    overflow: visible;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding-bottom: calc(var(--spacing-100, 16px) + 52px);
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .diff-preview--page.diff-preview--card .diff-preview__body--editor-card-open {

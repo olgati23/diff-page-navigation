@@ -36,6 +36,7 @@ import UndoConfirmationDialog from './review-changes/UndoConfirmationDialog.vue'
 import { reviewChanges, type ReviewChange } from './reviewChanges'
 
 const desktopReviewIcon = '<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="m14.806 7.249-4.906 5.956H8.801L6 11.105l1.2-1.6 2.024 1.518L13.244 6z"/>'
+const completedUndoIcon = '<path d="m11.76 12.463-5.213 5.216a1 1 0 0 1-.394.242L1.91 19.335.64 18.076l1.413-4.243a1 1 0 0 1 .242-.39l5.222-5.222z"/><path d="m14.124 1.5-3 3H14a6 6 0 0 1 6 6V14h-2v-3.5a4 4 0 0 0-4-4h-2.876l3 3-1.414 1.414-4.707-4.707V4.793L12.71.086z"/>'
 
 definePage({
   meta: {
@@ -338,7 +339,7 @@ const impact = {
                     <span v-if="change.description">{{ change.description }}</span>
                   <CdxIcon
                       v-if="undoneChanges.has(change.title)"
-                      :icon="cdxIconEditUndo"
+                      :icon="completedUndoIcon"
                       size="small"
                       class="desktop-review-item__undone-status"
                       icon-label="Edit undone"
@@ -392,7 +393,7 @@ const impact = {
                         {{ reviewedChanges.has(change.title) ? 'Reviewed' : 'Review' }}
                       </CdxButton>
                       <CdxButton @click.stop="requestUndo(change.title)">
-                        <CdxIcon :icon="cdxIconEditUndo" />
+                        <CdxIcon :icon="undoneChanges.has(change.title) ? completedUndoIcon : cdxIconEditUndo" />
                         {{ undoneChanges.has(change.title) ? 'Restore' : 'Undo' }}
                       </CdxButton>
                       <CdxButton @click.stop="requestThanks(change.title)">

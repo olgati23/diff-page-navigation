@@ -10,6 +10,7 @@ import {
 import {
   cdxIconArrowPrevious,
   cdxIconCheck,
+  cdxIconHeart,
   cdxIconHeartOutline,
   cdxIconClose,
   cdxIconCollapse,
@@ -53,7 +54,9 @@ const diffError = ref<string | null>(null)
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
 const confirmationToast = ref('')
+const confirmationToastType = ref<'success' | 'notice'>('success')
 const reviewedChanges = ref<Set<string>>(new Set())
+const thankedChanges = ref<Set<string>>(new Set())
 let diffRequest: AbortController | null = null
 
 watch(
@@ -159,14 +162,29 @@ function fitCardDiffToPage(attempt = 0) {
 }
 
 function showUndoConfirmation(): void {
+  confirmationToastType.value = 'success'
   confirmationToast.value = 'Your edit was saved.'
 }
 
 function showThankConfirmation(): void {
+  const next = new Set(thankedChanges.value)
+  next.add(props.change.title)
+  thankedChanges.value = next
+  confirmationToastType.value = 'success'
   confirmationToast.value = `You thanked ${props.change.editor}.`
 }
 
+function requestThanks(): void {
+  if (thankedChanges.value.has(props.change.title)) {
+    confirmationToastType.value = 'notice'
+    confirmationToast.value = "A 'Thanks' cannot be undone."
+    return
+  }
+  thankDialogOpen.value = true
+}
+
 function markEditReviewed(): void {
+  confirmationToastType.value = 'success'
   const next = new Set(reviewedChanges.value)
   const reviewed = !next.has(props.change.title)
   if (reviewed) {
@@ -495,7 +513,9 @@ onBeforeUnmount(() => {
             <CdxIcon :icon="cdxIconInfoFilled" size="small" icon-label="About user groups" />
             </span>
           </p>
-          <CdxButton action="progressive" @click="thankDialogOpen = true">Thank</CdxButton>
+          <CdxButton action="progressive" @click="requestThanks">
+            {{ thankedChanges.has(props.change.title) ? 'Thanked' : 'Thank' }}
+          </CdxButton>
           <CdxButton @click="undoDialogOpen = true">Undo</CdxButton>
           <CdxButton @click="markEditReviewed">
             {{ reviewedChanges.has(props.change.title) ? 'Unreview' : 'Review' }}
@@ -529,10 +549,10 @@ onBeforeUnmount(() => {
         <CdxButton
           weight="quiet"
           :icon-only="true"
-          aria-label="Thank"
-          @click="thankDialogOpen = true"
+          :aria-label="thankedChanges.has(props.change.title) ? 'Thanked' : 'Thank'"
+          @click="requestThanks"
         >
-          <CdxIcon :icon="cdxIconHeartOutline" />
+          <CdxIcon :icon="thankedChanges.has(props.change.title) ? cdxIconHeart : cdxIconHeartOutline" />
         </CdxButton>
         <CdxButton
           weight="quiet"
@@ -565,7 +585,7 @@ onBeforeUnmount(() => {
       v-if="confirmationToast"
       standalone
       class="mobile-prototype-toast"
-      type="success"
+      :type="confirmationToastType"
       :prevent-user-dismiss="false"
       :auto-dismiss="true"
       @auto-dismissed="clearConfirmationToast"

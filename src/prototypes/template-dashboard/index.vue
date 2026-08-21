@@ -15,6 +15,7 @@ import {
   cdxIconArrowNext,
   cdxIconArrowPrevious,
   cdxIconExpand,
+  cdxIconHeart,
   cdxIconHeartOutline,
   cdxIconMessage,
   cdxIconUserAvatar,
@@ -51,7 +52,9 @@ const modalReviewIndex = ref<number | null>(null)
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
 const confirmationToast = ref('')
+const confirmationToastType = ref<'success' | 'notice'>('success')
 const reviewedChanges = ref<Set<string>>(new Set())
+const thankedChanges = ref<Set<string>>(new Set())
 const modalConfirmation = ref<'undo' | 'thank' | null>(null)
 const modalUndoReason = ref('')
 const dashboardViewButtons = [
@@ -101,14 +104,34 @@ function updateReviewModalOpen(open: boolean): void {
 }
 
 function showUndoConfirmation(): void {
+  confirmationToastType.value = 'success'
   confirmationToast.value = 'Your edit was saved.'
 }
 
 function showThankConfirmation(): void {
+  const title = modalReviewIndex.value !== null ? modalReviewChange.value.title : expandedReviewChange.value
+  if (title) {
+    const next = new Set(thankedChanges.value)
+    next.add(title)
+    thankedChanges.value = next
+  }
+  confirmationToastType.value = 'success'
   confirmationToast.value = `You thanked ${activeReviewEditor.value}.`
 }
 
+function requestThanks(changeTitle?: string): void {
+  const title = changeTitle ?? modalReviewChange.value.title
+  if (thankedChanges.value.has(title)) {
+    confirmationToastType.value = 'notice'
+    confirmationToast.value = "A 'Thanks' cannot be undone."
+    return
+  }
+  if (desktopReviewPresentation.value === 'modal') openModalConfirmation('thank')
+  else thankDialogOpen.value = true
+}
+
 function markEditReviewed(changeTitle?: string): void {
+  confirmationToastType.value = 'success'
   const title = changeTitle ?? modalReviewChange.value.title
   const next = new Set(reviewedChanges.value)
   if (next.has(title)) {
@@ -345,9 +368,9 @@ const impact = {
                         <CdxIcon :icon="cdxIconEditUndo" />
                         Undo
                       </CdxButton>
-                      <CdxButton @click.stop="thankDialogOpen = true">
-                        <CdxIcon :icon="cdxIconHeartOutline" />
-                        Thank
+                      <CdxButton @click.stop="requestThanks(change.title)">
+                        <CdxIcon :icon="thankedChanges.has(change.title) ? cdxIconHeart : cdxIconHeartOutline" />
+                        {{ thankedChanges.has(change.title) ? 'Thanked' : 'Thank' }}
                       </CdxButton>
                     </div>
                     <div class="desktop-inline-diff__content">
@@ -378,10 +401,10 @@ const impact = {
                       <CdxButton
                         weight="quiet"
                         :icon-only="true"
-                        aria-label="Thank"
-                        @click.stop="thankDialogOpen = true"
+                        :aria-label="thankedChanges.has(change.title) ? 'Thanked' : 'Thank'"
+                        @click.stop="requestThanks(change.title)"
                       >
-                        <CdxIcon :icon="cdxIconHeartOutline" />
+                        <CdxIcon :icon="thankedChanges.has(change.title) ? cdxIconHeart : cdxIconHeartOutline" />
                       </CdxButton>
                       <CdxButton
                         weight="quiet"
@@ -545,8 +568,9 @@ const impact = {
           <WikipediaDiffContent :change="modalReviewChange" tall :show-heading="false" />
         </div>
         <div class="desktop-review-dialog__footer">
-          <CdxButton size="medium" @click="openModalConfirmation('thank')">
-            <CdxIcon :icon="cdxIconHeartOutline" /> Thank
+          <CdxButton size="medium" @click="requestThanks(modalReviewChange.title)">
+            <CdxIcon :icon="thankedChanges.has(modalReviewChange.title) ? cdxIconHeart : cdxIconHeartOutline" />
+            {{ thankedChanges.has(modalReviewChange.title) ? 'Thanked' : 'Thank' }}
           </CdxButton>
           <CdxButton size="medium" @click="openModalConfirmation('undo')">
             <CdxIcon :icon="cdxIconEditUndo" /> Undo
@@ -594,7 +618,7 @@ const impact = {
     v-if="confirmationToast"
     standalone
     target="body"
-    type="success"
+    :type="confirmationToastType"
     :auto-dismiss="true"
     @auto-dismissed="clearConfirmationToast"
     @user-dismissed="clearConfirmationToast"

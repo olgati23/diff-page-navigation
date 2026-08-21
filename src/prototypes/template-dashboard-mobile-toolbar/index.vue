@@ -102,7 +102,7 @@ function showThankConfirmation(): void {
 }
 
 function markEditReviewed(): void {
-  confirmationToast.value = 'Edit marked as reviewed for you and will not be saved to Wikipedia.'
+  confirmationToast.value = 'Edit marked as reviewed on your dashboard only.'
 }
 
 function openFullDiff(change: ReviewChange): void {

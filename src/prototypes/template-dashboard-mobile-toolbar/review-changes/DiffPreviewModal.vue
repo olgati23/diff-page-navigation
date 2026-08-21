@@ -171,10 +171,10 @@ function markEditReviewed(): void {
   const reviewed = !next.has(props.change.title)
   if (reviewed) {
     next.add(props.change.title)
-    confirmationToast.value = 'Edit marked as reviewed for you and will not be saved to Wikipedia.'
+    confirmationToast.value = 'Edit marked as reviewed on your dashboard only.'
   } else {
     next.delete(props.change.title)
-    confirmationToast.value = 'Edit marked as unreviewed for you and will not be saved to Wikipedia.'
+    confirmationToast.value = 'Edit marked as unreviewed on your dashboard only.'
   }
   reviewedChanges.value = next
   emit('reviewed', props.change.title, reviewed)

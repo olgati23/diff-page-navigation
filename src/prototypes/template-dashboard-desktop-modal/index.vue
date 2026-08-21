@@ -11,8 +11,8 @@ import {
   cdxIconEdit,
   cdxIconEditUndo,
   cdxIconCollapse,
-  cdxIconArrowNext,
-  cdxIconArrowPrevious,
+  cdxIconNext,
+  cdxIconPrevious,
   cdxIconExpand,
   cdxIconHeartOutline,
   cdxIconMessage,
@@ -596,7 +596,7 @@ const impact = {
               :disabled="modalReviewIndex === 0"
               @click="moveReviewModal(-1)"
             >
-              <CdxIcon :icon="cdxIconArrowPrevious" />
+              <CdxIcon :icon="cdxIconPrevious" />
             </CdxButton>
             <CdxButton
               size="small"
@@ -605,7 +605,7 @@ const impact = {
               :disabled="modalReviewIndex === desktopReviewChanges.length - 1"
               @click="moveReviewModal(1)"
             >
-              <CdxIcon :icon="cdxIconArrowNext" />
+              <CdxIcon :icon="cdxIconNext" />
             </CdxButton>
           </div>
         </div>

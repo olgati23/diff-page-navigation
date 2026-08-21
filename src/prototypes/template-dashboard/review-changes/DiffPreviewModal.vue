@@ -201,6 +201,7 @@ function markEditReviewed(): void {
   }
   reviewedChanges.value = next
   emit('reviewed', props.change.title, reviewed)
+  if (reviewed && props.changeIndex < props.changeCount - 1) emit('navigate', 1)
 }
 
 function clearConfirmationToast(): void {

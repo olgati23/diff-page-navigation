@@ -127,6 +127,14 @@ function markEditReviewed(changeTitle?: string): void {
   } else {
     next.add(title)
     confirmationToast.value = 'Edit marked as reviewed on your dashboard only.'
+    if (modalReviewIndex.value !== null) {
+      moveReviewModal(1)
+    } else {
+      const currentIndex = desktopReviewChanges.findIndex((change) => change.title === title)
+      if (currentIndex >= 0 && currentIndex < desktopReviewChanges.length - 1) {
+        expandedReviewChange.value = desktopReviewChanges[currentIndex + 1].title
+      }
+    }
   }
   reviewedChanges.value = next
 }
@@ -167,10 +175,12 @@ function openModalConfirmation(action: 'undo' | 'thank'): void {
 }
 
 function confirmModalAction(): void {
-  if (modalConfirmation.value === 'undo') showUndoConfirmation()
+  const shouldAdvance = modalConfirmation.value === 'undo'
+  if (shouldAdvance) showUndoConfirmation()
   if (modalConfirmation.value === 'thank') showThankConfirmation()
 
   if (
+    shouldAdvance &&
     modalReviewIndex.value !== null &&
     modalReviewIndex.value < desktopReviewChanges.length - 1
   ) {

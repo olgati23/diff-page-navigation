@@ -159,6 +159,7 @@ function showThankConfirmation(): void {
 
 function markEditReviewed(): void {
   const next = new Set(reviewedChanges.value)
+  const reviewed = !next.has(props.change.title)
   if (next.has(props.change.title)) {
     next.delete(props.change.title)
     confirmationToast.value = 'Edit marked as unreviewed on your dashboard only.'
@@ -167,6 +168,7 @@ function markEditReviewed(): void {
     confirmationToast.value = 'Edit marked as reviewed on your dashboard only.'
   }
   reviewedChanges.value = next
+  if (reviewed && props.changeIndex < props.changeCount - 1) emit('navigate', 1)
 }
 
 function clearConfirmationToast(): void {

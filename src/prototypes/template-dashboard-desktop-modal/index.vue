@@ -127,6 +127,7 @@ function markEditReviewed(changeTitle?: string): void {
   } else {
     next.add(title)
     confirmationToast.value = 'Edit marked as reviewed on your dashboard only.'
+    moveReviewModal(1)
   }
   reviewedChanges.value = next
 }
@@ -167,10 +168,12 @@ function openModalConfirmation(action: 'undo' | 'thank'): void {
 }
 
 function confirmModalAction(): void {
-  if (modalConfirmation.value === 'undo') showUndoConfirmation()
+  const shouldAdvance = modalConfirmation.value === 'undo'
+  if (shouldAdvance) showUndoConfirmation()
   if (modalConfirmation.value === 'thank') showThankConfirmation()
 
   if (
+    shouldAdvance &&
     modalReviewIndex.value !== null &&
     modalReviewIndex.value < desktopReviewChanges.length - 1
   ) {

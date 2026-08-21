@@ -541,7 +541,10 @@ const impact = {
           </div>
         </template>
         <template v-else>
-        <div class="desktop-review-dialog__meta">
+        <div
+          class="desktop-review-dialog__meta"
+          :class="{ 'desktop-review-dialog__meta--german': isGermanPrototype }"
+        >
           <div class="desktop-review-dialog__user-links">
             <a
               :href="userPageUrl(modalReviewChange.editor)"
@@ -871,6 +874,11 @@ const impact = {
   margin: calc(var(--spacing-100, 16px) * -1) -24px 0;
   padding: var(--spacing-75, 12px) var(--spacing-100, 16px);
   border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
+}
+
+.desktop-review-dialog__meta--german {
+  flex-wrap: wrap;
+  gap: var(--spacing-75, 12px);
 }
 
 .desktop-review-dialog__user {

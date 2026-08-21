@@ -161,6 +161,7 @@ function markEditReviewed(): void {
   const next = new Set(reviewedChanges.value)
   if (next.has(props.change.title)) {
     next.delete(props.change.title)
+    confirmationToast.value = 'Edit marked as unreviewed'
   } else {
     next.add(props.change.title)
     confirmationToast.value = 'Edit marked as reviewed'

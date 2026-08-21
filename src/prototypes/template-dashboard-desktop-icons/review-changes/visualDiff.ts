@@ -148,7 +148,7 @@ export async function buildVisualDiffDocument(
     .ve-ui-diffElement::after { content: ''; clear: both; display: block; }
     .ve-ui-diffElement-content { position: relative; overflow-x: auto; margin-left: -5px; padding-left: 5px; }
     .change-inline { margin: 0 0 12px; padding: 0; }
-    [data-diff-action='none'] { opacity: 0.4; }
+    [data-diff-action='none'] { opacity: 0.65; }
     [data-diff-action='insert'], [data-diff-action='remove'] {
       position: relative; z-index: 1; text-decoration: inherit; white-space: break-spaces;
     }

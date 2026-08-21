@@ -1005,6 +1005,11 @@ onBeforeUnmount(() => {
     flex: 0 0 auto;
     min-height: 0;
     overflow: visible;
+    pointer-events: none;
+  }
+
+  .diff-preview--page.diff-preview--card .diff-preview__body {
+    touch-action: pan-y;
   }
 
   .diff-preview--page.diff-preview--card .diff-preview__editor-card {

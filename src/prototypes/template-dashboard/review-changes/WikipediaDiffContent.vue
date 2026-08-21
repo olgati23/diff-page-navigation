@@ -68,7 +68,7 @@ async function loadDiff(): Promise<void> {
     documentHtml.value = await buildVisualDiffDocument(markup, request.signal, {
       heading: firstChangedSection(markup),
       showHeading: props.showHeading,
-      mobile: true,
+      mobile: props.tall,
     })
   } catch (caught) {
     if ((caught as Error).name !== 'AbortError') error.value = true
@@ -95,7 +95,10 @@ onBeforeUnmount(() => request?.abort())
 <template>
   <div
     class="wikipedia-diff-content"
-    :class="{ 'wikipedia-diff-content--tall': props.tall }"
+    :class="{
+      'wikipedia-diff-content--tall': props.tall,
+      'wikipedia-diff-content--inline': !props.tall,
+    }"
     :style="props.tall ? { height: `${frameHeight}px` } : undefined"
   >
     <CdxProgressBar v-if="loading" aria-label="Loading Wikipedia diff" />
@@ -121,6 +124,11 @@ onBeforeUnmount(() => request?.abort())
 
 .wikipedia-diff-content--tall {
   overflow: hidden;
+}
+
+.wikipedia-diff-content--inline,
+.wikipedia-diff-content--inline iframe {
+  background: #f8f9fa;
 }
 
 .wikipedia-diff-content iframe {

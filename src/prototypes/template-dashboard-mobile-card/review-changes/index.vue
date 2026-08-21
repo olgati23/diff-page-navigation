@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CdxIcon } from '@wikimedia/codex'
-import { cdxIconArrowPrevious, cdxIconCheck, cdxIconInfoFilled, cdxIconUserAvatar } from '@wikimedia/codex-icons'
+import { cdxIconArrowPrevious, cdxIconCheck, cdxIconEditUndo, cdxIconInfoFilled, cdxIconUserAvatar } from '@wikimedia/codex-icons'
 import { RouterLink } from 'vue-router'
 import { computed, ref } from 'vue'
 
@@ -17,9 +17,20 @@ definePage({
 const previewVariant = ref<'card' | 'toolbar' | 'simplified'>('card')
 const selectedChangeIndex = ref<number | null>(null)
 const reviewedChanges = ref<Set<string>>(new Set())
+const undoneChanges = ref<Set<string>>(new Set())
 const selectedChange = computed(() =>
   selectedChangeIndex.value === null ? null : reviewChanges[selectedChangeIndex.value],
 )
+const selectedPreviewChange = computed(() => {
+  const change = selectedChange.value
+  if (!change || !undoneChanges.value.has(change.title)) return change
+  return {
+    ...change,
+    revisionId: change.oldRevisionId,
+    oldRevisionId: change.revisionId,
+    summary: `Undo: ${change.summary}`,
+  }
+})
 
 function openDiff(change: ReviewChange) {
   selectedChangeIndex.value = reviewChanges.indexOf(change)
@@ -38,6 +49,12 @@ function markReviewed(title: string, reviewed: boolean) {
   if (reviewed) next.add(title)
   else next.delete(title)
   reviewedChanges.value = next
+}
+
+function markUndone(title: string) {
+  const next = new Set(undoneChanges.value)
+  next.add(title)
+  undoneChanges.value = next
 }
 </script>
 
@@ -67,7 +84,14 @@ function markReviewed(title: string, reviewed: boolean) {
         <div class="review-queue-card__heading">
           <h2>{{ change.title }}</h2>
           <CdxIcon
-            v-if="reviewedChanges.has(change.title)"
+            v-if="undoneChanges.has(change.title)"
+            :icon="cdxIconEditUndo"
+            size="small"
+            class="review-queue-card__undone-status"
+            icon-label="Edit undone"
+          />
+          <CdxIcon
+            v-else-if="reviewedChanges.has(change.title)"
             :icon="cdxIconCheck"
             size="small"
             class="review-queue-card__reviewed-status"
@@ -87,7 +111,7 @@ function markReviewed(title: string, reviewed: boolean) {
     <DiffPreviewModal
       v-if="selectedChange"
       :key="previewVariant"
-      :change="selectedChange"
+      :change="selectedPreviewChange!"
       :variant="previewVariant"
       :change-index="selectedChangeIndex ?? 0"
       :change-count="reviewChanges.length"
@@ -95,6 +119,7 @@ function markReviewed(title: string, reviewed: boolean) {
       page
       @navigate="navigateDiff"
       @reviewed="markReviewed"
+      @undone="markUndone"
       @close="selectedChangeIndex = null"
     />
   </main>
@@ -223,6 +248,12 @@ function markReviewed(title: string, reviewed: boolean) {
   flex-shrink: 0;
   margin-inline-start: auto;
   color: var(--color-icon-success, #099979);
+}
+
+.review-queue-card__undone-status {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  color: var(--color-icon-base, #202122);
 }
 
 .review-queue-card__description,

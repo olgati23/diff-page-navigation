@@ -52,6 +52,7 @@ const confirmationToast = ref('')
 const confirmationToastType = ref<'success' | 'notice'>('success')
 const reviewedChanges = ref<Set<string>>(new Set())
 const thankedChanges = ref<Set<string>>(new Set())
+const undoneChanges = ref<Set<string>>(new Set())
 const modalConfirmation = ref<'undo' | 'thank' | null>(null)
 const modalUndoReason = ref('')
 
@@ -94,6 +95,26 @@ function updateReviewModalOpen(open: boolean): void {
 function showUndoConfirmation(): void {
   confirmationToastType.value = 'success'
   confirmationToast.value = 'Your edit was saved.'
+  const title = modalReviewIndex.value !== null ? modalReviewChange.value.title : expandedReviewChange.value
+  if (!title) return
+  const undone = new Set(undoneChanges.value)
+  undone.add(title)
+  undoneChanges.value = undone
+  const reviewed = new Set(reviewedChanges.value)
+  reviewed.delete(title)
+  reviewedChanges.value = reviewed
+  if (modalReviewIndex.value !== null) moveReviewModal(1)
+  else {
+    const currentIndex = desktopReviewChanges.findIndex((change) => change.title === title)
+    if (currentIndex >= 0 && currentIndex < desktopReviewChanges.length - 1) {
+      expandedReviewChange.value = desktopReviewChanges[currentIndex + 1].title
+    }
+  }
+}
+
+function displayedChange(change: ReviewChange): ReviewChange {
+  if (!undoneChanges.value.has(change.title)) return change
+  return { ...change, revisionId: change.oldRevisionId, oldRevisionId: change.revisionId, summary: `Undo: ${change.summary}` }
 }
 
 function showThankConfirmation(): void {
@@ -175,17 +196,8 @@ function openModalConfirmation(action: 'undo' | 'thank'): void {
 }
 
 function confirmModalAction(): void {
-  const shouldAdvance = modalConfirmation.value === 'undo'
-  if (shouldAdvance) showUndoConfirmation()
+  if (modalConfirmation.value === 'undo') showUndoConfirmation()
   if (modalConfirmation.value === 'thank') showThankConfirmation()
-
-  if (
-    shouldAdvance &&
-    modalReviewIndex.value !== null &&
-    modalReviewIndex.value < desktopReviewChanges.length - 1
-  ) {
-    modalReviewIndex.value += 1
-  }
   modalConfirmation.value = null
 }
 
@@ -307,8 +319,15 @@ const impact = {
                   <div class="desktop-review-item__title">
                     <strong>{{ change.title }}</strong>
                     <span v-if="change.description">{{ change.description }}</span>
+                  <CdxIcon
+                      v-if="undoneChanges.has(change.title)"
+                      :icon="cdxIconEditUndo"
+                      size="small"
+                      class="desktop-review-item__undone-status"
+                      icon-label="Edit undone"
+                    />
                     <CdxIcon
-                      v-if="reviewedChanges.has(change.title)"
+                      v-else-if="reviewedChanges.has(change.title)"
                       :icon="cdxIconCheck"
                       size="small"
                       class="desktop-review-item__reviewed-status"
@@ -365,7 +384,7 @@ const impact = {
                       </CdxButton>
                     </div>
                     <div class="desktop-inline-diff__content">
-                      <WikipediaDiffContent :change="change" />
+                      <WikipediaDiffContent :change="displayedChange(change)" />
                     </div>
                     <div
                       v-if="desktopReviewPresentation === 'icons'"
@@ -555,7 +574,7 @@ const impact = {
           </CdxButton>
         </div>
         <div class="desktop-review-dialog__diff">
-          <WikipediaDiffContent :change="modalReviewChange" tall :show-heading="false" />
+          <WikipediaDiffContent :change="displayedChange(modalReviewChange)" tall :show-heading="false" />
         </div>
         <div class="desktop-review-dialog__footer">
           <CdxButton size="medium" @click="openModalConfirmation('thank')">
@@ -722,6 +741,12 @@ const impact = {
   flex-shrink: 0;
   margin-inline-start: auto;
   color: var(--color-icon-success, #099979);
+}
+
+.desktop-review-item__undone-status {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  color: var(--color-icon-base, #202122);
 }
 
 .desktop-review-item__meta {

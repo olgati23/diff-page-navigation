@@ -42,6 +42,7 @@ const emit = defineEmits<{
   close: []
   navigate: [direction: -1 | 1]
   reviewed: [title: string, reviewed: boolean]
+  undone: [title: string]
 }>()
 
 const editorCardOpen = ref(true)
@@ -169,6 +170,8 @@ function fitCardDiffToPage(attempt = 0) {
 function showUndoConfirmation(): void {
   confirmationToastType.value = 'success'
   confirmationToast.value = 'Your edit was saved.'
+  emit('undone', props.change.title)
+  if (props.changeIndex < props.changeCount - 1) emit('navigate', 1)
 }
 
 function showThankConfirmation(): void {

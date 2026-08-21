@@ -170,18 +170,6 @@ function userPageUrl(editor: string): string {
   return `${import.meta.env.BASE_URL}template-user-page-readonly?username=${encodeURIComponent(editor)}${window.location.pathname.includes('-de') ? '&lang=de' : ''}`
 }
 
-function userTalkPageUrl(editor: string): string {
-  return `https://${window.location.pathname.includes('-de') ? 'de' : 'en'}.wikipedia.org/wiki/User_talk:${encodeURIComponent(editor.replaceAll(' ', '_'))}`
-}
-
-function userContributionsUrl(editor: string): string {
-  return `https://${window.location.pathname.includes('-de') ? 'de' : 'en'}.wikipedia.org/wiki/Special:Contributions/${encodeURIComponent(editor.replaceAll(' ', '_'))}`
-}
-
-function openUserTalkPage(editor: string): void {
-  window.open(userTalkPageUrl(editor), '_blank', 'noopener,noreferrer')
-}
-
 function clearConfirmationToast(): void {
   confirmationToast.value = ''
 }
@@ -400,14 +388,6 @@ const impact = {
                       <CdxButton
                         weight="quiet"
                         :icon-only="true"
-                        aria-label="Open user talk page"
-                        @click.stop="openUserTalkPage(change.editor)"
-                      >
-                        <CdxIcon :icon="cdxIconUserTalk" />
-                      </CdxButton>
-                      <CdxButton
-                        weight="quiet"
-                        :icon-only="true"
                         aria-label="Thank"
                         @click.stop="thankDialogOpen = true"
                       >
@@ -556,17 +536,13 @@ const impact = {
               {{ modalReviewChange.editor }}
             </a>
             <span aria-hidden="true">(</span>
-            <a
-              :href="userTalkPageUrl(modalReviewChange.editor)"
-              target="_blank"
-              rel="noopener noreferrer"
-            >{{ isGermanPrototype ? 'Diskussion' : 'talk' }}</a>
+            <span class="desktop-review-dialog__secondary-user-link">
+              {{ isGermanPrototype ? 'Diskussion' : 'talk' }}
+            </span>
             <span aria-hidden="true">|</span>
-            <a
-              :href="userContributionsUrl(modalReviewChange.editor)"
-              target="_blank"
-              rel="noopener noreferrer"
-            >{{ isGermanPrototype ? 'Beiträge' : 'contribs' }}</a>
+            <span class="desktop-review-dialog__secondary-user-link">
+              {{ isGermanPrototype ? 'Beiträge' : 'contribs' }}
+            </span>
             <span aria-hidden="true">)</span>
           </div>
           <CdxButton
@@ -899,6 +875,10 @@ const impact = {
 .desktop-review-dialog__user-links > a:not(.desktop-review-dialog__user) {
   color: var(--color-progressive, #36c);
   text-decoration: none;
+}
+
+.desktop-review-dialog__secondary-user-link {
+  color: var(--color-progressive, #36c);
 }
 
 .desktop-review-dialog__user-links > a:hover {

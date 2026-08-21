@@ -9,7 +9,6 @@ import {
 } from '@wikimedia/codex'
 import {
   cdxIconArrowPrevious,
-  cdxIconCheck,
   cdxIconSuccess,
   cdxIconHeart,
   cdxIconHeartOutline,
@@ -29,6 +28,8 @@ import type { ReviewChange } from '../reviewChanges'
 import ThankConfirmationDialog from './ThankConfirmationDialog.vue'
 import UndoConfirmationDialog from './UndoConfirmationDialog.vue'
 import { buildVisualDiffDocument } from './visualDiff'
+
+const toolbarReviewIcon = '<circle cx="10" cy="10" r="8.5" fill="none" stroke="currentColor"/><path d="m14.806 7.249-4.906 5.956H8.801L6 11.105l1.2-1.6 2.024 1.518L13.244 6z"/>'
 
 const props = defineProps<{
   change: ReviewChange
@@ -583,10 +584,9 @@ onBeforeUnmount(() => {
           weight="quiet"
           :icon-only="true"
           aria-label="Mark edit as reviewed"
-          :class="{ 'diff-preview__reviewed-action--complete': reviewedChanges.has(props.change.title) }"
           @click="markEditReviewed"
         >
-          <CdxIcon :icon="cdxIconSuccess" />
+          <CdxIcon :icon="reviewedChanges.has(props.change.title) ? cdxIconSuccess : toolbarReviewIcon" />
         </CdxButton>
       </footer>
     </section>
@@ -936,11 +936,6 @@ onBeforeUnmount(() => {
 
 .diff-preview__editor-card-toggle > .cdx-icon:not(:last-child) {
   display: none;
-}
-
-.diff-preview__reviewed-action--complete.cdx-button:enabled,
-.diff-preview__reviewed-action--complete.cdx-button:enabled .cdx-icon {
-  color: var(--color-icon-success, #099979);
 }
 
 .diff-preview__editor-card-username {

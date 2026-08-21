@@ -931,20 +931,9 @@ const impact = {
 
 .desktop-review-dialog__footer > .cdx-button {
   min-width: 0;
-  min-height: 44px;
-  height: auto;
-  padding-block: var(--spacing-25, 4px);
   justify-content: center;
   font-weight: var(--font-weight-bold, 700);
-  line-height: var(--line-height-small, 1.375);
-  white-space: normal;
-  overflow-wrap: anywhere;
   text-align: center;
-}
-
-.desktop-review-dialog__footer > .cdx-button :deep(.cdx-button__content) {
-  min-width: 0;
-  white-space: normal;
 }
 
 .desktop-review-dialog__navigation {

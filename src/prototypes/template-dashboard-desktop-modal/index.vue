@@ -733,7 +733,7 @@ const impact = {
 .desktop-review-item__reviewed-status {
   flex-shrink: 0;
   margin-inline-start: auto;
-  color: var(--color-icon-success, #099979);
+  color: var(--color-icon-base, #202122);
 }
 
 .desktop-review-item__undone-status {

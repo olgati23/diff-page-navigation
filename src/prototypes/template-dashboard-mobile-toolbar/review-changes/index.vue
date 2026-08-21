@@ -247,7 +247,7 @@ function markUndone(title: string) {
 .review-queue-card__reviewed-status {
   flex-shrink: 0;
   margin-inline-start: auto;
-  color: var(--color-icon-success, #099979);
+  color: var(--color-icon-base, #202122);
 }
 
 .review-queue-card__undone-status {

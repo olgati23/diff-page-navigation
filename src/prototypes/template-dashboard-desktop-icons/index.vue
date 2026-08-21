@@ -450,7 +450,7 @@ const impact = {
                   </div>
                 </article>
               </div>
-              <p class="discussion-footer">View more edits in the <a href="#">recent changes page</a></p>
+              <p class="discussion-footer">View more edits in the <a href="#" @click.prevent>recent changes page</a></p>
             </DashboardModule>
             <DashboardModule title="Active discussions">
               <div class="discussion-list">
@@ -465,7 +465,7 @@ const impact = {
                   <span>Latest comment: <a href="#">{{ discussion[2] }}</a></span>
                 </article>
               </div>
-              <p class="discussion-footer">View more edits in the <a href="#">recent changes page</a></p>
+              <p class="discussion-footer">View more edits in the <a href="#" @click.prevent>recent changes page</a></p>
             </DashboardModule>
           </template>
 

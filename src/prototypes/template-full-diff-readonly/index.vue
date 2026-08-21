@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { CdxButton, CdxIcon, CdxMessage } from '@wikimedia/codex'
+import { CdxButton, CdxDialog, CdxIcon } from '@wikimedia/codex'
 import { cdxIconArrowPrevious } from '@wikimedia/codex-icons'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import WikipediaDiffContent from '../template-dashboard/review-changes/WikipediaDiffContent.vue'
@@ -16,6 +16,7 @@ definePage({
 
 const route = useRoute()
 const requestedTitle = computed(() => String(route.query.title || ''))
+const warningOpen = ref(true)
 const change = computed(
   () => reviewChanges.find((item) => item.title === requestedTitle.value) ?? reviewChanges[0],
 )
@@ -46,11 +47,6 @@ function openWikipedia(): void {
     </header>
 
     <article class="readonly-diff-page__content">
-      <CdxMessage type="warning" :allow-user-dismiss="false" class="readonly-diff-page__warning">
-        <span>You are leaving the prototype and opening Wikipedia. Any edits or action made there are public</span>
-        <CdxButton action="progressive" weight="primary" @click="openWikipedia">Got it</CdxButton>
-      </CdxMessage>
-
       <header class="readonly-diff-page__title">
         <h1>{{ change.title }}</h1>
         <p>Difference between revisions</p>
@@ -63,6 +59,18 @@ function openWikipedia(): void {
 
       <WikipediaDiffContent :change="change" tall />
     </article>
+
+    <CdxDialog
+      :open="warningOpen"
+      title="Opening Wikipedia"
+      class="wikipedia-warning-dialog"
+      @update:open="warningOpen = $event"
+    >
+      <p>You are leaving the prototype and opening Wikipedia. Any edits or action made there are public</p>
+      <div class="wikipedia-warning-dialog__actions">
+        <CdxButton action="progressive" weight="primary" @click="openWikipedia">Got it</CdxButton>
+      </div>
+    </CdxDialog>
   </main>
 </template>
 
@@ -93,18 +101,22 @@ function openWikipedia(): void {
   padding: 24px 16px 48px;
 }
 
-.readonly-diff-page__warning :deep(.cdx-message__content) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .readonly-diff-page__title {
   margin-top: 24px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
+}
+
+.wikipedia-warning-dialog p {
+  margin: 0;
+  font-size: var(--font-size-medium, 1rem);
+  line-height: 1.6;
+}
+
+.wikipedia-warning-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
 }
 
 .readonly-diff-page__title h1 {

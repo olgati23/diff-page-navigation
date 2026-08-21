@@ -943,6 +943,23 @@ const impact = {
   white-space: normal;
 }
 
+:global(html[lang='de']) .desktop-review-dialog__footer {
+  grid-template-columns: repeat(3, max-content) 1fr;
+}
+
+:global(html[lang='de']) .desktop-review-dialog__footer > .cdx-button {
+  width: max-content;
+  white-space: nowrap;
+}
+
+:global(html[lang='de']) .desktop-review-dialog__footer > .cdx-button :deep(.cdx-button__content) {
+  white-space: nowrap;
+}
+
+:global(html[lang='de']) .desktop-review-dialog__navigation {
+  justify-self: end;
+}
+
 .desktop-review-dialog__navigation {
   display: flex;
   gap: var(--spacing-50, 8px);

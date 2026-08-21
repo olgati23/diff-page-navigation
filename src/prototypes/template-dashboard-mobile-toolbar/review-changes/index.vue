@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CdxIcon } from '@wikimedia/codex'
-import { cdxIconArrowPrevious, cdxIconCheck, cdxIconEditUndo, cdxIconInfoFilled, cdxIconUserAvatar } from '@wikimedia/codex-icons'
+import { cdxIconArrowPrevious, cdxIconEditUndo, cdxIconInfoFilled, cdxIconSuccess, cdxIconUserAvatar } from '@wikimedia/codex-icons'
 import { RouterLink } from 'vue-router'
 import { computed, ref } from 'vue'
 
@@ -98,7 +98,7 @@ function markRestored(title: string) {
           />
           <CdxIcon
             v-else-if="reviewedChanges.has(change.title)"
-            :icon="cdxIconCheck"
+            :icon="cdxIconSuccess"
             size="small"
             class="review-queue-card__reviewed-status"
             icon-label="Edit reviewed"

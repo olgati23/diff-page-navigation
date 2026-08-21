@@ -90,6 +90,8 @@ const replacements: Array<[string, string]> = [
   ['Edit marked as reviewed on your dashboard only.', 'Bearbeitung nur auf deinem Dashboard als geprüft markiert.'],
   ['Edit marked as unreviewed on your dashboard only.', 'Bearbeitung nur auf deinem Dashboard als ungeprüft markiert.'],
   ['Edit restored.', 'Bearbeitung wiederhergestellt.'],
+  ['Your edit was saved.', 'Deine Bearbeitung wurde gespeichert.'],
+  ['Edit undone', 'Bearbeitung rückgängig gemacht'],
   ['Opening Wikipedia', 'Wikipedia öffnen'],
   ['You are leaving the prototype and opening Wikipedia. Any edits or action made there are public', 'Du verlässt den Prototyp und öffnest Wikipedia. Alle dort vorgenommenen Bearbeitungen oder Aktionen sind öffentlich.'],
   ['Got it', 'Verstanden'],
@@ -107,6 +109,13 @@ const replacements: Array<[string, string]> = [
 function translateText(value: string): string {
   let translated = value
   translated = translated.replace(/^(\s*)(.+) edited the (.+) article(\s*)$/, '$1$2 hat den Artikel $3 bearbeitet$4')
+  translated = translated.replace(/Publicly send [‘']Thanks[’']/g, 'Öffentlich „Danke“ senden')
+  translated = translated.replace(
+    /It is an easy way to show appreciation for an editor[’']s work on Wikipedia\. [‘']Thanks[’'] cannot be undone and are publicly viewable\./g,
+    'Damit kannst du deine Wertschätzung für die Arbeit eines Benutzers auf Wikipedia zeigen. Ein „Danke“ kann nicht rückgängig gemacht werden und ist öffentlich sichtbar.',
+  )
+  translated = translated.replace(/A [‘']Thanks[’'] cannot be undone\.?/g, 'Ein „Danke“ kann nicht rückgängig gemacht werden.')
+  translated = translated.replace(/You thanked (.+)\./g, 'Du hast $1 gedankt.')
   for (const [source, target] of replacements) translated = translated.replaceAll(source, target)
   return translated
 }
@@ -147,13 +156,19 @@ export function useGermanPrototype(): void {
     translateTree(document.body)
     observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
+        if (mutation.type === 'characterData') {
+          const textNode = mutation.target as Text
+          const translated = translateText(textNode.nodeValue ?? '')
+          if (translated !== textNode.nodeValue) textNode.nodeValue = translated
+          continue
+        }
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) translateTree(node as Element)
           else if (node.nodeType === Node.TEXT_NODE && node.parentElement) translateTree(node.parentElement)
         })
       }
     })
-    observer.observe(document.body, { childList: true, subtree: true })
+    observer.observe(document.body, { childList: true, characterData: true, subtree: true })
   })
   onBeforeUnmount(() => observer?.disconnect())
 }

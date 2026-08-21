@@ -971,7 +971,7 @@ const impact = {
 }
 
 :deep(.desktop-review-dialog--german .cdx-dialog__frame) {
-  width: min(640px, calc(100vw - 32px));
+  width: min(760px, calc(100vw - 32px));
 }
 
 :deep(.desktop-review-dialog .cdx-dialog__body) {

@@ -29,7 +29,7 @@ import ThankConfirmationDialog from './ThankConfirmationDialog.vue'
 import UndoConfirmationDialog from './UndoConfirmationDialog.vue'
 import { buildVisualDiffDocument } from './visualDiff'
 
-const toolbarReviewIcon = '<circle cx="10" cy="10" r="8.5" fill="none" stroke="currentColor"/><path d="m14.806 7.249-4.906 5.956H8.801L6 11.105l1.2-1.6 2.024 1.518L13.244 6z"/>'
+const toolbarReviewIcon = '<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="m14.806 7.249-4.906 5.956H8.801L6 11.105l1.2-1.6 2.024 1.518L13.244 6z"/>'
 
 const props = defineProps<{
   change: ReviewChange

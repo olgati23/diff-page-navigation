@@ -39,7 +39,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   navigate: [direction: -1 | 1]
-  reviewed: [title: string]
+  reviewed: [title: string, reviewed: boolean]
 }>()
 
 const editorCardOpen = ref(true)
@@ -155,9 +155,16 @@ function showThankConfirmation(): void {
 }
 
 function markEditReviewed(): void {
-  reviewedChanges.value = new Set([...reviewedChanges.value, props.change.title])
-  emit('reviewed', props.change.title)
-  confirmationToast.value = 'Edit marked as reviewed'
+  const next = new Set(reviewedChanges.value)
+  const reviewed = !next.has(props.change.title)
+  if (reviewed) {
+    next.add(props.change.title)
+    confirmationToast.value = 'Edit marked as reviewed'
+  } else {
+    next.delete(props.change.title)
+  }
+  reviewedChanges.value = next
+  emit('reviewed', props.change.title, reviewed)
 }
 
 function clearConfirmationToast(): void {
@@ -478,7 +485,7 @@ onBeforeUnmount(() => {
           <CdxButton action="progressive" @click="thankDialogOpen = true">Thank</CdxButton>
           <CdxButton @click="undoDialogOpen = true">Undo</CdxButton>
           <CdxButton @click="markEditReviewed">
-            Reviewed
+            {{ reviewedChanges.has(props.change.title) ? 'Unreview' : 'Review' }}
           </CdxButton>
         </div>
       </footer>

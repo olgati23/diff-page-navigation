@@ -97,10 +97,15 @@ function showThankConfirmation(): void {
 }
 
 function markEditReviewed(changeTitle?: string): void {
-  if (changeTitle) {
-    reviewedChanges.value = new Set([...reviewedChanges.value, changeTitle])
+  const title = changeTitle ?? modalReviewChange.value.title
+  const next = new Set(reviewedChanges.value)
+  if (next.has(title)) {
+    next.delete(title)
+  } else {
+    next.add(title)
+    confirmationToast.value = 'Edit marked as reviewed'
   }
-  confirmationToast.value = 'Edit marked as reviewed'
+  reviewedChanges.value = next
 }
 
 function openFullDiff(change: ReviewChange): void {
@@ -313,9 +318,9 @@ const impact = {
                       class="desktop-inline-diff__label-actions"
                       aria-label="Review actions"
                     >
-                      <CdxButton @click.stop="markEditReviewed">
+                      <CdxButton @click.stop="markEditReviewed(change.title)">
                         <CdxIcon :icon="cdxIconCheck" />
-                        Reviewed
+                        {{ reviewedChanges.has(change.title) ? 'Unreview' : 'Review' }}
                       </CdxButton>
                       <CdxButton @click.stop="undoDialogOpen = true">
                         <CdxIcon :icon="cdxIconEditUndo" />
@@ -370,6 +375,7 @@ const impact = {
                         weight="quiet"
                         :icon-only="true"
                         aria-label="Mark edit as reviewed"
+                        :class="{ 'desktop-inline-diff__reviewed--complete': reviewedChanges.has(change.title) }"
                         @click.stop="markEditReviewed(change.title)"
                       >
                         <CdxIcon :icon="cdxIconCheck" />
@@ -525,8 +531,9 @@ const impact = {
           <CdxButton size="medium" @click="openModalConfirmation('undo')">
             <CdxIcon :icon="cdxIconEditUndo" /> Undo
           </CdxButton>
-          <CdxButton size="medium" @click="markEditReviewed">
-            <CdxIcon :icon="cdxIconCheck" /> Reviewed
+          <CdxButton size="medium" @click="markEditReviewed(modalReviewChange.title)">
+            <CdxIcon :icon="cdxIconCheck" />
+            {{ reviewedChanges.has(modalReviewChange.title) ? 'Unreview' : 'Review' }}
           </CdxButton>
           <div class="desktop-review-dialog__navigation">
             <CdxButton
@@ -759,6 +766,11 @@ const impact = {
   gap: var(--spacing-75, 12px);
   padding: var(--spacing-50, 8px) var(--spacing-100, 16px);
   background: #f8f9fa;
+}
+
+.desktop-inline-diff__reviewed--complete.cdx-button:enabled,
+.desktop-inline-diff__reviewed--complete.cdx-button:enabled .cdx-icon {
+  color: var(--color-icon-success, #099979);
 }
 
 .desktop-inline-diff__full-diff {

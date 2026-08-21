@@ -33,8 +33,11 @@ function navigateDiff(direction: -1 | 1) {
   }
 }
 
-function markReviewed(title: string) {
-  reviewedChanges.value = new Set([...reviewedChanges.value, title])
+function markReviewed(title: string, reviewed: boolean) {
+  const next = new Set(reviewedChanges.value)
+  if (reviewed) next.add(title)
+  else next.delete(title)
+  reviewedChanges.value = next
 }
 </script>
 

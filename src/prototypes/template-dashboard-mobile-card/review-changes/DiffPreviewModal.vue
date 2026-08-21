@@ -39,7 +39,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   navigate: [direction: -1 | 1]
-  reviewed: [title: string]
+  reviewed: [title: string, reviewed: boolean]
 }>()
 
 const editorCardOpen = ref(true)
@@ -52,6 +52,7 @@ const diffError = ref<string | null>(null)
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
 const confirmationToast = ref('')
+const reviewedChanges = ref<Set<string>>(new Set())
 let diffRequest: AbortController | null = null
 
 function findFirstChangedSection(diffMarkup: string): string | null {
@@ -159,8 +160,16 @@ function showThankConfirmation(): void {
 }
 
 function markEditReviewed(): void {
-  emit('reviewed', props.change.title)
-  confirmationToast.value = 'Edit marked as reviewed'
+  const next = new Set(reviewedChanges.value)
+  const reviewed = !next.has(props.change.title)
+  if (reviewed) {
+    next.add(props.change.title)
+    confirmationToast.value = 'Edit marked as reviewed'
+  } else {
+    next.delete(props.change.title)
+  }
+  reviewedChanges.value = next
+  emit('reviewed', props.change.title, reviewed)
 }
 
 function clearConfirmationToast(): void {
@@ -482,7 +491,7 @@ onBeforeUnmount(() => {
           <CdxButton action="progressive" @click="thankDialogOpen = true">Thank</CdxButton>
           <CdxButton @click="undoDialogOpen = true">Undo</CdxButton>
           <CdxButton @click="markEditReviewed">
-            Reviewed
+            {{ reviewedChanges.has(props.change.title) ? 'Unreview' : 'Review' }}
           </CdxButton>
         </div>
       </footer>
@@ -530,6 +539,7 @@ onBeforeUnmount(() => {
           weight="quiet"
           :icon-only="true"
           aria-label="Mark edit as reviewed"
+          :class="{ 'diff-preview__reviewed-action--complete': reviewedChanges.has(props.change.title) }"
           @click="markEditReviewed"
         >
           <CdxIcon :icon="cdxIconCheck" />
@@ -923,6 +933,11 @@ onBeforeUnmount(() => {
 
 .diff-preview__toolbar {
   justify-content: space-between;
+}
+
+.diff-preview__reviewed-action--complete.cdx-button:enabled,
+.diff-preview__reviewed-action--complete.cdx-button:enabled .cdx-icon {
+  color: var(--color-icon-success, #099979);
 }
 
 @media (max-width: 639px) {

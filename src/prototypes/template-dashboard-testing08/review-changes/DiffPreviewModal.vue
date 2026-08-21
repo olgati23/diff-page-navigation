@@ -50,6 +50,7 @@ const diffError = ref<string | null>(null)
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
 const confirmationToast = ref('')
+const reviewedChanges = ref<Set<string>>(new Set())
 let diffRequest: AbortController | null = null
 
 function findFirstChangedSection(diffMarkup: string): string | null {
@@ -157,7 +158,14 @@ function showThankConfirmation(): void {
 }
 
 function markEditReviewed(): void {
-  confirmationToast.value = 'Edit marked as reviewed'
+  const next = new Set(reviewedChanges.value)
+  if (next.has(props.change.title)) {
+    next.delete(props.change.title)
+  } else {
+    next.add(props.change.title)
+    confirmationToast.value = 'Edit marked as reviewed'
+  }
+  reviewedChanges.value = next
 }
 
 function clearConfirmationToast(): void {
@@ -463,7 +471,7 @@ onBeforeUnmount(() => {
           <CdxButton action="progressive" @click="thankDialogOpen = true">Thank</CdxButton>
           <CdxButton @click="undoDialogOpen = true">Undo</CdxButton>
           <CdxButton @click="markEditReviewed">
-            Reviewed
+            {{ reviewedChanges.has(props.change.title) ? 'Unreview' : 'Review' }}
           </CdxButton>
         </div>
       </footer>
@@ -511,6 +519,7 @@ onBeforeUnmount(() => {
           weight="quiet"
           :icon-only="true"
           aria-label="Mark edit as reviewed"
+          :class="{ 'diff-preview__reviewed-action--complete': reviewedChanges.has(props.change.title) }"
           @click="markEditReviewed"
         >
           <CdxIcon :icon="cdxIconCheck" />
@@ -864,6 +873,11 @@ onBeforeUnmount(() => {
 
 .diff-preview__toolbar {
   justify-content: space-between;
+}
+
+.diff-preview__reviewed-action--complete.cdx-button:enabled,
+.diff-preview__reviewed-action--complete.cdx-button:enabled .cdx-icon {
+  color: var(--color-icon-success, #099979);
 }
 
 @media (max-width: 639px) {

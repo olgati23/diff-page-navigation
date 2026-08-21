@@ -252,7 +252,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 function userPageUrl(): string {
-  return `https://en.wikipedia.org/wiki/User:${encodeURIComponent(props.change.editor)}`
+  return `${import.meta.env.BASE_URL}template-user-page-readonly?username=${encodeURIComponent(props.change.editor)}`
 }
 
 function openUserPage() {

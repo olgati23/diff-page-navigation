@@ -115,7 +115,7 @@ function openFullDiff(change: ReviewChange): void {
 }
 
 function userPageUrl(editor: string): string {
-  return `https://en.wikipedia.org/wiki/User:${encodeURIComponent(editor.replaceAll(' ', '_'))}`
+  return `${import.meta.env.BASE_URL}template-user-page-readonly?username=${encodeURIComponent(editor)}`
 }
 
 function userTalkPageUrl(editor: string): string {

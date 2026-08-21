@@ -42,6 +42,7 @@ definePage({
 
 const { pageTitle } = useConfig()
 const dashboardView: Skin = 'desktop'
+const isGermanPrototype = window.location.pathname.includes('-de')
 const expandedReviewChange = ref<string | null>(null)
 const desktopReviewPresentation = ref('modal')
 const modalReviewIndex = ref<number | null>(null)
@@ -504,7 +505,10 @@ const impact = {
         :subtitle="modalConfirmation ? undefined : `Revision from ${modalReviewChange.revisionDate} (UTC)`"
         :use-close-button="!modalConfirmation"
         class="desktop-review-dialog"
-        :class="{ 'desktop-review-dialog--confirmation': modalConfirmation }"
+        :class="{
+          'desktop-review-dialog--confirmation': modalConfirmation,
+          'desktop-review-dialog--german': isGermanPrototype,
+        }"
         @update:open="updateReviewModalOpen"
       >
         <template v-if="modalConfirmation === 'undo'">
@@ -977,7 +981,7 @@ const impact = {
   width: min(512px, calc(100vw - 32px));
 }
 
-:global(html[lang='de']) :deep(.desktop-review-dialog .cdx-dialog__frame) {
+:deep(.desktop-review-dialog--german .cdx-dialog__frame) {
   width: min(640px, calc(100vw - 32px));
 }
 

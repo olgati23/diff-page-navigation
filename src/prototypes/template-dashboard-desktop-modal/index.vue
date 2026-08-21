@@ -118,7 +118,7 @@ function requestUndo(changeTitle?: string): void {
     next.delete(title)
     undoneChanges.value = next
     confirmationToastType.value = 'success'
-    confirmationToast.value = 'Edit restored'
+    confirmationToast.value = 'Edit restored.'
     return
   }
   if (modalReviewIndex.value !== null) openModalConfirmation('undo')

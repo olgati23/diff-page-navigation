@@ -180,7 +180,7 @@ function showUndoConfirmation(): void {
 function requestUndo(): void {
   if (props.undone) {
     confirmationToastType.value = 'success'
-    confirmationToast.value = 'Edit restored'
+    confirmationToast.value = 'Edit restored.'
     emit('restored', props.change.title)
     return
   }

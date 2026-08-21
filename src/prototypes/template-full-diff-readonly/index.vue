@@ -26,6 +26,14 @@ function goBack(): void {
     if (!window.closed) window.history.back()
   }, 0)
 }
+
+function openWikipedia(): void {
+  const title = encodeURIComponent(change.value.title.replaceAll(' ', '_'))
+  window.location.href =
+    `https://en.wikipedia.org/w/index.php?title=${title}` +
+    `&diff=${change.value.revisionId}` +
+    `&oldid=${change.value.oldRevisionId}&diffmode=visual`
+}
 </script>
 
 <template>
@@ -38,8 +46,9 @@ function goBack(): void {
     </header>
 
     <article class="readonly-diff-page__content">
-      <CdxMessage type="notice" :allow-user-dismiss="false">
-        Read-only prototype preview. Links, editing, and other actions are unavailable.
+      <CdxMessage type="warning" :allow-user-dismiss="false" class="readonly-diff-page__warning">
+        <span>You are leaving the prototype and opening Wikipedia. Any edits or action made there are public</span>
+        <CdxButton action="progressive" weight="primary" @click="openWikipedia">Got it</CdxButton>
       </CdxMessage>
 
       <header class="readonly-diff-page__title">
@@ -82,6 +91,14 @@ function goBack(): void {
   width: min(100%, 1100px);
   margin: 0 auto;
   padding: 24px 16px 48px;
+}
+
+.readonly-diff-page__warning :deep(.cdx-message__content) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .readonly-diff-page__title {

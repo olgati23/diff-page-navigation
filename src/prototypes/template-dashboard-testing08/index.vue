@@ -122,11 +122,7 @@ function markEditReviewed(changeTitle?: string): void {
 }
 
 function openFullDiff(change: ReviewChange): void {
-  const title = encodeURIComponent(change.title.replaceAll(' ', '_'))
-  const url =
-    `https://en.wikipedia.org/w/index.php?title=${title}` +
-    `&diff=${change.revisionId}` +
-    `&oldid=${change.oldRevisionId}&diffmode=visual`
+  const url = `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(change.title)}`
   window.open(url, '_blank', 'noopener,noreferrer')
 }
 

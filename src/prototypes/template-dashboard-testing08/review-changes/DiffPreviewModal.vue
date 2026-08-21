@@ -259,21 +259,9 @@ function openUserPage() {
   window.open(userPageUrl(), '_blank', 'noopener,noreferrer')
 }
 
-async function openFullDiff(mobile = false) {
-  const popup = window.open('about:blank', '_blank')
-  const title = props.change.title.replaceAll(' ', '_')
-  const encodedTitle = encodeURIComponent(title)
-  const wikiHost = mobile ? 'en.m.wikipedia.org' : 'en.wikipedia.org'
-  const fallbackUrl = `https://${wikiHost}/w/index.php?title=${encodedTitle}&action=history`
-
-  try {
-    const diffUrl =
-      `https://${wikiHost}/w/index.php?title=${encodedTitle}` +
-      `&diff=${props.change.revisionId}&oldid=${props.change.oldRevisionId}&diffmode=visual`
-    if (popup) popup.location.href = diffUrl
-  } catch {
-    if (popup) popup.location.href = fallbackUrl
-  }
+function openFullDiff(_mobile = false) {
+  const url = `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(props.change.title)}`
+  window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 onMounted(() => window.addEventListener('keydown', onKeydown))

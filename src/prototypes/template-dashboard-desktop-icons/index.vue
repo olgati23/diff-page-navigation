@@ -346,7 +346,7 @@ const impact = {
                     />
                     <CdxIcon
                       v-else-if="reviewedChanges.has(change.title)"
-                      :icon="cdxIconSuccess"
+                      :icon="desktopReviewIcon"
                       size="small"
                       class="desktop-review-item__reviewed-status"
                       icon-label="Edit reviewed"

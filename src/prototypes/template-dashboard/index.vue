@@ -372,7 +372,7 @@ const impact = {
                     />
                     <CdxIcon
                       v-else-if="reviewedChanges.has(change.title)"
-                      :icon="desktopReviewPresentation === 'icons' ? cdxIconSuccess : cdxIconCheck"
+                      :icon="desktopReviewPresentation === 'icons' ? desktopReviewIcon : cdxIconCheck"
                       size="small"
                       class="desktop-review-item__reviewed-status"
                       icon-label="Edit reviewed"

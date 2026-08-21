@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CdxIcon } from '@wikimedia/codex'
-import { cdxIconArrowPrevious, cdxIconEditUndo, cdxIconInfoFilled, cdxIconSuccess, cdxIconUserAvatar } from '@wikimedia/codex-icons'
+import { cdxIconArrowPrevious, cdxIconEditUndo, cdxIconInfoFilled, cdxIconUserAvatar } from '@wikimedia/codex-icons'
 import { RouterLink } from 'vue-router'
 import { computed, ref } from 'vue'
 
@@ -15,6 +15,7 @@ definePage({
 })
 
 const previewVariant = ref<'card' | 'toolbar' | 'simplified'>('toolbar')
+const reviewedCardIcon = '<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="m14.806 7.249-4.906 5.956H8.801L6 11.105l1.2-1.6 2.024 1.518L13.244 6z"/>'
 const selectedChangeIndex = ref<number | null>(null)
 const reviewedChanges = ref<Set<string>>(new Set())
 const undoneChanges = ref<Set<string>>(new Set())
@@ -98,7 +99,7 @@ function markRestored(title: string) {
           />
           <CdxIcon
             v-else-if="reviewedChanges.has(change.title)"
-            :icon="cdxIconSuccess"
+            :icon="reviewedCardIcon"
             size="small"
             class="review-queue-card__reviewed-status"
             icon-label="Edit reviewed"

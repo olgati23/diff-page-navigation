@@ -113,10 +113,10 @@ function markEditReviewed(changeTitle?: string): void {
   const next = new Set(reviewedChanges.value)
   if (next.has(title)) {
     next.delete(title)
-    confirmationToast.value = 'Edit marked as unreviewed'
+    confirmationToast.value = 'Edit marked as unreviewed for you and will not be saved to Wikipedia.'
   } else {
     next.add(title)
-    confirmationToast.value = 'Edit marked as reviewed'
+    confirmationToast.value = 'Edit marked as reviewed for you and will not be saved to Wikipedia.'
   }
   reviewedChanges.value = next
 }

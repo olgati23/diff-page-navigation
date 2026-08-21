@@ -9,6 +9,7 @@ import {
 } from '@wikimedia/codex'
 import {
   cdxIconCheck,
+  cdxIconSuccess,
   cdxIconEdit,
   cdxIconEditUndo,
   cdxIconCollapse,
@@ -35,6 +36,8 @@ import WikipediaDiffContent from './review-changes/WikipediaDiffContent.vue'
 import ThankConfirmationDialog from './review-changes/ThankConfirmationDialog.vue'
 import UndoConfirmationDialog from './review-changes/UndoConfirmationDialog.vue'
 import { reviewChanges, type ReviewChange } from './reviewChanges'
+
+const desktopReviewIcon = '<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="m14.806 7.249-4.906 5.956H8.801L6 11.105l1.2-1.6 2.024 1.518L13.244 6z"/>'
 
 definePage({
   meta: {
@@ -368,7 +371,7 @@ const impact = {
                     />
                     <CdxIcon
                       v-else-if="reviewedChanges.has(change.title)"
-                      :icon="cdxIconCheck"
+                      :icon="desktopReviewPresentation === 'icons' ? cdxIconSuccess : cdxIconCheck"
                       size="small"
                       class="desktop-review-item__reviewed-status"
                       icon-label="Edit reviewed"
@@ -468,10 +471,9 @@ const impact = {
                         weight="quiet"
                         :icon-only="true"
                         aria-label="Mark edit as reviewed"
-                        :class="{ 'desktop-inline-diff__reviewed--complete': reviewedChanges.has(change.title) }"
                         @click.stop="markEditReviewed(change.title)"
                       >
-                        <CdxIcon :icon="cdxIconCheck" />
+                        <CdxIcon :icon="reviewedChanges.has(change.title) ? cdxIconSuccess : desktopReviewIcon" />
                       </CdxButton>
                     </div>
                   </div>
@@ -619,7 +621,7 @@ const impact = {
         </div>
         <div class="desktop-review-dialog__footer">
           <CdxButton size="medium" @click="requestThanks(modalReviewChange.title)">
-            <CdxIcon :icon="thankedChanges.has(modalReviewChange.title) ? cdxIconHeart : cdxIconHeartOutline" />
+            <CdxIcon :icon="cdxIconHeartOutline" />
             {{ thankedChanges.has(modalReviewChange.title) ? 'Thanked' : 'Thank' }}
           </CdxButton>
           <CdxButton size="medium" @click="requestUndo(modalReviewChange.title)">
@@ -867,11 +869,6 @@ const impact = {
   gap: var(--spacing-75, 12px);
   padding: var(--spacing-50, 8px) var(--spacing-100, 16px);
   background: #f8f9fa;
-}
-
-.desktop-inline-diff__reviewed--complete.cdx-button:enabled,
-.desktop-inline-diff__reviewed--complete.cdx-button:enabled .cdx-icon {
-  color: var(--color-icon-success, #099979);
 }
 
 .desktop-inline-diff__full-diff {

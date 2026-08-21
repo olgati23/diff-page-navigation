@@ -14,7 +14,6 @@ import {
   cdxIconArrowNext,
   cdxIconArrowPrevious,
   cdxIconExpand,
-  cdxIconHeart,
   cdxIconHeartOutline,
   cdxIconMessage,
   cdxIconUserAvatar,
@@ -580,7 +579,7 @@ const impact = {
         </div>
         <div class="desktop-review-dialog__footer">
           <CdxButton size="medium" @click="requestThanks(modalReviewChange.title)">
-            <CdxIcon :icon="thankedChanges.has(modalReviewChange.title) ? cdxIconHeart : cdxIconHeartOutline" />
+            <CdxIcon :icon="cdxIconHeartOutline" />
             {{ thankedChanges.has(modalReviewChange.title) ? 'Thanked' : 'Thank' }}
           </CdxButton>
           <CdxButton size="medium" @click="requestUndo(modalReviewChange.title)">

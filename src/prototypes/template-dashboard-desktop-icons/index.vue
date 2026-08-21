@@ -339,7 +339,7 @@ const impact = {
                     <span v-if="change.description">{{ change.description }}</span>
                   <CdxIcon
                       v-if="undoneChanges.has(change.title)"
-                      :icon="completedUndoIcon"
+                      :icon="cdxIconEditUndo"
                       size="small"
                       class="desktop-review-item__undone-status"
                       icon-label="Edit undone"

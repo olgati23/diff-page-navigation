@@ -15,7 +15,6 @@ definePage({
 })
 
 const previewVariant = ref<'card' | 'toolbar' | 'simplified'>('card')
-const completedUndoIcon = '<path d="m11.76 12.463-5.213 5.216a1 1 0 0 1-.394.242L1.91 19.335.64 18.076l1.413-4.243a1 1 0 0 1 .242-.39l5.222-5.222z"/><path d="m14.124 1.5-3 3H14a6 6 0 0 1 6 6V14h-2v-3.5a4 4 0 0 0-4-4h-2.876l3 3-1.414 1.414-4.707-4.707V4.793L12.71.086z"/>'
 const selectedChangeIndex = ref<number | null>(null)
 const reviewedChanges = ref<Set<string>>(new Set())
 const undoneChanges = ref<Set<string>>(new Set())
@@ -107,7 +106,7 @@ function markRestored(title: string) {
           <h2>{{ change.title }}</h2>
           <CdxIcon
             v-if="undoneChanges.has(change.title)"
-            :icon="previewVariant === 'toolbar' ? completedUndoIcon : cdxIconEditUndo"
+            :icon="cdxIconEditUndo"
             size="small"
             class="review-queue-card__undone-status"
             icon-label="Edit undone"

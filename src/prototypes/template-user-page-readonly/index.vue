@@ -5,6 +5,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useGermanPrototype } from '@/composables/useGermanPrototype'
 import { useThaiPrototype } from '@/composables/useThaiPrototype'
+import { useHebrewPrototype } from '@/composables/useHebrewPrototype'
 
 definePage({
   meta: {
@@ -16,6 +17,7 @@ definePage({
 const route = useRoute()
 if (route.query.lang === 'de') useGermanPrototype()
 if (route.query.lang === 'th') useThaiPrototype()
+if (route.query.lang === 'he') useHebrewPrototype()
 const username = computed(() => String(route.query.username || 'Wikipedia editor'))
 
 function goBack(): void {

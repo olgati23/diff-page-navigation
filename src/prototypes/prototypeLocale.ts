@@ -1,7 +1,8 @@
-export type PrototypeLocale = 'en' | 'de' | 'th'
+export type PrototypeLocale = 'en' | 'de' | 'th' | 'he'
 
 export function getPrototypeLocale(): PrototypeLocale {
   if (window.location.pathname.includes('-th')) return 'th'
+  if (window.location.pathname.includes('-he')) return 'he'
   if (/-de(?:\/|$)/.test(window.location.pathname)) return 'de'
   return 'en'
 }

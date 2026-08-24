@@ -1,5 +1,6 @@
 import { germanReviewChanges } from '../germanReviewChanges'
 import { thaiReviewChanges } from '../thaiReviewChanges'
+import { hebrewReviewChanges } from '../hebrewReviewChanges'
 
 export interface ReviewChange {
   title: string
@@ -67,8 +68,10 @@ const englishReviewChanges: ReviewChange[] = [
   },
 ]
 
-export const reviewChanges: ReviewChange[] = window.location.pathname.includes('-th')
-  ? thaiReviewChanges
+export const reviewChanges: ReviewChange[] = window.location.pathname.includes('-he')
+  ? hebrewReviewChanges
+  : window.location.pathname.includes('-th')
+    ? thaiReviewChanges
   : /-de(?:\/|$)/.test(window.location.pathname)
     ? germanReviewChanges
     : englishReviewChanges

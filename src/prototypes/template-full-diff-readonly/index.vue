@@ -5,8 +5,10 @@ import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useGermanPrototype } from '@/composables/useGermanPrototype'
 import { useThaiPrototype } from '@/composables/useThaiPrototype'
+import { useHebrewPrototype } from '@/composables/useHebrewPrototype'
 import { germanReviewChanges } from '../germanReviewChanges'
 import { thaiReviewChanges } from '../thaiReviewChanges'
+import { hebrewReviewChanges } from '../hebrewReviewChanges'
 
 import WikipediaDiffContent from '../template-dashboard/review-changes/WikipediaDiffContent.vue'
 import { reviewChanges } from '../template-dashboard/reviewChanges'
@@ -21,13 +23,15 @@ definePage({
 const route = useRoute()
 const isGerman = computed(() => route.query.lang === 'de')
 const isThai = computed(() => route.query.lang === 'th')
+const isHebrew = computed(() => route.query.lang === 'he')
 if (route.query.lang === 'de') useGermanPrototype()
 if (route.query.lang === 'th') useThaiPrototype()
+if (route.query.lang === 'he') useHebrewPrototype()
 const requestedTitle = computed(() => String(route.query.title || ''))
 const warningOpen = ref(true)
 const change = computed(
   () => {
-    const changes = isThai.value ? thaiReviewChanges : isGerman.value ? germanReviewChanges : reviewChanges
+    const changes = isHebrew.value ? hebrewReviewChanges : isThai.value ? thaiReviewChanges : isGerman.value ? germanReviewChanges : reviewChanges
     return changes.find((item) => item.title === requestedTitle.value) ?? changes[0]
   },
 )

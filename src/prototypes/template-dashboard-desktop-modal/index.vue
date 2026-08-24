@@ -45,6 +45,7 @@ const { pageTitle } = useConfig()
 const dashboardView: Skin = 'desktop'
 const isGermanPrototype = /-de(?:\/|$)/.test(window.location.pathname)
 const isThaiPrototype = window.location.pathname.includes('-th')
+const isHebrewPrototype = window.location.pathname.includes('-he')
 const viewportWidth = ref(window.innerWidth)
 const germanMetadataWrapped = computed(
   () => isGermanPrototype && viewportWidth.value < 760,
@@ -550,11 +551,11 @@ const impact = {
             </a>
             <span aria-hidden="true">(</span>
             <span class="desktop-review-dialog__secondary-user-link">
-              {{ isGermanPrototype ? 'Diskussion' : isThaiPrototype ? 'อภิปราย' : 'talk' }}
+              {{ isGermanPrototype ? 'Diskussion' : isThaiPrototype ? 'อภิปราย' : isHebrewPrototype ? 'שיחה' : 'talk' }}
             </span>
             <span aria-hidden="true">|</span>
             <span class="desktop-review-dialog__secondary-user-link">
-              {{ isGermanPrototype ? 'Beiträge' : isThaiPrototype ? 'เรื่องที่เขียน' : 'contribs' }}
+              {{ isGermanPrototype ? 'Beiträge' : isThaiPrototype ? 'เรื่องที่เขียน' : isHebrewPrototype ? 'תרומות' : 'contribs' }}
             </span>
             <span aria-hidden="true">)</span>
           </div>

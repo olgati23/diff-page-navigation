@@ -24,6 +24,7 @@ import {
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { wikimediaApiFetchHeaders } from '@/config'
+import { localeQuery } from '../../prototypeLocale'
 import type { ReviewChange } from '../reviewChanges'
 import ThankConfirmationDialog from './ThankConfirmationDialog.vue'
 import UndoConfirmationDialog from './UndoConfirmationDialog.vue'
@@ -300,7 +301,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 function userPageUrl(): string {
-  return `${import.meta.env.BASE_URL}template-user-page-readonly?username=${encodeURIComponent(props.change.editor)}${window.location.pathname.includes('-de') ? '&lang=de' : ''}`
+  return `${import.meta.env.BASE_URL}template-user-page-readonly?username=${encodeURIComponent(props.change.editor)}${localeQuery()}`
 }
 
 function openUserPage() {
@@ -308,7 +309,7 @@ function openUserPage() {
 }
 
 function openFullDiff(_mobile = false) {
-  const url = `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(props.change.title)}${window.location.pathname.includes('-de') ? '&lang=de' : ''}`
+  const url = `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(props.change.title)}${localeQuery()}`
   window.open(url, '_blank', 'noopener,noreferrer')
 }
 

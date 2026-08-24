@@ -32,6 +32,7 @@ import WikipediaDiffContent from './review-changes/WikipediaDiffContent.vue'
 import ThankConfirmationDialog from './review-changes/ThankConfirmationDialog.vue'
 import UndoConfirmationDialog from './review-changes/UndoConfirmationDialog.vue'
 import { reviewChanges, type ReviewChange } from './reviewChanges'
+import { localeQuery } from '../prototypeLocale'
 
 definePage({
   meta: {
@@ -42,7 +43,8 @@ definePage({
 
 const { pageTitle } = useConfig()
 const dashboardView: Skin = 'desktop'
-const isGermanPrototype = window.location.pathname.includes('-de')
+const isGermanPrototype = /-de(?:\/|$)/.test(window.location.pathname)
+const isThaiPrototype = window.location.pathname.includes('-th')
 const viewportWidth = ref(window.innerWidth)
 const germanMetadataWrapped = computed(
   () => isGermanPrototype && viewportWidth.value < 760,
@@ -173,12 +175,12 @@ function markEditReviewed(changeTitle?: string): void {
 }
 
 function openFullDiff(change: ReviewChange): void {
-  const url = `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(change.title)}${window.location.pathname.includes('-de') ? '&lang=de' : ''}`
+  const url = `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(change.title)}${localeQuery()}`
   window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 function userPageUrl(editor: string): string {
-  return `${import.meta.env.BASE_URL}template-user-page-readonly?username=${encodeURIComponent(editor)}${window.location.pathname.includes('-de') ? '&lang=de' : ''}`
+  return `${import.meta.env.BASE_URL}template-user-page-readonly?username=${encodeURIComponent(editor)}${localeQuery()}`
 }
 
 function clearConfirmationToast(): void {
@@ -548,11 +550,11 @@ const impact = {
             </a>
             <span aria-hidden="true">(</span>
             <span class="desktop-review-dialog__secondary-user-link">
-              {{ isGermanPrototype ? 'Diskussion' : 'talk' }}
+              {{ isGermanPrototype ? 'Diskussion' : isThaiPrototype ? 'อภิปราย' : 'talk' }}
             </span>
             <span aria-hidden="true">|</span>
             <span class="desktop-review-dialog__secondary-user-link">
-              {{ isGermanPrototype ? 'Beiträge' : 'contribs' }}
+              {{ isGermanPrototype ? 'Beiträge' : isThaiPrototype ? 'เรื่องที่เขียน' : 'contribs' }}
             </span>
             <span aria-hidden="true">)</span>
           </div>

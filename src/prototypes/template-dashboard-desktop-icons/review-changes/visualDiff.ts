@@ -134,7 +134,7 @@ export async function buildVisualDiffDocument(
 
   const showHeading = options.showHeading !== false
   const heading = showHeading
-    ? `<h2>${escapeHtml(options.heading?.replaceAll('_', ' ') || (options.wikiHost === 'de.wikipedia.org' ? 'Geänderter Inhalt' : 'Changed content'))}</h2>`
+    ? `<h2>${escapeHtml(options.heading?.replaceAll('_', ' ') || (options.wikiHost === 'th.wikipedia.org' ? 'เนื้อหาที่เปลี่ยนแปลง' : options.wikiHost === 'de.wikipedia.org' ? 'Geänderter Inhalt' : 'Changed content'))}</h2>`
     : ''
   const fontSize = options.mobile ? '16px' : '14px'
   const background = options.mobile ? '#fff' : '#f8f9fa'

@@ -33,6 +33,7 @@ import WikipediaDiffContent from './review-changes/WikipediaDiffContent.vue'
 import ThankConfirmationDialog from './review-changes/ThankConfirmationDialog.vue'
 import UndoConfirmationDialog from './review-changes/UndoConfirmationDialog.vue'
 import { reviewChanges, type ReviewChange } from './reviewChanges'
+import { getPrototypeLocale, localeQuery, localizedPrototypeRoute } from '../prototypeLocale'
 
 definePage({
   meta: {
@@ -106,20 +107,20 @@ function markEditReviewed(): void {
 }
 
 function openFullDiff(change: ReviewChange): void {
-  const url = `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(change.title)}${window.location.pathname.includes('-de') ? '&lang=de' : ''}`
+  const url = `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(change.title)}${localeQuery()}`
   window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 function userPageUrl(editor: string): string {
-  return `${import.meta.env.BASE_URL}template-user-page-readonly?username=${encodeURIComponent(editor)}${window.location.pathname.includes('-de') ? '&lang=de' : ''}`
+  return `${import.meta.env.BASE_URL}template-user-page-readonly?username=${encodeURIComponent(editor)}${localeQuery()}`
 }
 
 function userTalkPageUrl(editor: string): string {
-  return `https://${window.location.pathname.includes('-de') ? 'de' : 'en'}.wikipedia.org/wiki/User_talk:${encodeURIComponent(editor.replaceAll(' ', '_'))}`
+  return `https://${getPrototypeLocale()}.wikipedia.org/wiki/User_talk:${encodeURIComponent(editor.replaceAll(' ', '_'))}`
 }
 
 function userContributionsUrl(editor: string): string {
-  return `https://${window.location.pathname.includes('-de') ? 'de' : 'en'}.wikipedia.org/wiki/Special:Contributions/${encodeURIComponent(editor.replaceAll(' ', '_'))}`
+  return `https://${getPrototypeLocale()}.wikipedia.org/wiki/Special:Contributions/${encodeURIComponent(editor.replaceAll(' ', '_'))}`
 }
 
 function openUserTalkPage(editor: string): void {
@@ -151,9 +152,7 @@ function confirmModalAction(): void {
 
 /** Gallery / app home (file-based route `/`). */
 const HOME = '/'
-const REVIEW_CHANGES_ROUTE = window.location.pathname.includes('-de')
-  ? '/template-dashboard-mobile-toolbar-de/review-changes'
-  : '/template-dashboard-mobile-toolbar/review-changes'
+const REVIEW_CHANGES_ROUTE = `${localizedPrototypeRoute('/template-dashboard-mobile-toolbar')}/review-changes`
 
 /** Shared across mobile + desktop for each matching module */
 const MODULE = {

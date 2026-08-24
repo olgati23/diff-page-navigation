@@ -4,7 +4,9 @@ import { cdxIconArrowPrevious } from '@wikimedia/codex-icons'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useGermanPrototype } from '@/composables/useGermanPrototype'
+import { useThaiPrototype } from '@/composables/useThaiPrototype'
 import { germanReviewChanges } from '../germanReviewChanges'
+import { thaiReviewChanges } from '../thaiReviewChanges'
 
 import WikipediaDiffContent from '../template-dashboard/review-changes/WikipediaDiffContent.vue'
 import { reviewChanges } from '../template-dashboard/reviewChanges'
@@ -18,12 +20,14 @@ definePage({
 
 const route = useRoute()
 const isGerman = computed(() => route.query.lang === 'de')
+const isThai = computed(() => route.query.lang === 'th')
 if (route.query.lang === 'de') useGermanPrototype()
+if (route.query.lang === 'th') useThaiPrototype()
 const requestedTitle = computed(() => String(route.query.title || ''))
 const warningOpen = ref(true)
 const change = computed(
   () => {
-    const changes = isGerman.value ? germanReviewChanges : reviewChanges
+    const changes = isThai.value ? thaiReviewChanges : isGerman.value ? germanReviewChanges : reviewChanges
     return changes.find((item) => item.title === requestedTitle.value) ?? changes[0]
   },
 )

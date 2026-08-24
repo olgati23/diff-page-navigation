@@ -6,6 +6,7 @@ import { computed, ref } from 'vue'
 
 import { reviewChanges, type ReviewChange } from '../reviewChanges'
 import DiffPreviewModal from './DiffPreviewModal.vue'
+import { localizedPrototypeRoute } from '../../prototypeLocale'
 
 definePage({
   meta: {
@@ -15,9 +16,7 @@ definePage({
 })
 
 const previewVariant = ref<'card' | 'toolbar' | 'simplified'>('card')
-const dashboardRoute = window.location.pathname.includes('-de')
-  ? '/template-dashboard-mobile-card-de'
-  : '/template-dashboard-mobile-card'
+const dashboardRoute = localizedPrototypeRoute('/template-dashboard-mobile-card')
 const selectedChangeIndex = ref<number | null>(null)
 const reviewedChanges = ref<Set<string>>(new Set())
 const undoneChanges = ref<Set<string>>(new Set())

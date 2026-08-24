@@ -4,6 +4,7 @@ import { cdxIconArrowPrevious, cdxIconUserAvatar } from '@wikimedia/codex-icons'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useGermanPrototype } from '@/composables/useGermanPrototype'
+import { useThaiPrototype } from '@/composables/useThaiPrototype'
 
 definePage({
   meta: {
@@ -14,6 +15,7 @@ definePage({
 
 const route = useRoute()
 if (route.query.lang === 'de') useGermanPrototype()
+if (route.query.lang === 'th') useThaiPrototype()
 const username = computed(() => String(route.query.username || 'Wikipedia editor'))
 
 function goBack(): void {

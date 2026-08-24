@@ -817,6 +817,11 @@ const impact = {
   font-weight: var(--font-weight-bold, 700);
 }
 
+:global(html[dir='rtl']) .desktop-inline-diff__full-diff {
+  margin-right: 0;
+  margin-left: auto;
+}
+
 .desktop-inline-diff__label-actions {
   display: flex;
   gap: var(--spacing-100, 16px);

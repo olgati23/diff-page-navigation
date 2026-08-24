@@ -1,0 +1,1 @@
+function t(){return window.location.pathname.includes("-th")?"th":window.location.pathname.includes("-he")?"he":/-de(?:\/|$)/.test(window.location.pathname)?"de":"en"}function o(){const n=t();return n==="en"?"":`&lang=${n}`}function a(n){const e=t();return e==="en"?n:`${n}-${e}`}export{a,t as g,o as l};

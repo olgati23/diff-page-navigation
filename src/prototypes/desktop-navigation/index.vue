@@ -119,10 +119,7 @@ function openReviewModal(index: number): void {
 
 function showMoreReviewChanges(): void {
   if (navigationMode.value === 'within-module') {
-    visibleReviewChangeCount.value = Math.min(
-      visibleReviewChangeCount.value + 1,
-      desktopReviewChanges.length,
-    )
+    visibleReviewChangeCount.value = desktopReviewChanges.length
     return
   }
   if (navigationMode.value === 'modal') reviewQueueOpen.value = true
@@ -571,14 +568,6 @@ const impact = {
                   </CdxCard>
                 </article>
               </div>
-              <CdxButton
-                weight="normal"
-                size="medium"
-                class="discussion-list__show-more"
-                @click.prevent
-              >
-                Show more
-              </CdxButton>
             </DashboardModule>
           </template>
 
@@ -961,6 +950,7 @@ const impact = {
 
 .desktop-review-module__show-more--within-module {
   width: auto;
+  margin-inline: auto;
 }
 
 .desktop-review-module__show-more--last {
@@ -1440,10 +1430,6 @@ const impact = {
 
 .discussion-footer {
   margin: var(--spacing-100, 16px) 0 0;
-}
-
-.discussion-list__show-more {
-  margin-top: var(--spacing-50, 8px);
 }
 
 .policy-item {

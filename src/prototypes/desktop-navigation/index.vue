@@ -25,7 +25,7 @@ import {
   cdxIconUserTalk,
 } from '@wikimedia/codex-icons'
 import { computed, ref, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
@@ -50,20 +50,24 @@ definePage({
 })
 
 const { pageTitle } = useConfig()
+const route = useRoute()
 const router = useRouter()
 const dashboardView: Skin = 'desktop'
 const expandedReviewChange = ref<string | null>(null)
 const desktopReviewPresentation = ref('modal')
-const navigationMode = ref('modal')
+const navigationMode = ref(
+  route.query.navigation === 'new-page' ? 'new-page' : 'modal',
+)
 const navigationModeButtons = [
   { value: 'within-module', label: 'Within module' },
+  { value: 'scroll', label: 'Scroll' },
   { value: 'modal', label: 'Modal' },
   { value: 'new-page', label: 'New page' },
 ]
 const modalReviewIndex = ref<number | null>(null)
 const modalOpenedFromQueue = ref(false)
 const reviewQueueOpen = ref(false)
-const showAllReviewChanges = ref(false)
+const visibleReviewChangeCount = ref(2)
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
 const confirmationToast = ref('')
@@ -83,7 +87,7 @@ watch(desktopReviewPresentation, () => {
 })
 
 watch(navigationMode, () => {
-  showAllReviewChanges.value = false
+  visibleReviewChangeCount.value = 2
   reviewQueueOpen.value = false
   modalReviewIndex.value = null
   modalOpenedFromQueue.value = false
@@ -91,9 +95,11 @@ watch(navigationMode, () => {
 })
 
 const desktopReviewChanges = reviewChanges
-const visibleDesktopReviewChanges = computed(() =>
-  showAllReviewChanges.value ? desktopReviewChanges : desktopReviewChanges.slice(0, 3),
-)
+const visibleDesktopReviewChanges = computed(() => {
+  if (navigationMode.value === 'scroll') return desktopReviewChanges
+  if (navigationMode.value === 'modal') return desktopReviewChanges.slice(0, 2)
+  return desktopReviewChanges.slice(0, visibleReviewChangeCount.value)
+})
 
 const modalReviewChange = computed(
   () => desktopReviewChanges[modalReviewIndex.value ?? 0],
@@ -113,11 +119,18 @@ function openReviewModal(index: number): void {
 
 function showMoreReviewChanges(): void {
   if (navigationMode.value === 'within-module') {
-    showAllReviewChanges.value = true
+    visibleReviewChangeCount.value = Math.min(
+      visibleReviewChangeCount.value + 1,
+      desktopReviewChanges.length,
+    )
     return
   }
   if (navigationMode.value === 'modal') reviewQueueOpen.value = true
   if (navigationMode.value === 'new-page') router.push('/desktop-navigation/review-changes')
+}
+
+function showLessReviewChanges(): void {
+  visibleReviewChangeCount.value = 2
 }
 
 function openReviewFromQueue(index: number): void {
@@ -361,7 +374,14 @@ const impact = {
               <p class="dashboard-module-intro">
                 These edits were made by other users. Stay up to date and help maintain Wikipedia’s quality by reviewing them.
               </p>
-              <div class="desktop-review-list">
+              <div
+                class="desktop-review-list"
+                :class="{
+                  'desktop-review-list--scroll': navigationMode === 'scroll',
+                  'desktop-review-list--initial':
+                    navigationMode === 'modal',
+                }"
+              >
                 <article
                   v-for="(change, changeIndex) in visibleDesktopReviewChanges"
                   :key="change.title"
@@ -492,16 +512,45 @@ const impact = {
                   </div>
                 </article>
               </div>
+              <div
+                v-if="navigationMode === 'within-module'"
+                class="desktop-review-module__pagination"
+              >
+                <CdxButton
+                  v-if="visibleReviewChangeCount < desktopReviewChanges.length"
+                  weight="normal"
+                  size="medium"
+                  class="desktop-review-module__show-more desktop-review-module__show-more--within-module desktop-review-module__show-more--last"
+                  @click="showMoreReviewChanges"
+                >
+                  Show more
+                </CdxButton>
+                <CdxButton
+                  v-if="visibleReviewChangeCount > 2"
+                  weight="normal"
+                  size="medium"
+                  class="desktop-review-module__show-more desktop-review-module__show-more--within-module"
+                  @click="showLessReviewChanges"
+                >
+                  Show fewer
+                </CdxButton>
+              </div>
               <CdxButton
-                v-if="navigationMode !== 'within-module' || !showAllReviewChanges"
+                v-else-if="navigationMode === 'modal'"
                 weight="normal"
                 size="medium"
                 class="desktop-review-module__show-more"
-                :class="{ 'desktop-review-module__show-more--centered': navigationMode === 'within-module' }"
                 @click="showMoreReviewChanges"
               >
-                {{ navigationMode === 'within-module' ? 'Show more' : 'Show more edits' }}
+                Show more edits
               </CdxButton>
+              <RouterLink
+                v-else-if="navigationMode === 'new-page'"
+                to="/desktop-navigation/review-changes"
+                class="desktop-review-module__show-more-link"
+              >
+                Show more edits
+              </RouterLink>
             </DashboardModule>
             <DashboardModule title="Active discussions">
               <div class="discussion-list">
@@ -662,7 +711,11 @@ const impact = {
               {{ modalConfirmation === 'undo' ? 'Undo edit' : 'Publicly send ‘Thanks’' }}
             </h2>
           </div>
-          <div v-else class="desktop-review-dialog__custom-header">
+          <div
+            v-else
+            class="desktop-review-dialog__custom-header"
+            :class="{ 'desktop-review-dialog__custom-header--from-queue': modalOpenedFromQueue }"
+          >
             <CdxButton
               v-if="modalOpenedFromQueue"
               weight="quiet"
@@ -865,14 +918,53 @@ const impact = {
   gap: var(--spacing-50, 8px);
 }
 
+.desktop-review-list--scroll {
+  height: 272px;
+  border-top: 1px solid var(--border-color-subtle, #c8ccd1);
+  border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
+  padding-top: var(--spacing-50, 8px);
+  padding-inline-end: var(--spacing-25, 4px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.desktop-review-list--initial {
+  max-height: 344px;
+  overflow: hidden;
+}
+
 .desktop-review-module__show-more {
   margin-top: var(--spacing-50, 8px);
 }
 
-.desktop-review-module__show-more--centered {
+.desktop-review-module__show-more-link {
+  display: inline-block;
+  margin-top: var(--spacing-50, 8px);
+  color: var(--color-progressive, #36c);
+  text-decoration: none;
+}
+
+.desktop-review-module__show-more-link:hover {
+  text-decoration: underline;
+}
+
+.desktop-review-module__pagination {
   display: flex;
-  width: 100%;
-  max-width: none;
+  justify-content: flex-end;
+  gap: var(--spacing-50, 8px);
+  margin-top: var(--spacing-50, 8px);
+}
+
+.desktop-review-module__pagination .desktop-review-module__show-more {
+  margin-top: 0;
+}
+
+.desktop-review-module__show-more--within-module {
+  width: auto;
+}
+
+.desktop-review-module__show-more--last {
+  order: 2;
 }
 
 .desktop-review-item {
@@ -1051,6 +1143,40 @@ const impact = {
 
 .desktop-review-dialog__custom-header--confirmation {
   align-items: center;
+}
+
+.desktop-review-dialog__custom-header--from-queue {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: var(--spacing-50, 8px);
+  row-gap: var(--spacing-25, 4px);
+}
+
+.desktop-review-dialog__custom-header--from-queue .desktop-review-dialog__header-title-group {
+  display: contents;
+}
+
+.desktop-review-dialog__custom-header--from-queue .desktop-review-dialog__header-title {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.desktop-review-dialog__custom-header--from-queue .desktop-review-dialog__header-subtitle {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin-top: 0;
+}
+
+.desktop-review-dialog__custom-header--from-queue .desktop-review-dialog__back-button {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.desktop-review-dialog__custom-header--from-queue .desktop-review-dialog__header-close-button {
+  grid-column: 3;
+  grid-row: 1;
 }
 
 .desktop-review-dialog__header-title-group {

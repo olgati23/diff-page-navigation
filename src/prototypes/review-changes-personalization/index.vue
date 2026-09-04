@@ -34,6 +34,7 @@ interface ReviewSuggestion {
   time: string
   summary: string
   reason: string
+  source?: 'watchlist' | 'edited' | 'related'
   featured?: boolean
 }
 
@@ -45,6 +46,7 @@ const personalizedChanges: ReviewSuggestion[] = [
     time: '10 hours ago',
     summary: '',
     reason: '',
+    source: 'watchlist',
   },
   {
     title: 'List of National Sports Award recipients in Olympic sports',
@@ -53,6 +55,7 @@ const personalizedChanges: ReviewSuggestion[] = [
     time: '20 minutes ago',
     summary: 'restoring names that were changed by a vandal then removed',
     reason: 'Major changes',
+    source: 'related',
   },
   {
     title: 'Southern Amami Ōshima language',
@@ -61,6 +64,7 @@ const personalizedChanges: ReviewSuggestion[] = [
     time: '2 minutes ago',
     summary: 'ridership update',
     reason: 'High activity',
+    source: 'edited',
   },
   {
     title: 'Mesrop Mashtots Monastery',
@@ -70,6 +74,7 @@ const personalizedChanges: ReviewSuggestion[] = [
     summary:
       'Added internal links to Goghtn and Mesrop Mashtots to help readers find relevant background',
     reason: '',
+    source: 'watchlist',
   },
   {
     title: 'Enthnologue',
@@ -78,6 +83,7 @@ const personalizedChanges: ReviewSuggestion[] = [
     time: '2 minutes ago',
     summary: 'History: HTTP to HTTPS for Wayback Machine, replaced: http://web.archive.org/…',
     reason: '',
+    source: 'related',
   },
 ]
 
@@ -117,10 +123,24 @@ const personalizationEnabled = ref(true)
 const useWatchlist = ref(true)
 const useEditedPages = ref(true)
 const useRelatedPages = ref(true)
+const appliedUseWatchlist = ref(true)
+const appliedUseEditedPages = ref(true)
+const appliedUseRelatedPages = ref(true)
 const appliedPersonalization = ref(true)
-const visibleChanges = computed(() =>
-  appliedPersonalization.value ? personalizedChanges : recentChanges,
+const filteredPersonalizedChanges = computed(() =>
+  personalizedChanges.filter((change) => {
+    if (change.source === 'watchlist') return appliedUseWatchlist.value
+    if (change.source === 'edited') return appliedUseEditedPages.value
+    if (change.source === 'related') return appliedUseRelatedPages.value
+    return true
+  }),
 )
+const visibleChanges = computed(() => {
+  if (!appliedPersonalization.value) return recentChanges
+  return filteredPersonalizedChanges.value.length
+    ? filteredPersonalizedChanges.value
+    : recentChanges
+})
 const desktopChanges = computed(() => {
   const changes = visibleChanges.value
   return changes.length > 2 ? [changes[2], changes[0], changes[1], ...changes.slice(3)] : changes
@@ -140,6 +160,13 @@ function openConfiguration() {
   } else {
     settingsOpen.value = !settingsOpen.value
   }
+}
+
+function savePersonalizationSources() {
+  appliedUseWatchlist.value = useWatchlist.value
+  appliedUseEditedPages.value = useEditedPages.value
+  appliedUseRelatedPages.value = useRelatedPages.value
+  configurationDialogOpen.value = false
 }
 </script>
 
@@ -305,7 +332,7 @@ function openConfiguration() {
           class="personalization-dialog__done"
           action="progressive"
           weight="primary"
-          @click="configurationDialogOpen = false"
+          @click="savePersonalizationSources"
         >
           Save
         </CdxButton>

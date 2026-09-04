@@ -526,6 +526,10 @@ function openConfiguration() {
   z-index: 1;
 }
 
+.personalization-prototype :deep(.settings-popover--desktop .cdx-popover__header) {
+  margin-bottom: var(--spacing-100, 16px);
+}
+
 .personalization-prototype :deep(.settings-popover--mobile .cdx-popover__header) {
   margin: 0;
   padding: var(--spacing-100, 16px);

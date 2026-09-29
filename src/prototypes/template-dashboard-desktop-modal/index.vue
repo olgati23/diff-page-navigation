@@ -83,6 +83,10 @@ const desktopReviewChanges = reviewChanges
 const modalReviewChange = computed(
   () => desktopReviewChanges[modalReviewIndex.value ?? 0],
 )
+const modalRevisionDate = computed(() =>
+  modalReviewChange.value.revisionDate.replace(/^(.*),\s*(\d{1,2}:\d{2})$/, '$2, $1'),
+)
+
 const activeReviewEditor = computed(() => {
   if (modalReviewIndex.value !== null) return modalReviewChange.value.editor
   return desktopReviewChanges.find((change) => change.title === expandedReviewChange.value)?.editor ??
@@ -175,9 +179,8 @@ function markEditReviewed(changeTitle?: string): void {
   reviewedChanges.value = next
 }
 
-function openFullDiff(change: ReviewChange): void {
-  const url = `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(change.title)}${localeQuery()}`
-  window.open(url, '_blank', 'noopener,noreferrer')
+function fullDiffUrl(change: ReviewChange): string {
+  return `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(change.title)}${localeQuery()}`
 }
 
 function userPageUrl(editor: string): string {
@@ -371,7 +374,7 @@ const impact = {
                     >
                       <CdxButton @click.stop="markEditReviewed(change.title)">
                         <CdxIcon :icon="cdxIconCheck" />
-                        {{ reviewedChanges.has(change.title) ? 'Reviewed' : 'Review' }}
+                        Mark as read
                       </CdxButton>
                       <CdxButton @click.stop="requestUndo(change.title)">
                         <CdxIcon :icon="cdxIconEditUndo" />
@@ -390,15 +393,15 @@ const impact = {
                       class="desktop-inline-diff__actions"
                       aria-label="Review actions"
                     >
-                      <CdxButton
-                        action="progressive"
-                        weight="quiet"
-                        size="small"
+                      <a
+                        :href="fullDiffUrl(change)"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         class="desktop-inline-diff__full-diff"
-                        @click.stop="openFullDiff(change)"
+                        @click.stop
                       >
-                        Full diff
-                      </CdxButton>
+                        Full difference
+                      </a>
                       <CdxButton
                         weight="quiet"
                         :icon-only="true"
@@ -418,7 +421,7 @@ const impact = {
                       <CdxButton
                         weight="quiet"
                         :icon-only="true"
-                        aria-label="Mark edit as reviewed"
+                        aria-label="Mark as read"
                         :class="{ 'desktop-inline-diff__reviewed--complete': reviewedChanges.has(change.title) }"
                         @click.stop="markEditReviewed(change.title)"
                       >
@@ -495,8 +498,8 @@ const impact = {
           ? 'Undo edit'
           : modalConfirmation === 'thank'
             ? 'Publicly send ‘Thanks’'
-            : modalReviewChange.title"
-        :subtitle="modalConfirmation ? undefined : `Revision from ${modalReviewChange.revisionDate} (UTC)`"
+            : `Difference preview: ${modalReviewChange.title}`"
+        :subtitle="modalConfirmation ? undefined : `Revision from ${modalRevisionDate}`"
         :use-close-button="!modalConfirmation"
         class="desktop-review-dialog"
         :class="{
@@ -559,13 +562,14 @@ const impact = {
             </span>
             <span aria-hidden="true">)</span>
           </div>
-          <CdxButton
-            weight="quiet"
+          <a
+            :href="fullDiffUrl(modalReviewChange)"
+            target="_blank"
+            rel="noopener noreferrer"
             class="desktop-review-dialog__full-diff"
-            @click="openFullDiff(modalReviewChange)"
           >
-            Full diff
-          </CdxButton>
+            Full difference
+          </a>
         </div>
         <div class="desktop-review-dialog__diff">
           <WikipediaDiffContent
@@ -591,11 +595,11 @@ const impact = {
             @click="markEditReviewed(modalReviewChange.title)"
           >
             <CdxIcon :icon="cdxIconCheck" />
-            {{ reviewedChanges.has(modalReviewChange.title) ? 'Reviewed' : 'Review' }}
+            Mark as read
           </CdxButton>
           <div class="desktop-review-dialog__navigation">
             <CdxButton
-              size="small"
+              size="medium"
               :icon-only="true"
               aria-label="Previous review change"
               :disabled="modalReviewIndex === 0"
@@ -604,7 +608,7 @@ const impact = {
               <CdxIcon :icon="cdxIconPrevious" />
             </CdxButton>
             <CdxButton
-              size="small"
+              size="medium"
               :icon-only="true"
               aria-label="Next review change"
               :disabled="modalReviewIndex === desktopReviewChanges.length - 1"
@@ -904,11 +908,17 @@ const impact = {
   text-decoration: underline;
 }
 
-.desktop-review-dialog__full-diff {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-25, 4px);
-  font-weight: var(--font-weight-bold, 700);
+.desktop-review-dialog__full-diff,
+.desktop-inline-diff__full-diff {
+  color: var(--color-progressive, #36c);
+  font-weight: var(--font-weight-normal, 400);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.desktop-review-dialog__full-diff:hover,
+.desktop-inline-diff__full-diff:hover {
+  text-decoration: underline;
 }
 
 .desktop-review-dialog__diff {
@@ -930,8 +940,9 @@ const impact = {
 }
 
 .desktop-review-dialog__footer {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: var(--spacing-50, 8px);
   margin: 0 -24px -24px;
   padding: var(--spacing-75, 12px) var(--spacing-100, 16px);
@@ -939,16 +950,10 @@ const impact = {
   background: var(--background-color-base, #fff);
 }
 
-.desktop-review-dialog__footer--german {
-  grid-template-columns:
-    minmax(0, 0.85fr)
-    minmax(0, 1.35fr)
-    minmax(0, 0.85fr)
-    auto;
-}
-
 .desktop-review-dialog__footer > .cdx-button {
-  min-width: 0;
+  flex: 1 1 auto;
+  width: auto;
+  max-width: none;
   justify-content: center;
   font-weight: var(--font-weight-bold, 700);
   text-align: center;
@@ -956,6 +961,7 @@ const impact = {
 
 .desktop-review-dialog__navigation {
   display: flex;
+  margin-inline-start: auto;
   gap: var(--spacing-50, 8px);
 }
 
@@ -981,7 +987,8 @@ const impact = {
 }
 
 .desktop-modal-confirmation__actions .cdx-button {
-  min-width: 88px;
+  flex: 0 0 auto;
+  width: auto;
 }
 
 :deep(.desktop-review-dialog .cdx-dialog__frame) {
@@ -1004,6 +1011,37 @@ const impact = {
   border: 0;
   outline: 0;
   box-shadow: none;
+}
+
+/* The dialog and its body stay fixed; the embedded diff owns scrolling. */
+:global(.desktop-review-dialog:not(.desktop-review-dialog--confirmation)) {
+  height: min(760px, calc(100dvh - 48px));
+  max-height: calc(100dvh - 48px);
+  overflow: hidden;
+}
+:global(.desktop-review-dialog:not(.desktop-review-dialog--confirmation) .cdx-dialog__body) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+:global(.desktop-review-dialog:not(.desktop-review-dialog--confirmation) .desktop-review-dialog__meta),
+:global(.desktop-review-dialog:not(.desktop-review-dialog--confirmation) .desktop-review-dialog__footer) {
+  flex: 0 0 auto;
+  margin: 0;
+}
+:global(.desktop-review-dialog:not(.desktop-review-dialog--confirmation) .desktop-review-dialog__diff) {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+:global(.desktop-review-dialog .desktop-review-dialog__diff .wikipedia-diff-content),
+:global(.desktop-review-dialog .desktop-review-dialog__diff iframe) {
+  height: 100% !important;
+  min-height: 0;
 }
 
 .discussion-list {

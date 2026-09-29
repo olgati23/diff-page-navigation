@@ -19,8 +19,9 @@ import {
   cdxIconUserAvatar,
   cdxIconUserTalk,
 } from '@wikimedia/codex-icons'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import ReviewEditCard from './ReviewEditCard.vue'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
 import { useConfig } from '@/composables/useConfig'
@@ -35,6 +36,7 @@ import { reviewChanges, type ReviewChange } from './reviewChanges'
 import { localeQuery } from '../prototypeLocale'
 
 definePage({
+  alias: '/template-dashboard-desktop-modal/all-review-changes',
   meta: {
     title: 'Template: Dashboard',
     description: 'Template for dashboard prototypes that contain "box modules".',
@@ -57,9 +59,62 @@ const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
 const confirmationToast = ref('')
 const confirmationToastType = ref<'success' | 'notice'>('success')
-const reviewedChanges = ref<Set<string>>(new Set())
-const thankedChanges = ref<Set<string>>(new Set())
-const undoneChanges = ref<Set<string>>(new Set())
+const route = useRoute()
+const router = useRouter()
+const queueVersion = computed<'A' | 'B'>(() => route.query.version === 'B' ? 'B' : 'A')
+const dashboardPath = '/template-dashboard-desktop-modal'
+const showAllEdits = computed(() => route.path.endsWith('/all-review-changes') || route.query.view === 'all')
+const createQueueState = () => ({ seen: new Set<string>(), reviewed: new Set<string>(), thanked: new Set<string>(), undone: new Set<string>(), completed: new Set<string>(), limit: 7 })
+// Completed B edits remain visible now and are retired on the next page load.
+const retiredStorageKey = 'protowiki-desktop-review-b-completed-v1'
+function readRetiredEdits(): Set<string> {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(retiredStorageKey) ?? '[]')
+    return new Set(Array.isArray(saved) ? saved.filter(value => typeof value === 'string') : [])
+  } catch { return new Set() }
+}
+const retiredBEdits = ref(readRetiredEdits())
+const queues = reactive({ A: createQueueState(), B: createQueueState() })
+const queueState = computed(() => queues[queueVersion.value])
+const reviewedChanges = computed({ get: () => queueState.value.reviewed, set: value => { queueState.value.reviewed = value } })
+const thankedChanges = computed({ get: () => queueState.value.thanked, set: value => { queueState.value.thanked = value } })
+const undoneChanges = computed({ get: () => queueState.value.undone, set: value => { queueState.value.undone = value } })
+const availableChanges = computed(() => reviewChanges.filter(change => queueVersion.value === 'B' ? !retiredBEdits.value.has(change.title) : !queueState.value.completed.has(change.title)))
+const visibleChanges = computed(() => availableChanges.value.slice(0, showAllEdits.value ? queueState.value.limit : 2))
+const hasMoreEdits = computed(() => queueState.value.limit < availableChanges.value.length)
+function setQueueVersion(version: 'A' | 'B') {
+  updateReviewModalOpen(false)
+  router.replace({ query: { ...route.query, version } })
+}
+function openAllEdits() {
+  const { view, ...query } = route.query
+  router.push({ path: `${dashboardPath}/all-review-changes`, query: { ...query, version: queueVersion.value, view: 'all' } })
+  window.scrollTo(0, 0)
+}
+function returnToDashboard() {
+  const { view, ...query } = route.query
+  router.push({ path: dashboardPath, query })
+}
+function completeQueueAction(title: string) {
+  queueState.value.completed.add(title)
+  if (queueVersion.value === 'B') {
+    try {
+      sessionStorage.setItem(retiredStorageKey, JSON.stringify([...new Set([...retiredBEdits.value, ...queueState.value.completed])]))
+    } catch { /* The queue still works in memory if storage is unavailable. */ }
+  }
+  updateReviewModalOpen(false)
+}
+function resetQueues() {
+  updateReviewModalOpen(false)
+  queues.A = createQueueState()
+  queues.B = createQueueState()
+  retiredBEdits.value = new Set()
+  try { sessionStorage.removeItem(retiredStorageKey) } catch { /* Storage may be unavailable. */ }
+}
+function openChange(change: ReviewChange) {
+  openReviewModal(desktopReviewChanges.findIndex(item => item.title === change.title))
+}
+const visibleModalPosition = computed(() => visibleChanges.value.findIndex(change => change.title === modalReviewChange.value.title))
 const modalConfirmation = ref<'undo' | 'thank' | null>(null)
 const modalUndoReason = ref('')
 
@@ -94,13 +149,16 @@ const activeReviewEditor = computed(() => {
 })
 
 function openReviewModal(index: number): void {
-  if (desktopReviewPresentation.value === 'modal') modalReviewIndex.value = index
+  if (desktopReviewPresentation.value === 'modal') {
+    modalReviewIndex.value = index
+    queueState.value.seen.add(desktopReviewChanges[index].title)
+  }
 }
 
 function moveReviewModal(direction: -1 | 1): void {
   if (modalReviewIndex.value === null) return
-  const next = modalReviewIndex.value + direction
-  if (next >= 0 && next < desktopReviewChanges.length) modalReviewIndex.value = next
+  const next = visibleChanges.value[visibleModalPosition.value + direction]
+  if (next) openChange(next)
 }
 
 function updateReviewModalOpen(open: boolean): void {
@@ -121,7 +179,7 @@ function showUndoConfirmation(): void {
   const reviewed = new Set(reviewedChanges.value)
   reviewed.delete(title)
   reviewedChanges.value = reviewed
-  moveReviewModal(1)
+  completeQueueAction(title)
 }
 
 function displayedChange(change: ReviewChange): ReviewChange {
@@ -152,6 +210,7 @@ function showThankConfirmation(): void {
   }
   confirmationToastType.value = 'success'
   confirmationToast.value = `You thanked ${activeReviewEditor.value}.`
+  if (title) completeQueueAction(title)
 }
 
 function requestThanks(changeTitle?: string): void {
@@ -165,18 +224,12 @@ function requestThanks(changeTitle?: string): void {
 }
 
 function markEditReviewed(changeTitle?: string): void {
-  confirmationToastType.value = 'success'
   const title = changeTitle ?? modalReviewChange.value.title
-  const next = new Set(reviewedChanges.value)
-  if (next.has(title)) {
-    next.delete(title)
-    confirmationToast.value = 'Edit marked as unreviewed on your dashboard only.'
-  } else {
-    next.add(title)
-    confirmationToast.value = 'Edit marked as reviewed on your dashboard only.'
-    moveReviewModal(1)
-  }
-  reviewedChanges.value = next
+  reviewedChanges.value = new Set([...reviewedChanges.value, title])
+  queueState.value.seen.add(title)
+  confirmationToastType.value = 'success'
+  confirmationToast.value = 'Edit marked as viewed on your dashboard only.'
+  completeQueueAction(title)
 }
 
 function fullDiffUrl(change: ReviewChange): string {
@@ -227,8 +280,8 @@ const impact = {
 
 <template>
   <ChromeWrapper :skin="dashboardView" :last-edited-notice="false">
-    <SpecialPageWrapper :title="pageTitle" actions>
-      <template #actions>
+    <SpecialPageWrapper :title="showAllEdits ? null : pageTitle" :actions="!showAllEdits">
+      <template v-if="!showAllEdits" #actions>
         <div class="dashboard-view-control">
           <RouterLink :to="HOME" class="dashboard-header-feedback">
             Share feedback
@@ -236,7 +289,44 @@ const impact = {
         </div>
       </template>
 
-      <div class="template-dashboard-shell">
+      <nav class="queue-version-switch" aria-label="Prototype version">
+        <span>Desktop review changes</span>
+        <CdxButton v-for="version in (['A', 'B'] as const)" :key="version"
+          :action="queueVersion === version ? 'progressive' : 'default'"
+          :weight="queueVersion === version ? 'primary' : 'normal'"
+          :aria-pressed="queueVersion === version" @click="setQueueVersion(version)">Version {{ version }}</CdxButton>
+        <CdxButton weight="quiet" @click="resetQueues">Reset prototype</CdxButton>
+      </nav>
+      <div v-if="showAllEdits" class="all-review-layout">
+        <aside class="all-review-contents" aria-label="Contents">
+          <strong>Contents</strong><hr /><b>(Top)</b>
+          <a href="#review-changes">Review changes</a>
+        </aside>
+        <main class="all-review-main">
+          <h1>Hello, NewEditor!</h1>
+          <header id="review-changes" class="all-review-heading">
+            <CdxButton weight="quiet" :icon-only="true" aria-label="Back to dashboard" @click="returnToDashboard"><CdxIcon :icon="cdxIconPrevious" /></CdxButton>
+            <h2>Review changes</h2>
+          </header>
+          <div class="all-review-list">
+            <ReviewEditCard v-for="change in visibleChanges" :key="change.title" :change="change" expanded
+              :seen="queueState.seen.has(change.title)" :thanked="thankedChanges.has(change.title)"
+              :viewed="reviewedChanges.has(change.title)" :undone="undoneChanges.has(change.title)"
+              @open="openChange(change)" />
+          </div>
+          <p v-if="!visibleChanges.length" class="queue-empty">You’re all caught up. There are no more edits in this prototype queue.</p>
+          <CdxButton v-if="queueVersion === 'B' && hasMoreEdits" class="view-more-edits" @click="queueState.limit += 7">View more edits</CdxButton>
+          <p v-else-if="queueVersion === 'B'" class="queue-end">You’ve reached the end of the edits.</p>
+        </main>
+        <aside class="all-review-tools" aria-label="Tools">
+          <strong>Tools</strong><hr />
+          <p>General</p><hr />
+          <a href="https://en.wikipedia.org/wiki/Special:RecentChanges" target="_blank" rel="noopener noreferrer">Related changes</a>
+          <a href="https://en.wikipedia.org/wiki/Special:SpecialPages" target="_blank" rel="noopener noreferrer">Special pages</a>
+          <a href="https://en.wikipedia.org/wiki/Help:Contents" target="_blank" rel="noopener noreferrer">Help</a>
+        </aside>
+      </div>
+      <div v-else class="template-dashboard-shell">
         <Dashboard>
           <template #banner>
             <RouterLink :to="HOME" class="dashboard-mobile-banner__feedback">
@@ -307,131 +397,12 @@ const impact = {
                 These edits were made by other users. Stay up to date and help maintain Wikipedia’s quality by reviewing them.
               </p>
               <div class="desktop-review-list">
-                <article
-                  v-for="(change, changeIndex) in desktopReviewChanges"
-                  :key="change.title"
-                  class="desktop-review-item"
-                  :class="{ 'desktop-review-item--modal': desktopReviewPresentation === 'modal' }"
-                  :role="desktopReviewPresentation === 'modal' ? 'button' : undefined"
-                  :tabindex="desktopReviewPresentation === 'modal' ? 0 : undefined"
-                  @click="openReviewModal(changeIndex)"
-                  @keydown.enter.prevent="openReviewModal(changeIndex)"
-                  @keydown.space.prevent="openReviewModal(changeIndex)"
-                >
-                  <div class="desktop-review-item__title">
-                    <strong>{{ change.title }}</strong>
-                    <span v-if="change.description">{{ change.description }}</span>
-                  <CdxIcon
-                      v-if="undoneChanges.has(change.title)"
-                      :icon="cdxIconEditUndo"
-                      size="small"
-                      class="desktop-review-item__undone-status"
-                      icon-label="Edit undone"
-                    />
-                    <CdxIcon
-                      v-else-if="reviewedChanges.has(change.title)"
-                      :icon="cdxIconCheck"
-                      size="small"
-                      class="desktop-review-item__reviewed-status"
-                      icon-label="Edit reviewed"
-                    />
-                  </div>
-                  <div class="desktop-review-item__meta">
-                    <CdxIcon :icon="cdxIconUserAvatar" size="x-small" />
-                    <a
-                      :href="userPageUrl(change.editor)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="desktop-review-item__username"
-                      @click.stop
-                    >
-                      {{ change.editor }}
-                    </a>
-                    <span>· {{ change.time }}</span>
-                  </div>
-                  <div class="desktop-review-item__footer">
-                    <p>{{ change.summary }}</p>
-                    <CdxButton
-                      v-if="desktopReviewPresentation !== 'modal'"
-                      weight="quiet"
-                      :icon-only="true"
-                      aria-label="Preview change"
-                      :aria-expanded="expandedReviewChange === change.title"
-                      class="preview-change-button"
-                      @click="expandedReviewChange = expandedReviewChange === change.title ? null : change.title"
-                    >
-                      <CdxIcon :icon="expandedReviewChange === change.title ? cdxIconCollapse : cdxIconExpand" />
-                    </CdxButton>
-                  </div>
-                  <div
-                    v-if="expandedReviewChange === change.title"
-                    class="desktop-inline-diff"
-                  >
-                    <div
-                      v-if="desktopReviewPresentation === 'labels'"
-                      class="desktop-inline-diff__label-actions"
-                      aria-label="Review actions"
-                    >
-                      <CdxButton @click.stop="markEditReviewed(change.title)">
-                        <CdxIcon :icon="cdxIconCheck" />
-                        Mark as read
-                      </CdxButton>
-                      <CdxButton @click.stop="requestUndo(change.title)">
-                        <CdxIcon :icon="cdxIconEditUndo" />
-                        {{ undoneChanges.has(change.title) ? 'Restore' : 'Undo' }}
-                      </CdxButton>
-                      <CdxButton @click.stop="thankDialogOpen = true">
-                        <CdxIcon :icon="cdxIconHeartOutline" />
-                        Thank
-                      </CdxButton>
-                    </div>
-                    <div class="desktop-inline-diff__content">
-                      <WikipediaDiffContent :change="displayedChange(change)" />
-                    </div>
-                    <div
-                      v-if="desktopReviewPresentation === 'icons'"
-                      class="desktop-inline-diff__actions"
-                      aria-label="Review actions"
-                    >
-                      <a
-                        :href="fullDiffUrl(change)"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="desktop-inline-diff__full-diff"
-                        @click.stop
-                      >
-                        Full difference
-                      </a>
-                      <CdxButton
-                        weight="quiet"
-                        :icon-only="true"
-                        aria-label="Thank"
-                        @click.stop="thankDialogOpen = true"
-                      >
-                        <CdxIcon :icon="cdxIconHeartOutline" />
-                      </CdxButton>
-                      <CdxButton
-                        weight="quiet"
-                        :icon-only="true"
-                        aria-label="Undo"
-                        @click.stop="requestUndo(change.title)"
-                      >
-                        <CdxIcon :icon="cdxIconEditUndo" />
-                      </CdxButton>
-                      <CdxButton
-                        weight="quiet"
-                        :icon-only="true"
-                        aria-label="Mark as read"
-                        :class="{ 'desktop-inline-diff__reviewed--complete': reviewedChanges.has(change.title) }"
-                        @click.stop="markEditReviewed(change.title)"
-                      >
-                        <CdxIcon :icon="cdxIconCheck" />
-                      </CdxButton>
-                    </div>
-                  </div>
-                </article>
+                <ReviewEditCard v-for="change in visibleChanges" :key="change.title" :change="change"
+                  :seen="queueState.seen.has(change.title)" :thanked="thankedChanges.has(change.title)"
+                  :viewed="reviewedChanges.has(change.title)" :undone="undoneChanges.has(change.title)"
+                  @open="openChange(change)" />
               </div>
-              <p class="discussion-footer">View more edits in the <a href="#" @click.prevent>recent changes page</a></p>
+              <CdxButton class="view-more-edits" @click="openAllEdits">View more edits</CdxButton>
             </DashboardModule>
             <DashboardModule title="Active discussions">
               <div class="discussion-list">
@@ -595,14 +566,14 @@ const impact = {
             @click="markEditReviewed(modalReviewChange.title)"
           >
             <CdxIcon :icon="cdxIconCheck" />
-            Mark as read
+            Viewed
           </CdxButton>
           <div class="desktop-review-dialog__navigation">
             <CdxButton
               size="medium"
               :icon-only="true"
               aria-label="Previous review change"
-              :disabled="modalReviewIndex === 0"
+              :disabled="visibleModalPosition <= 0"
               @click="moveReviewModal(-1)"
             >
               <CdxIcon :icon="cdxIconPrevious" />
@@ -611,7 +582,7 @@ const impact = {
               size="medium"
               :icon-only="true"
               aria-label="Next review change"
-              :disabled="modalReviewIndex === desktopReviewChanges.length - 1"
+              :disabled="visibleModalPosition >= visibleChanges.length - 1"
               @click="moveReviewModal(1)"
             >
               <CdxIcon :icon="cdxIconNext" />
@@ -646,6 +617,22 @@ const impact = {
 </template>
 
 <style scoped>
+.queue-version-switch { display: flex; align-items: center; gap: 8px; margin: 8px 0 24px; }
+.queue-version-switch > span { margin-inline-end: auto; color: var(--color-subtle, #54595d); font-size: 14px; }
+.view-more-edits { margin-top: 16px; }
+.all-review-layout { display: grid; grid-template-columns: 180px minmax(0, 864px) 180px; gap: 40px; justify-content: center; }
+.all-review-main { min-width: 0; }
+.all-review-main h1 { margin: 0; padding-bottom: 6px; border-bottom: 1px solid var(--border-color-base, #a2a9b1); font: 29px/1.4 Georgia, serif; }
+.all-review-heading { display: flex; align-items: center; gap: 8px; margin: 8px 0 12px; }
+.all-review-heading h2 { margin: 0; font: bold 16px/1.5 sans-serif; }
+.all-review-list { display: flex; flex-direction: column; gap: 12px; }
+.all-review-contents, .all-review-tools { padding-top: 60px; font-size: 14px; line-height: 1.6; }
+.all-review-layout aside a { display: block; margin: 8px 0; color: var(--color-progressive, #36c); text-decoration: none; }
+.all-review-layout aside hr { border: 0; border-top: 1px solid var(--border-color-subtle, #dadde3); }
+.all-review-tools p { margin: 16px 0 0; color: var(--color-subtle, #54595d); }
+.queue-empty, .queue-end { color: var(--color-subtle, #54595d); margin: 24px 0; }
+@media (max-width: 1100px) { .all-review-layout { grid-template-columns: minmax(0, 864px); } .all-review-layout aside { display: none; } }
+
 .template-dashboard-shell {
   box-sizing: border-box;
   width: 100%;
@@ -748,15 +735,19 @@ const impact = {
   white-space: nowrap;
 }
 
-.desktop-review-item__reviewed-status {
+.desktop-review-item__title > .desktop-review-item__statuses {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-50, 8px);
   flex-shrink: 0;
   margin-inline-start: auto;
-  color: var(--color-icon-base, #202122);
+  overflow: visible;
 }
 
-.desktop-review-item__undone-status {
+.desktop-review-item__reviewed-status,
+.desktop-review-item__undone-status,
+.desktop-review-item__thanked-status {
   flex-shrink: 0;
-  margin-inline-start: auto;
   color: var(--color-icon-base, #202122);
 }
 

@@ -444,10 +444,10 @@ const impact = {
                   @unpin="togglePin(change.title)" @open="openChange(change)" />
           </div>
           <div v-if="showReviewedEmptyState" class="queue-empty" role="status">
-            <p>That’s all of the changes for now. Check back later for new recommendations or visit <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> for recent changes or go back to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
+            <p>You’ve reviewed all available changes. Check back later for new changes, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
           </div>
           <CdxButton v-if="!showReviewedEmptyState && hasMoreEdits" class="view-more-edits" @click="queueState.limit += 7">{{ queueVersion === 'A' ? 'See more edits' : 'View more edits' }}</CdxButton>
-          <p v-if="!showReviewedEmptyState && !hasMoreEdits" class="queue-end">That’s all of the changes for now. Check back later for new recommendations or visit <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> for recent changes or go back to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
+          <p v-if="!showReviewedEmptyState && !hasMoreEdits" class="queue-end">You’ve reviewed all available changes. Check back later for new changes, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
         </main>
         <aside class="all-review-tools" aria-label="Tools">
           <strong>Tools</strong><hr />

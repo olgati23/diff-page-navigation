@@ -69,7 +69,7 @@ const queueVersion = computed<'A' | 'B' | 'C'>(() => route.query.version === 'C'
 const dashboardPath = '/template-dashboard-desktop-modal'
 const showAllEdits = computed(() => route.path.endsWith('/all-review-changes') || route.query.view === 'all')
 const createQueueState = () => ({ seen: new Set<string>(), reviewed: new Set<string>(), thanked: new Set<string>(), undone: new Set<string>(), completed: new Set<string>(), limit: 7 })
-// Completed B edits remain visible now and are retired on the next page load.
+// Seen or acted-on B edits remain visible until the next visit.
 const retiredStorageKey = 'protowiki-desktop-review-b-completed-v1'
 function readRetiredEdits(): Set<string> {
   try {
@@ -173,14 +173,22 @@ function returnToDashboard() {
   router.push({ path: dashboardPath, query: { ...query, version: queueVersion.value, view: 'dashboard' } })
   window.scrollTo(0, 0)
 }
+function saveBState() {
+  try {
+    sessionStorage.setItem(retiredStorageKey, JSON.stringify([...new Set([...retiredBEdits.value, ...queues.B.seen, ...queues.B.completed])]))
+  } catch { /* Keep the prototype usable without storage. */ }
+}
+watch([showAllEdits, queueVersion], ([all, version], [wasAll, previousVersion]) => {
+  if (all && version === 'B' && (!wasAll || previousVersion !== 'B')) {
+    retiredBEdits.value = new Set([...retiredBEdits.value, ...queues.B.seen, ...queues.B.completed])
+    saveBState()
+  }
+})
 function completeQueueAction(title: string) {
+  queueState.value.seen.add(title)
   queueState.value.completed.add(title)
   if (queueVersion.value === 'C') saveCState()
-  if (queueVersion.value === 'B') {
-    try {
-      sessionStorage.setItem(retiredStorageKey, JSON.stringify([...new Set([...retiredBEdits.value, ...queueState.value.completed])]))
-    } catch { /* The queue still works in memory if storage is unavailable. */ }
-  }
+  if (queueVersion.value === 'B') saveBState()
 }
 function resetQueues() {
   refreshExplanationOpen.value = false
@@ -250,6 +258,7 @@ function openReviewModal(index: number): void {
   if (desktopReviewPresentation.value === 'modal') {
     modalReviewIndex.value = index
     queueState.value.seen.add(desktopReviewChanges[index].title)
+    if (queueVersion.value === 'B') saveBState()
     if (queueVersion.value === 'C') saveCState()
   }
 }
@@ -417,7 +426,7 @@ const impact = {
           <header id="review-changes" class="all-review-heading">
             <CdxButton weight="quiet" :icon-only="true" aria-label="Back to dashboard" @click="returnToDashboard"><CdxIcon :icon="cdxIconPrevious" /></CdxButton>
             <h2>Review changes</h2>
-            <CdxButton v-if="queueVersion !== 'A'" class="queue-refresh-button" weight="quiet" :action="queueVersion === 'C' ? 'progressive' : 'default'" :icon-only="queueVersion !== 'C'"
+            <CdxButton v-if="queueVersion === 'C'" class="queue-refresh-button" weight="quiet" :action="queueVersion === 'C' ? 'progressive' : 'default'" :icon-only="queueVersion !== 'C'"
               aria-label="Refresh edits" title="Refresh edits" @click="requestBQueueRefresh">
               <CdxIcon :icon="cdxIconReload" />
               <span v-if="queueVersion === 'C'">Refresh edits</span>
@@ -429,17 +438,16 @@ const impact = {
           </div>
           <div v-if="!showReviewedEmptyState" class="all-review-list" :aria-busy="queueIsLoading">
             <ReviewEditCard v-for="change in visibleChanges" :key="change.title" :change="change" expanded
-              :seen="queueState.seen.has(change.title) || (queueVersion === 'C' && pinnedChanges.has(change.title))" :thanked="queueVersion === 'B' && thankedChanges.has(change.title)"
-              :viewed="queueVersion === 'B' && reviewedChanges.has(change.title)" :undone="queueVersion === 'B' && undoneChanges.has(change.title)"
+              :seen="queueState.seen.has(change.title) || (queueVersion === 'C' && pinnedChanges.has(change.title))"
+
               :pinned="queueVersion === 'C' && pinnedChanges.has(change.title)"
                   @unpin="togglePin(change.title)" @open="openChange(change)" />
           </div>
           <div v-if="showReviewedEmptyState" class="queue-empty" role="status">
-            <strong>All changes reviewed!</strong>
-            <p>Check back later for new changes.</p>
+            <p>That’s all of the changes for now. Check back later for new recommendations or visit <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> for recent changes or go back to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
           </div>
-          <CdxButton v-if="!showReviewedEmptyState && queueVersion !== 'A' && hasMoreEdits" class="view-more-edits" @click="queueState.limit += 7">View more edits</CdxButton>
-          <p v-if="!showReviewedEmptyState && !hasMoreEdits" class="queue-end">That’s all of the changes for now. Check back later for new recommendations.</p>
+          <CdxButton v-if="!showReviewedEmptyState && hasMoreEdits" class="view-more-edits" @click="queueState.limit += 7">{{ queueVersion === 'A' ? 'See more edits' : 'View more edits' }}</CdxButton>
+          <p v-if="!showReviewedEmptyState && !hasMoreEdits" class="queue-end">That’s all of the changes for now. Check back later for new recommendations or visit <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> for recent changes or go back to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
         </main>
         <aside class="all-review-tools" aria-label="Tools">
           <strong>Tools</strong><hr />
@@ -525,8 +533,8 @@ const impact = {
           </div>
           <div v-if="!showReviewedEmptyState" class="desktop-review-list" :aria-busy="queueIsLoading">
                 <ReviewEditCard v-for="change in visibleChanges" :key="change.title" :change="change"
-                  :seen="queueState.seen.has(change.title) || (queueVersion === 'C' && pinnedChanges.has(change.title))" :thanked="queueVersion === 'B' && thankedChanges.has(change.title)"
-                  :viewed="queueVersion === 'B' && reviewedChanges.has(change.title)" :undone="queueVersion === 'B' && undoneChanges.has(change.title)"
+                  :seen="queueState.seen.has(change.title) || (queueVersion === 'C' && pinnedChanges.has(change.title))"
+
                   :pinned="queueVersion === 'C' && pinnedChanges.has(change.title)"
                   @unpin="togglePin(change.title)" @open="openChange(change)" />
               </div>
@@ -709,7 +717,7 @@ const impact = {
             <CdxIcon :icon="cdxIconEditUndo" /> {{ undoneChanges.has(modalReviewChange.title) ? 'Restore' : 'Undo' }}
           </CdxButton>
           <CdxButton
-            v-if="queueVersion !== 'A'"
+            v-if="queueVersion === 'C'"
             size="medium"
             @click="queueVersion === 'C' ? togglePin() : markEditReviewed(modalReviewChange.title)"
           >

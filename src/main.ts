@@ -37,7 +37,7 @@ function syncGithubPagesPreviewRoute(router: ReturnType<typeof createRouter>): v
   if (!subPath) {
     return
   }
-  void router.replace(subPath)
+  void router.replace(`${subPath}${window.location.search}${window.location.hash}`)
 }
 
 initTheming()

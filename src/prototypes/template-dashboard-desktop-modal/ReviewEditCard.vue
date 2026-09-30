@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { CdxIcon } from '@wikimedia/codex'
+import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import {
   cdxIconCheck,
+  cdxIconPushPin,
   cdxIconEditUndo,
   cdxIconHeartOutline,
   cdxIconUserAvatar,
@@ -15,15 +16,17 @@ defineProps<{
   viewed?: boolean
   undone?: boolean
   expanded?: boolean
+  pinned?: boolean
 }>()
-defineEmits<{ open: [] }>()
+defineEmits<{ open: []; unpin: [] }>()
 </script>
 
 <template>
+  <div class="review-edit-card-wrap">
   <button
     type="button"
     class="review-edit-card"
-    :class="{ 'review-edit-card--seen': seen, 'review-edit-card--expanded': expanded }"
+    :class="{ 'review-edit-card--seen': seen, 'review-edit-card--expanded': expanded, 'review-edit-card--pinned': pinned }"
     @click="$emit('open')"
   >
     <span class="review-edit-card__heading">
@@ -46,9 +49,18 @@ defineEmits<{ open: [] }>()
       {{ change.time }}</span
     >
   </button>
+  <CdxButton v-if="pinned" class="review-edit-card__unpin" weight="quiet" :icon-only="true"
+    :aria-label="`Unpin ${change.title}`" title="Unpin" @click.stop="$emit('unpin')">
+    <CdxIcon :icon="cdxIconPushPin" size="small" />
+  </CdxButton>
+  </div>
 </template>
 
 <style scoped>
+.review-edit-card-wrap { position: relative; }
+.review-edit-card__unpin { position: absolute; top: 8px; right: 8px; }
+.review-edit-card--pinned .review-edit-card__heading { padding-inline-end: 32px; box-sizing: border-box; }
+
 .review-edit-card {
   display: flex;
   flex-direction: column;
@@ -65,13 +77,15 @@ defineEmits<{ open: [] }>()
   line-height: 1.5;
   cursor: pointer;
 }
-.review-edit-card:last-child {
+.review-edit-card-wrap:last-child > .review-edit-card {
   border-bottom: 0;
 }
-.review-edit-card--expanded,
-.review-edit-card--expanded:last-child {
+.review-edit-card:not(.review-edit-card--expanded) {
   border: 1px solid var(--border-color-base, #a2a9b1);
   border-radius: 2px;
+}
+.review-edit-card--expanded {
+  border-radius: 0;
   padding: 12px;
 }
 .review-edit-card--seen {
@@ -79,6 +93,13 @@ defineEmits<{ open: [] }>()
 }
 .review-edit-card:hover {
   box-shadow: inset 0 0 0 1px var(--border-color-interactive, #72777d);
+}
+.review-edit-card--expanded:hover {
+  box-shadow: none;
+  background: var(--background-color-interactive-subtle, #f8f9fa);
+}
+.review-edit-card--expanded.review-edit-card--seen:hover {
+  background: var(--background-color-interactive, #eaecf0);
 }
 .review-edit-card:focus-visible {
   outline: 2px solid var(--color-progressive, #36c);

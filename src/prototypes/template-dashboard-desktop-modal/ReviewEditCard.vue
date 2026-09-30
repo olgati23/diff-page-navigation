@@ -77,7 +77,7 @@ defineEmits<{ open: []; unpin: [] }>()
   line-height: 1.5;
   cursor: pointer;
 }
-.review-edit-card-wrap:last-child > .review-edit-card {
+.review-edit-card-wrap:last-child > .review-edit-card--expanded {
   border-bottom: 0;
 }
 .review-edit-card:not(.review-edit-card--expanded) {

@@ -125,7 +125,7 @@ const refreshingAQueue = ref(false)
 const queueIsLoading = computed(() => queueVersion.value === 'A' && refreshingAQueue.value)
 let queueRefreshTimer: ReturnType<typeof setTimeout> | undefined
 function refreshCompletedAEdits() {
-  const completed = [...queues.A.completed].filter(title => !retiredAEdits.value.has(title))
+  const completed = [...new Set([...queues.A.seen, ...queues.A.completed])].filter(title => !retiredAEdits.value.has(title))
   if (!completed.length || refreshingAQueue.value) return
   refreshingAQueue.value = true
   // Simulate fetching replacement edits while retaining the gray cards beneath the loader.
@@ -709,6 +709,7 @@ const impact = {
             <CdxIcon :icon="cdxIconEditUndo" /> {{ undoneChanges.has(modalReviewChange.title) ? 'Restore' : 'Undo' }}
           </CdxButton>
           <CdxButton
+            v-if="queueVersion !== 'A'"
             size="medium"
             @click="queueVersion === 'C' ? togglePin() : markEditReviewed(modalReviewChange.title)"
           >

@@ -170,7 +170,8 @@ function openAllEdits() {
 }
 function returnToDashboard() {
   const { view, ...query } = route.query
-  router.push({ path: dashboardPath, query })
+  router.push({ path: dashboardPath, query: { ...query, version: queueVersion.value, view: 'dashboard' } })
+  window.scrollTo(0, 0)
 }
 function completeQueueAction(title: string) {
   queueState.value.completed.add(title)

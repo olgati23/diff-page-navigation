@@ -65,6 +65,7 @@ const germanMetadataWrapped = computed(
 const expandedReviewChange = ref<string | null>(null)
 const desktopReviewPresentation = ref('modal')
 const modalReviewIndex = ref<number | null>(null)
+const modalQueueComplete = ref(false)
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
 const watchedChanges = reactive(new Set<string>())
@@ -190,14 +191,15 @@ const availableChanges = computed(() => {
   }
   return reviewChanges.filter(change => queueVersion.value === 'B' ? !retiredBEdits.value.has(change.title) : !retiredAEdits.value.has(change.title))
 })
-const visibleChanges = computed(() => availableChanges.value.slice(0, showAllEdits.value ? queueState.value.limit : 2))
+const fullQueueLimit = computed(() => queueVersion.value === 'B' ? MAX_EDITS : queueState.value.limit)
+const visibleChanges = computed(() => availableChanges.value.slice(0, showAllEdits.value ? fullQueueLimit.value : 2))
 const showReviewedEmptyState = computed(() =>
   modalReviewIndex.value === null && !queueIsLoading.value && !(queueVersion.value === 'C' && pinnedChanges.value.size) && reviewChanges.every(change =>
-    queueState.value.completed.has(change.title) ||
+    (queueVersion.value !== 'B' && queueState.value.completed.has(change.title)) ||
     (queueVersion.value === 'A' ? retiredAEdits.value : queueVersion.value === 'C' ? retiredCEdits.value : retiredBEdits.value).has(change.title),
   ),
 )
-const hasMoreEdits = computed(() => queueState.value.limit < availableChanges.value.length)
+const hasMoreEdits = computed(() => fullQueueLimit.value < availableChanges.value.length)
 function setQueueVersion(version: 'A' | 'B' | 'C') {
   refreshExplanationOpen.value = false
   updateReviewModalOpen(false)
@@ -209,6 +211,7 @@ function openAllEdits() {
   window.scrollTo(0, 0)
 }
 function returnToDashboard() {
+  updateReviewModalOpen(false)
   const { view, ...query } = route.query
   router.push({ path: dashboardPath, query: { ...query, version: queueVersion.value, view: 'dashboard' } })
   window.scrollTo(0, 0)
@@ -296,6 +299,7 @@ const activeReviewEditor = computed(() => {
 })
 
 function openReviewModal(index: number): void {
+  modalQueueComplete.value = false
   closeWatchPopover()
   clearConfirmationToast()
   if (desktopReviewPresentation.value === 'modal') {
@@ -310,6 +314,11 @@ function moveReviewModal(direction: -1 | 1): void {
   if (modalReviewIndex.value === null) return
   const next = adjacentReviewChange(direction)
   if (next) openChange(next)
+  else if (direction === 1) {
+    closeWatchPopover()
+    clearConfirmationToast()
+    modalQueueComplete.value = true
+  }
 }
 
 function updateReviewModalOpen(open: boolean): void {
@@ -318,6 +327,7 @@ function updateReviewModalOpen(open: boolean): void {
     clearConfirmationToast()
     if (modalReviewIndex.value !== null && queueVersion.value === 'A') refreshCompletedAEdits()
     modalReviewIndex.value = null
+    modalQueueComplete.value = false
     modalConfirmation.value = null
   }
 }
@@ -491,7 +501,7 @@ const impact = {
             <p>You’ve reviewed all changes. Check back tomorrow, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
           </div>
           <CdxButton v-if="!showReviewedEmptyState && hasMoreEdits" class="view-more-edits" @click="queueState.limit = Math.min(queueState.limit + 7, MAX_EDITS)">{{ queueVersion === 'A' ? 'See more edits' : 'View more edits' }}</CdxButton>
-          <p v-if="!showReviewedEmptyState && !hasMoreEdits" class="queue-end">You’ve reviewed all changes. Check back tomorrow, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
+          <p v-if="queueVersion !== 'B' && !showReviewedEmptyState && !hasMoreEdits" class="queue-end">You’ve reviewed all changes. Check back tomorrow, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
         </main>
         <aside class="all-review-tools" aria-label="Tools">
           <strong>Tools</strong><hr />
@@ -657,12 +667,12 @@ const impact = {
 
       <CdxDialog
         :open="modalReviewIndex !== null"
-        :title="modalConfirmation === 'undo'
+        :title="modalQueueComplete ? 'Difference preview' : modalConfirmation === 'undo'
           ? 'Undo edit'
           : modalConfirmation === 'thank'
             ? 'Publicly send ‘Thanks’'
             : `Difference preview: ${modalReviewChange.title}`"
-        :subtitle="modalConfirmation ? undefined : `Revision from ${modalRevisionDate}`"
+        :subtitle="modalConfirmation || modalQueueComplete ? undefined : `Revision from ${modalRevisionDate}`"
         :use-close-button="!modalConfirmation"
         class="desktop-review-dialog"
         :class="{
@@ -671,7 +681,20 @@ const impact = {
         }"
         @update:open="updateReviewModalOpen"
       >
-        <template v-if="modalConfirmation === 'undo'">
+        <template v-if="modalQueueComplete">
+        <section class="desktop-review-dialog__complete" role="status">
+          <p>Well done! You’ve reviewed all changes. Check back tomorrow for more. In the meantime, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> or return to <RouterLink :to="{ path: dashboardPath, query: { version: queueVersion, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
+        </section>
+        <div class="desktop-review-dialog__footer">
+          <div class="desktop-review-dialog__completion-actions">
+            <CdxButton size="medium" :icon-only="true" aria-label="Back to last edit"
+              @click="modalQueueComplete = false"><CdxIcon :icon="cdxIconPrevious" /></CdxButton>
+            <CdxButton size="medium" action="progressive" weight="primary"
+              @click="updateReviewModalOpen(false)">Done</CdxButton>
+          </div>
+        </div>
+        </template>
+        <template v-else-if="modalConfirmation === 'undo'">
           <p class="desktop-modal-confirmation__description">
             This will undo the change(s) shown in this revision. Please provide a reason for
             undoing the edit(s)
@@ -806,7 +829,6 @@ const impact = {
               size="medium"
               :icon-only="true"
               aria-label="Next review change"
-              :disabled="!adjacentReviewChange(1)"
               @click="moveReviewModal(1)"
             >
               <CdxIcon :icon="cdxIconNext" />
@@ -1098,6 +1120,17 @@ const impact = {
   border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
 }
 
+.desktop-review-dialog__complete {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-200, 32px);
+  text-align: center;
+  line-height: 1.6;
+}
+.desktop-review-dialog__complete p { margin: 0; max-width: 32em; }
+
 .watch-popover-content { width: 288px; max-width: 100%; }
 .watch-popover-content p { margin: 0 0 var(--spacing-100, 16px); }
 
@@ -1198,6 +1231,12 @@ const impact = {
   justify-content: center;
   font-weight: var(--font-weight-bold, 700);
   text-align: center;
+}
+
+.desktop-review-dialog__completion-actions {
+  display: flex;
+  margin-inline-start: auto;
+  gap: var(--spacing-50, 8px);
 }
 
 .desktop-review-dialog__navigation {

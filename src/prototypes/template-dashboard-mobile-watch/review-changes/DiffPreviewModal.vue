@@ -570,19 +570,20 @@ onBeforeUnmount(() => {
         class="diff-preview__toolbar"
         aria-label="Diff review actions"
       >
-        <CdxToast
-          v-if="confirmationToast"
-          standalone
-          render-in-place
-          class="mobile-prototype-toast mobile-toolbar-toast"
-          :type="confirmationToastType"
-          :prevent-user-dismiss="false"
-          :auto-dismiss="true"
-          @auto-dismissed="clearConfirmationToast"
-          @user-dismissed="clearConfirmationToast"
-        >
-          {{ confirmationToast }}
-        </CdxToast>
+        <div v-if="confirmationToast" class="mobile-toolbar-confirmation">
+          <CdxToast
+            standalone
+            render-in-place
+            class="mobile-prototype-toast mobile-toolbar-toast"
+            :type="confirmationToastType"
+            :prevent-user-dismiss="false"
+            :auto-dismiss="true"
+            @auto-dismissed="clearConfirmationToast"
+            @user-dismissed="clearConfirmationToast"
+          >
+            {{ confirmationToast }}
+          </CdxToast>
+        </div>
         <CdxButton ref="watchAnchor" weight="quiet" :icon-only="true"
           :aria-label="watchPeriods[props.change.title] ? 'Unwatch page' : 'Watch page'"
           :aria-pressed="!!watchPeriods[props.change.title]" :aria-expanded="watchOpen"
@@ -660,12 +661,25 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.diff-preview__toolbar :deep(.mobile-toolbar-toast) {
+.mobile-toolbar-confirmation {
   position: absolute;
   bottom: calc(100% + 8px);
+  inset-inline: 16px;
+  pointer-events: none;
+}
+
+.mobile-toolbar-confirmation :deep(.cdx-toast) {
+  position: relative;
+  bottom: auto;
   left: 50%;
-  width: calc(100% - 32px);
-  max-width: calc(100% - 32px);
+  width: 100%;
+  max-width: none;
+  pointer-events: auto;
+}
+
+.mobile-toolbar-confirmation :deep(.cdx-toast-enter-from),
+.mobile-toolbar-confirmation :deep(.cdx-toast-leave-to) {
+  transform: translateX(-50%);
 }
 
 :global(#mobile-watch-popover .cdx-popover__body) {

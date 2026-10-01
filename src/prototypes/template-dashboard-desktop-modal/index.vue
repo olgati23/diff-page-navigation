@@ -506,7 +506,7 @@ const impact = {
             <p v-else>You’ve reviewed all changes. Check back tomorrow, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
           </div>
           <CdxButton v-if="!showReviewedEmptyState && hasMoreEdits" class="view-more-edits" @click="queueState.limit = Math.min(queueState.limit + 7, MAX_EDITS)">Show more edits</CdxButton>
-          <p v-if="!showReviewedEmptyState && !hasMoreEdits" class="queue-end">
+          <p v-if="queueVersion !== 'B1' && !showReviewedEmptyState && !hasMoreEdits" class="queue-end">
             <template v-if="queueVersion === 'B2'">Well done! You’ve reviewed all changes. Check back later for more. In the meantime, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</template>
             <template v-else>{{ isBVersion ? 'There are no more changes for now. Check back later, explore ' : 'You’ve reviewed all changes. Check back tomorrow, explore ' }}<a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</template>
           </p>

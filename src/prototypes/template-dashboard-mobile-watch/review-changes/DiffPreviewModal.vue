@@ -570,6 +570,19 @@ onBeforeUnmount(() => {
         class="diff-preview__toolbar"
         aria-label="Diff review actions"
       >
+        <CdxToast
+          v-if="confirmationToast"
+          standalone
+          render-in-place
+          class="mobile-prototype-toast mobile-toolbar-toast"
+          :type="confirmationToastType"
+          :prevent-user-dismiss="false"
+          :auto-dismiss="true"
+          @auto-dismissed="clearConfirmationToast"
+          @user-dismissed="clearConfirmationToast"
+        >
+          {{ confirmationToast }}
+        </CdxToast>
         <CdxButton ref="watchAnchor" weight="quiet" :icon-only="true"
           :aria-label="watchPeriods[props.change.title] ? 'Unwatch page' : 'Watch page'"
           :aria-pressed="!!watchPeriods[props.change.title]" :aria-expanded="watchOpen"
@@ -632,7 +645,7 @@ onBeforeUnmount(() => {
       @confirmed="showThankConfirmation"
     />
     <CdxToast
-      v-if="confirmationToast"
+      v-if="confirmationToast && props.variant !== 'toolbar'"
       standalone
       class="mobile-prototype-toast"
       :type="confirmationToastType"
@@ -647,6 +660,14 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.diff-preview__toolbar :deep(.mobile-toolbar-toast) {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  width: calc(100% - 32px);
+  max-width: calc(100% - 32px);
+}
+
 :global(#mobile-watch-popover .cdx-popover__body) {
   flex-shrink: 0;
   overflow: visible;
@@ -1019,6 +1040,7 @@ onBeforeUnmount(() => {
 }
 
 .diff-preview__toolbar {
+  position: relative;
   justify-content: space-between;
 }
 

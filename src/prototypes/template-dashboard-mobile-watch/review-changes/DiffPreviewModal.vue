@@ -613,7 +613,7 @@ onBeforeUnmount(() => {
       </footer>
       <CdxPopover v-if="props.variant === 'toolbar'" id="mobile-watch-popover"
         v-model:open="watchOpen" :anchor="watchAnchor" placement="top-start"
-        :use-bottom-sheet="false" render-in-place use-close-button
+        use-bottom-sheet use-close-button
         :title="watchPeriods[props.change.title] ? 'Added to watchlist' : 'Removed from watchlist'">
         <p>“{{ props.change.title }}” and its talk page have been {{ watchPeriods[props.change.title] ? 'added to' : 'removed from' }} your watchlist.</p>
         <fieldset v-if="watchPeriods[props.change.title]" class="mobile-watch-periods">
@@ -647,7 +647,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-:deep(#mobile-watch-popover .cdx-popover__body) {
+:global(#mobile-watch-popover .cdx-popover__body) {
   flex-shrink: 0;
   overflow: visible;
 }

@@ -170,6 +170,56 @@ const englishReviewChanges: ReviewChange[] = [
     revisionDate: '29 August 2026, 11:54',
     summary: '',
   },
+  {
+    "title": "Dolphin",
+    "description": "Aquatic mammal in the infraorder Cetacea",
+    "editor": "TumCool412",
+    "time": "16 minutes ago",
+    "oldRevisionId": 1374831145,
+    "revisionId": 1375794602,
+    "revisionDate": "20 September 2026, 03:01",
+    "summary": "/* Evolution{{anchor|Evolution and anatomy}} */ url-status=live and doi="
+  },
+  {
+    "title": "Giraffe",
+    "description": "Tall African hoofed mammal",
+    "editor": "Pillowcrow",
+    "time": "17 minutes ago",
+    "oldRevisionId": 1369992953,
+    "revisionId": 1372727700,
+    "revisionDate": "2 September 2026, 00:46",
+    "summary": "/* Social life */ Copyedits"
+  },
+  {
+    "title": "Polar bear",
+    "description": "Bear species native to the Arctic",
+    "editor": "Headbomb",
+    "time": "18 minutes ago",
+    "oldRevisionId": 1372402502,
+    "revisionId": 1374646513,
+    "revisionDate": "13 September 2026, 08:17",
+    "summary": "/* Conservation status */  | Altered template type. Add: series, chapter, title. | [[:en:WP:UCB|Use this tool]]. [[:en:WP:DBUG|Report bugs]]. | #UCB_Gadget"
+  },
+  {
+    "title": "Rose",
+    "description": "Flowering plant in the genus Rosa",
+    "editor": "Bella Yisraeli",
+    "time": "19 minutes ago",
+    "oldRevisionId": 1376157495,
+    "revisionId": 1376625769,
+    "revisionDate": "25 September 2026, 07:42",
+    "summary": "Luxembourg's relationship with roses"
+  },
+  {
+    "title": "Fern",
+    "description": "Group of vascular plants that reproduce through spores",
+    "editor": "~2026-47702-99",
+    "time": "20 minutes ago",
+    "oldRevisionId": 1372409446,
+    "revisionId": 1372763744,
+    "revisionDate": "2 September 2026, 04:22",
+    "summary": "/* Ecology */"
+  },
 ]
 
 export const reviewChanges: ReviewChange[] = window.location.pathname.includes('-he')

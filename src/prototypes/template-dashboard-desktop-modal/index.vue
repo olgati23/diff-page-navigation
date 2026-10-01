@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import {
   CdxButton,
+  CdxPopover,
+  CdxSelect,
+  CdxField,
   CdxProgressBar,
   CdxDialog,
   CdxIcon,
@@ -10,6 +13,9 @@ import {
 } from '@wikimedia/codex'
 import {
   cdxIconCheck,
+  cdxIconStar,
+  cdxIconHalfStar,
+  cdxIconUnStar,
   cdxIconReload,
   cdxIconPushPin,
   cdxIconEdit,
@@ -36,7 +42,7 @@ import type { Skin } from '@/theme'
 import WikipediaDiffContent from './review-changes/WikipediaDiffContent.vue'
 import ThankConfirmationDialog from './review-changes/ThankConfirmationDialog.vue'
 import UndoConfirmationDialog from './review-changes/UndoConfirmationDialog.vue'
-import { reviewChanges, type ReviewChange } from './reviewChanges'
+import { reviewChanges as sourceReviewChanges, type ReviewChange } from './reviewChanges'
 import { localeQuery } from '../prototypeLocale'
 
 definePage({
@@ -61,11 +67,45 @@ const desktopReviewPresentation = ref('modal')
 const modalReviewIndex = ref<number | null>(null)
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
+const watchedChanges = reactive(new Set<string>())
+const watchAnchor = ref(null)
+const watchPopoverOpen = ref(false)
+const watchPeriods = reactive<Record<string, string>>({})
+const watchPeriodOptions = [
+  { label: 'Permanent', value: 'infinite' },
+  ...['1 week', '1 month', '3 months', '6 months', '1 year'].map(value => ({ label: value, value })),
+]
+let watchDismissTimer: ReturnType<typeof setTimeout> | undefined
+function pauseWatchDismiss() { clearTimeout(watchDismissTimer) }
+function scheduleWatchDismiss() {
+  pauseWatchDismiss()
+  watchDismissTimer = setTimeout(() => { watchPopoverOpen.value = false }, 8000)
+}
+function closeWatchPopover() {
+  watchPopoverOpen.value = false
+  pauseWatchDismiss()
+}
+function toggleWatch(title: string) {
+  if (watchedChanges.has(title)) watchedChanges.delete(title)
+  else {
+    watchedChanges.add(title)
+    watchPeriods[title] = 'infinite'
+  }
+  watchPopoverOpen.value = true
+  scheduleWatchDismiss()
+}
+function setWatchPeriod(value: string | number) {
+  watchPeriods[modalReviewChange.value.title] = String(value)
+  scheduleWatchDismiss()
+}
+onBeforeUnmount(pauseWatchDismiss)
 const confirmationToast = ref('')
 const confirmationToastType = ref<'success' | 'notice'>('success')
 const route = useRoute()
 const router = useRouter()
 const queueVersion = computed<'A' | 'B' | 'C'>(() => route.query.version === 'C' ? 'C' : route.query.version === 'B' ? 'B' : 'A')
+const MAX_EDITS = 20
+const reviewChanges = sourceReviewChanges.slice(0, MAX_EDITS)
 const dashboardPath = '/template-dashboard-desktop-modal'
 const showAllEdits = computed(() => route.path.endsWith('/all-review-changes') || route.query.view === 'all')
 const createQueueState = () => ({ seen: new Set<string>(), reviewed: new Set<string>(), thanked: new Set<string>(), undone: new Set<string>(), completed: new Set<string>(), limit: 7 })
@@ -191,6 +231,8 @@ function completeQueueAction(title: string) {
   if (queueVersion.value === 'B') saveBState()
 }
 function resetQueues() {
+  closeWatchPopover()
+  watchedChanges.clear()
   refreshExplanationOpen.value = false
   refreshExplanationAcknowledged.value = false
   updateReviewModalOpen(false)
@@ -254,6 +296,7 @@ const activeReviewEditor = computed(() => {
 })
 
 function openReviewModal(index: number): void {
+  closeWatchPopover()
   clearConfirmationToast()
   if (desktopReviewPresentation.value === 'modal') {
     modalReviewIndex.value = index
@@ -270,6 +313,7 @@ function moveReviewModal(direction: -1 | 1): void {
 }
 
 function updateReviewModalOpen(open: boolean): void {
+  if (!open) closeWatchPopover()
   if (!open) {
     clearConfirmationToast()
     if (modalReviewIndex.value !== null && queueVersion.value === 'A') refreshCompletedAEdits()
@@ -444,10 +488,10 @@ const impact = {
                   @unpin="togglePin(change.title)" @open="openChange(change)" />
           </div>
           <div v-if="showReviewedEmptyState" class="queue-empty" role="status">
-            <p>You’ve reviewed all available changes. Check back later for new changes, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
+            <p>You’ve reviewed all changes. Check back tomorrow, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
           </div>
-          <CdxButton v-if="!showReviewedEmptyState && hasMoreEdits" class="view-more-edits" @click="queueState.limit += 7">{{ queueVersion === 'A' ? 'See more edits' : 'View more edits' }}</CdxButton>
-          <p v-if="!showReviewedEmptyState && !hasMoreEdits" class="queue-end">You’ve reviewed all available changes. Check back later for new changes, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
+          <CdxButton v-if="!showReviewedEmptyState && hasMoreEdits" class="view-more-edits" @click="queueState.limit = Math.min(queueState.limit + 7, MAX_EDITS)">{{ queueVersion === 'A' ? 'See more edits' : 'View more edits' }}</CdxButton>
+          <p v-if="!showReviewedEmptyState && !hasMoreEdits" class="queue-end">You’ve reviewed all changes. Check back tomorrow, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
         </main>
         <aside class="all-review-tools" aria-label="Tools">
           <strong>Tools</strong><hr />
@@ -681,6 +725,7 @@ const impact = {
             </span>
             <span aria-hidden="true">)</span>
           </div>
+          <div class="desktop-review-dialog__page-actions">
           <a
             :href="fullDiffUrl(modalReviewChange)"
             target="_blank"
@@ -689,7 +734,30 @@ const impact = {
           >
             Full difference
           </a>
+          <CdxButton ref="watchAnchor" weight="quiet" size="medium" :icon-only="true"
+            :aria-expanded="watchPopoverOpen" aria-controls="watch-page-popover"
+            :aria-label="watchedChanges.has(modalReviewChange.title) ? 'Unwatch article' : 'Watch article'"
+            :title="watchedChanges.has(modalReviewChange.title) ? 'Unwatch article' : 'Watch article'"
+            :aria-pressed="watchedChanges.has(modalReviewChange.title)"
+            @click="toggleWatch(modalReviewChange.title)">
+            <CdxIcon :icon="watchedChanges.has(modalReviewChange.title) ? (watchPeriods[modalReviewChange.title] === 'infinite' ? cdxIconUnStar : cdxIconHalfStar) : cdxIconStar" />
+          </CdxButton>
+          </div>
         </div>
+          <CdxPopover id="watch-page-popover" v-model:open="watchPopoverOpen"
+            :anchor="watchAnchor" placement="bottom-end" render-in-place
+            :title="watchedChanges.has(modalReviewChange.title) ? 'Added to watchlist' : 'Removed from watchlist'"
+            use-close-button close-button-label="Close watchlist popover">
+            <div class="watch-popover-content" @mouseenter="pauseWatchDismiss" @mouseleave="scheduleWatchDismiss"
+              @focusin="pauseWatchDismiss" @focusout="scheduleWatchDismiss">
+              <p>“{{ modalReviewChange.title }}” and its talk page have been {{ watchedChanges.has(modalReviewChange.title) ? 'added to' : 'removed from' }} your watchlist.</p>
+              <CdxField v-if="watchedChanges.has(modalReviewChange.title)">
+                <template #label>Watchlist time period:</template>
+                <CdxSelect :selected="watchPeriods[modalReviewChange.title] ?? 'infinite'"
+                  :menu-items="watchPeriodOptions" @update:selected="setWatchPeriod" />
+              </CdxField>
+            </div>
+          </CdxPopover>
         <div class="desktop-review-dialog__diff">
           <WikipediaDiffContent
             :change="displayedChange(modalReviewChange)"
@@ -1028,6 +1096,15 @@ const impact = {
   margin: calc(var(--spacing-100, 16px) * -1) -24px 0;
   padding: var(--spacing-75, 12px) var(--spacing-100, 16px);
   border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
+}
+
+.watch-popover-content { width: 288px; max-width: 100%; }
+.watch-popover-content p { margin: 0 0 var(--spacing-100, 16px); }
+
+.desktop-review-dialog__page-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-50, 8px);
 }
 
 .desktop-review-dialog__meta--german {

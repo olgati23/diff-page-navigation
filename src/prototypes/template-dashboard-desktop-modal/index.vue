@@ -194,7 +194,7 @@ const availableChanges = computed(() => {
   }
   return reviewChanges.filter(change => isBVersion.value ? !retiredBEdits.value.has(change.title) : !retiredAEdits.value.has(change.title))
 })
-const fullQueueLimit = computed(() => queueState.value.limit)
+const fullQueueLimit = computed(() => queueVersion.value === 'B1' ? MAX_EDITS : queueState.value.limit)
 const visibleChanges = computed(() => availableChanges.value.slice(0, showAllEdits.value ? fullQueueLimit.value : 2))
 const showReviewedEmptyState = computed(() =>
   modalReviewIndex.value === null && !queueIsLoading.value && !(queueVersion.value === 'C' && pinnedChanges.value.size) && reviewChanges.every(change =>

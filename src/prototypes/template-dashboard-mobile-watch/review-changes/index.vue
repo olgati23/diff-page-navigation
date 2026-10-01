@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
-import { cdxIconArrowPrevious, cdxIconEditUndo, cdxIconInfoFilled, cdxIconUserAvatar } from '@wikimedia/codex-icons'
+import { cdxIconArrowPrevious, cdxIconInfoFilled, cdxIconUserAvatar } from '@wikimedia/codex-icons'
 import { RouterLink } from 'vue-router'
 import { computed, ref, watch } from 'vue'
 
@@ -17,7 +17,6 @@ definePage({
 
 const previewVariant = ref<'card' | 'toolbar' | 'simplified'>('toolbar')
 const dashboardRoute = localizedPrototypeRoute('/template-dashboard-mobile-watch')
-const reviewedCardIcon = '<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="m14.806 7.249-4.906 5.956H8.801L6 11.105l1.2-1.6 2.024 1.518L13.244 6z"/>'
 const editLimit = ref(7)
 const queueChanges = reviewChanges.slice(0, 20)
 const visibleChanges = computed(() => queueChanges.slice(0, editLimit.value))
@@ -101,20 +100,6 @@ function markRestored(title: string) {
       >
         <div class="review-queue-card__heading">
           <h2>{{ change.title }}</h2>
-          <CdxIcon
-            v-if="undoneChanges.has(change.title)"
-            :icon="cdxIconEditUndo"
-            size="small"
-            class="review-queue-card__undone-status"
-            icon-label="Edit undone"
-          />
-          <CdxIcon
-            v-else-if="reviewedChanges.has(change.title)"
-            :icon="reviewedCardIcon"
-            size="small"
-            class="review-queue-card__reviewed-status"
-            icon-label="Edit reviewed"
-          />
         </div>
         <p class="review-queue-card__description">{{ change.description }}</p>
         <p class="review-queue-card__editor">
@@ -273,18 +258,6 @@ function markRestored(title: string) {
 
 .review-queue-card__heading h2 {
   min-width: 0;
-}
-
-.review-queue-card__reviewed-status {
-  flex-shrink: 0;
-  margin-inline-start: auto;
-  color: var(--color-icon-base, #202122);
-}
-
-.review-queue-card__undone-status {
-  flex-shrink: 0;
-  margin-inline-start: auto;
-  color: var(--color-icon-base, #202122);
 }
 
 .review-queue-card__description,

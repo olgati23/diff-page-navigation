@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
 import { cdxIconArrowPrevious, cdxIconInfoFilled, cdxIconUserAvatar } from '@wikimedia/codex-icons'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { computed, ref, watch } from 'vue'
 
 import { reviewChanges, type ReviewChange } from '../reviewChanges'
@@ -14,6 +14,10 @@ definePage({
     description: 'Detailed review queue for the dashboard template.',
   },
 })
+
+const route = useRoute()
+const router = useRouter()
+const mobileVersion = computed(() => route.query.version === 'B' ? 'B' : 'A')
 
 const previewVariant = ref<'card' | 'toolbar' | 'simplified'>('toolbar')
 const dashboardRoute = localizedPrototypeRoute('/template-dashboard-mobile-watch')
@@ -85,6 +89,11 @@ function markRestored(title: string) {
       <CdxIcon :icon="cdxIconInfoFilled" aria-label="About review changes" />
     </header>
 
+    <nav class="mobile-version-switch" aria-label="Prototype version">
+      <CdxButton v-for="version in ['A', 'B']" :key="version" :aria-pressed="mobileVersion === version"
+        :action="mobileVersion === version ? 'progressive' : 'default'"
+        @click="router.replace({ query: { ...route.query, version } })">Version {{ version }}</CdxButton>
+    </nav>
     <section class="review-changes-page__list" aria-label="Suggested changes to review">
       <article
         v-for="change in visibleChanges"
@@ -119,6 +128,7 @@ function markRestored(title: string) {
       v-if="selectedChange"
       :key="previewVariant"
       :change="selectedPreviewChange!"
+      :mobile-version="mobileVersion"
       :variant="previewVariant"
       :change-index="selectedChangeIndex ?? 0"
       :change-count="visibleChanges.length"
@@ -135,6 +145,7 @@ function markRestored(title: string) {
 </template>
 
 <style scoped>
+.mobile-version-switch { display: flex; gap: 8px; padding: 12px 16px; }
 .review-changes-page {
   min-height: 100vh;
   color: var(--color-base);

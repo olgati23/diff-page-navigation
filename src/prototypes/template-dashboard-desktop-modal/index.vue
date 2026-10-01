@@ -45,6 +45,8 @@ import UndoConfirmationDialog from './review-changes/UndoConfirmationDialog.vue'
 import { reviewChanges as sourceReviewChanges, type ReviewChange } from './reviewChanges'
 import { localeQuery } from '../prototypeLocale'
 
+const filledUndoIcon = '<path d="m11.76 12.463-5.213 5.216a1 1 0 0 1-.394.242L1.91 19.335.64 18.076l1.413-4.243a1 1 0 0 1 .242-.39l5.222-5.222z"/><path d="m14.124 1.5-3 3H14a6 6 0 0 1 6 6V14h-2v-3.5a4 4 0 0 0-4-4h-2.876l3 3-1.414 1.414-4.707-4.707V4.793L12.71.086z"/>'
+
 definePage({
   alias: '/template-dashboard-desktop-modal/all-review-changes',
   meta: {
@@ -68,6 +70,11 @@ const modalReviewIndex = ref<number | null>(null)
 const modalQueueComplete = ref(false)
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
+const b2ThanksConfirmedKey = 'desktop-b2-thanks-confirmed'
+const b2ThanksConfirmed = ref(false)
+try {
+  b2ThanksConfirmed.value = sessionStorage.getItem(b2ThanksConfirmedKey) === 'true'
+} catch { /* Keep the preference in memory if storage is unavailable. */ }
 const watchedChanges = reactive(new Set<string>())
 const watchAnchor = ref(null)
 const watchFooterAnchor = ref(null)
@@ -107,7 +114,7 @@ const route = useRoute()
 const router = useRouter()
 const queueVersion = computed<'A' | 'B1' | 'B2' | 'C'>(() => route.query.version === 'C' ? 'C' : route.query.version === 'B2' ? 'B2' : ['B', 'B1'].includes(String(route.query.version)) ? 'B1' : 'A')
 const isBVersion = computed(() => queueVersion.value === 'B1' || queueVersion.value === 'B2')
-const watchInFooter = computed(() => queueVersion.value === 'A' || queueVersion.value === 'B2')
+const watchInFooter = computed(() => queueVersion.value === 'A' || queueVersion.value === 'B1')
 const MAX_EDITS = 20
 const reviewChanges = sourceReviewChanges.slice(0, MAX_EDITS)
 const dashboardPath = '/template-dashboard-desktop-modal'
@@ -237,6 +244,8 @@ function completeQueueAction(title: string) {
   if (isBVersion.value) saveBState()
 }
 function resetQueues() {
+  b2ThanksConfirmed.value = false
+  try { sessionStorage.removeItem(b2ThanksConfirmedKey) } catch { /* In-memory fallback. */ }
   closeWatchPopover()
   watchedChanges.clear()
   refreshExplanationOpen.value = false
@@ -309,6 +318,10 @@ function openReviewModal(index: number): void {
   if (desktopReviewPresentation.value === 'modal') {
     modalReviewIndex.value = index
     queueState.value.seen.add(desktopReviewChanges[index].title)
+    if (queueVersion.value === 'B2') {
+      const openedPosition = availableChanges.value.findIndex(change => change.title === desktopReviewChanges[index].title)
+      queueState.value.limit = Math.min(MAX_EDITS, Math.max(queueState.value.limit, openedPosition + 1))
+    }
     if (isBVersion.value) saveBState()
     if (queueVersion.value === 'C') saveCState()
   }
@@ -350,14 +363,20 @@ function showUndoConfirmation(): void {
   completeQueueAction(title)
 }
 
-function displayedChange(change: ReviewChange): ReviewChange {
+const displayedModalChange = computed<ReviewChange>(() => {
+  const change = modalReviewChange.value
   if (!undoneChanges.value.has(change.title)) return change
   return { ...change, revisionId: change.oldRevisionId, oldRevisionId: change.revisionId, summary: `Undo: ${change.summary}` }
-}
+})
 
 function requestUndo(changeTitle?: string): void {
   const title = changeTitle ?? modalReviewChange.value.title
   if (undoneChanges.value.has(title)) {
+    if (queueVersion.value === 'B2') {
+      confirmationToastType.value = 'notice'
+      confirmationToast.value = 'This edit has already been undone'
+      return
+    }
     const next = new Set(undoneChanges.value)
     next.delete(title)
     undoneChanges.value = next
@@ -370,6 +389,10 @@ function requestUndo(changeTitle?: string): void {
 }
 
 function showThankConfirmation(): void {
+  if (queueVersion.value === 'B2') {
+    b2ThanksConfirmed.value = true
+    try { sessionStorage.setItem(b2ThanksConfirmedKey, 'true') } catch { /* In-memory fallback. */ }
+  }
   const title = modalReviewIndex.value !== null ? modalReviewChange.value.title : expandedReviewChange.value
   if (title) {
     const next = new Set(thankedChanges.value)
@@ -385,10 +408,11 @@ function requestThanks(changeTitle?: string): void {
   const title = changeTitle ?? modalReviewChange.value.title
   if (thankedChanges.value.has(title)) {
     confirmationToastType.value = 'notice'
-    confirmationToast.value = "A 'Thanks' cannot be undone"
+    confirmationToast.value = queueVersion.value === 'B2' ? "A ‘Thanks’ cannot be undone" : "A 'Thanks' cannot be undone"
     return
   }
-  openModalConfirmation('thank')
+  if (queueVersion.value === 'B2' && b2ThanksConfirmed.value) showThankConfirmation()
+  else openModalConfirmation('thank')
 }
 
 function markEditReviewed(changeTitle?: string): void {
@@ -785,7 +809,7 @@ const impact = {
             use-close-button close-button-label="Close watchlist popover">
             <div class="watch-popover-content" @mouseenter="pauseWatchDismiss" @mouseleave="scheduleWatchDismiss"
               @focusin="pauseWatchDismiss" @focusout="scheduleWatchDismiss">
-              <p>“{{ modalReviewChange.title }}” and its talk page have been {{ watchedChanges.has(modalReviewChange.title) ? 'added to' : 'removed from' }} your watchlist.</p>
+              <p>“<a :href="`https://${modalReviewChange.wikiHost ?? 'en.wikipedia.org'}/wiki/${encodeURIComponent(modalReviewChange.title.replaceAll(' ', '_'))}`">{{ modalReviewChange.title }}</a>” and its talk page have been {{ watchedChanges.has(modalReviewChange.title) ? 'added to' : 'removed from' }} your <a href="#" @click.prevent>watchlist</a>.</p>
               <CdxField v-if="watchedChanges.has(modalReviewChange.title)">
                 <template #label>Watchlist time period:</template>
                 <CdxSelect :selected="watchPeriods[modalReviewChange.title] ?? 'infinite'"
@@ -795,7 +819,7 @@ const impact = {
           </CdxPopover>
         <div class="desktop-review-dialog__diff">
           <WikipediaDiffContent
-            :change="displayedChange(modalReviewChange)"
+            :change="displayedModalChange"
             tall
             :show-heading="false"
             :height-offset="germanMetadataWrapped ? 36 : 0"
@@ -819,11 +843,15 @@ const impact = {
             <CdxIcon :icon="watchedChanges.has(modalReviewChange.title) ? (watchPeriods[modalReviewChange.title] === 'infinite' ? cdxIconUnStar : cdxIconHalfStar) : cdxIconStar" />
             {{ watchedChanges.has(modalReviewChange.title) ? 'Unwatch' : 'Watch' }}
           </CdxButton>
+          <CdxButton v-if="queueVersion === 'B2'" size="medium" @click="requestUndo(modalReviewChange.title)">
+            <CdxIcon :icon="filledUndoIcon" />
+            {{ undoneChanges.has(modalReviewChange.title) ? 'Undone' : 'Undo' }}
+          </CdxButton>
           <CdxButton size="medium" @click="requestThanks(modalReviewChange.title)">
-            <CdxIcon :icon="cdxIconHeartOutline" />
+            <CdxIcon :icon="queueVersion === 'B2' ? cdxIconUserTalk : cdxIconHeartOutline" />
             {{ thankedChanges.has(modalReviewChange.title) ? 'Thanked' : 'Thank' }}
           </CdxButton>
-          <CdxButton size="medium" @click="requestUndo(modalReviewChange.title)">
+          <CdxButton v-if="queueVersion !== 'B2'" size="medium" @click="requestUndo(modalReviewChange.title)">
             <CdxIcon :icon="cdxIconEditUndo" /> {{ undoneChanges.has(modalReviewChange.title) ? 'Restore' : 'Undo' }}
           </CdxButton>
           <CdxButton

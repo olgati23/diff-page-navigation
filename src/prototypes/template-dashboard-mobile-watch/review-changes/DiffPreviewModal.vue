@@ -15,11 +15,9 @@ import {
   cdxIconHalfStar,
   cdxIconArrowPrevious,
   cdxIconSuccess,
-  cdxIconHeart,
-  cdxIconHeartOutline,
+  cdxIconUserTalk,
   cdxIconClose,
   cdxIconCollapse,
-  cdxIconEditUndo,
   cdxIconExpand,
   cdxIconInfoFilled,
   cdxIconNext,
@@ -36,9 +34,10 @@ import UndoConfirmationDialog from './UndoConfirmationDialog.vue'
 import { buildVisualDiffDocument } from './visualDiff'
 
 const toolbarReviewIcon = '<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="m14.806 7.249-4.906 5.956H8.801L6 11.105l1.2-1.6 2.024 1.518L13.244 6z"/>'
-const completedUndoIcon = '<path d="m11.76 12.463-5.213 5.216a1 1 0 0 1-.394.242L1.91 19.335.64 18.076l1.413-4.243a1 1 0 0 1 .242-.39l5.222-5.222z"/><path d="m14.124 1.5-3 3H14a6 6 0 0 1 6 6V14h-2v-3.5a4 4 0 0 0-4-4h-2.876l3 3-1.414 1.414-4.707-4.707V4.793L12.71.086z"/>'
+const filledUndoIcon = '<path d="m11.76 12.463-5.213 5.216a1 1 0 0 1-.394.242L1.91 19.335.64 18.076l1.413-4.243a1 1 0 0 1 .242-.39l5.222-5.222z"/><path d="m14.124 1.5-3 3H14a6 6 0 0 1 6 6V14h-2v-3.5a4 4 0 0 0-4-4h-2.876l3 3-1.414 1.414-4.707-4.707V4.793L12.71.086z"/>'
 
 const props = defineProps<{
+  mobileVersion?: 'A' | 'B'
   change: ReviewChange
   variant: 'card' | 'toolbar' | 'simplified'
   changeIndex: number
@@ -57,6 +56,7 @@ const emit = defineEmits<{
 }>()
 
 const watchAnchor = ref(null)
+const headerWatchAnchor = ref(null)
 const watchOpen = ref(false)
 const watchPeriods = reactive<Record<string, string>>({})
 const watchOptions = [
@@ -215,14 +215,12 @@ function showUndoConfirmation(): void {
   confirmationToastType.value = 'success'
   confirmationToast.value = 'Your edit was saved.'
   emit('undone', props.change.title)
-  if (props.changeIndex < props.changeCount - 1) emit('navigate', 1)
 }
 
 function requestUndo(): void {
   if (props.undone) {
-    confirmationToastType.value = 'success'
-    confirmationToast.value = 'Edit restored.'
-    emit('restored', props.change.title)
+    confirmationToastType.value = 'notice'
+    confirmationToast.value = 'This edit has already been undone'
     return
   }
   undoDialogOpen.value = true
@@ -243,7 +241,7 @@ function showThankConfirmation(): void {
 function requestThanks(): void {
   if (thankedChanges.value.has(props.change.title)) {
     confirmationToastType.value = 'notice'
-    confirmationToast.value = "A 'Thanks' cannot be undone."
+    confirmationToast.value = "A ‘Thanks’ cannot be undone"
     return
   }
   if (hasConfirmedThanks.value) {
@@ -515,7 +513,14 @@ onBeforeUnmount(() => {
             <CdxIcon :icon="cdxIconUserAvatar" size="small" aria-hidden="true" />
             {{ props.change.editor }}
           </a>
-          <a class="diff-preview__full-difference-link" :href="fullDifferenceUrl()" target="_blank" rel="noopener noreferrer">Full difference</a>
+          <div class="diff-preview__page-links"><a class="diff-preview__full-difference-link" :href="fullDifferenceUrl()" target="_blank" rel="noopener noreferrer">Full difference</a>
+        <CdxButton v-if="props.mobileVersion === 'B'" ref="headerWatchAnchor" weight="quiet" :icon-only="true"
+          :aria-label="watchPeriods[props.change.title] ? 'Unwatch page' : 'Watch page'"
+          :aria-pressed="!!watchPeriods[props.change.title]" :aria-expanded="watchOpen"
+          aria-controls="mobile-watch-popover" @click="toggleWatch">
+          <CdxIcon :icon="!watchPeriods[props.change.title] ? cdxIconStar : watchPeriods[props.change.title] === 'infinite' ? cdxIconUnStar : cdxIconHalfStar" />
+        </CdxButton>
+          </div>
         </div>
 
         <CdxProgressBar v-if="diffLoading" inline aria-label="Loading Wikipedia visual diff" />
@@ -597,54 +602,59 @@ onBeforeUnmount(() => {
             {{ confirmationToast }}
           </CdxToast>
         </div>
-        <CdxButton ref="watchAnchor" weight="quiet" :icon-only="true"
+        <CdxButton v-if="props.mobileVersion !== 'B'" ref="watchAnchor" weight="quiet" :class="{ 'mobile-labeled-action': props.mobileVersion !== 'B' }" :icon-only="props.mobileVersion === 'B'"
           :aria-label="watchPeriods[props.change.title] ? 'Unwatch page' : 'Watch page'"
           :aria-pressed="!!watchPeriods[props.change.title]" :aria-expanded="watchOpen"
           aria-controls="mobile-watch-popover" @click="toggleWatch">
           <CdxIcon :icon="!watchPeriods[props.change.title] ? cdxIconStar : watchPeriods[props.change.title] === 'infinite' ? cdxIconUnStar : cdxIconHalfStar" />
+          <span v-if="props.mobileVersion !== 'B'">{{ watchPeriods[props.change.title] ? 'Unwatch' : 'Watch' }}</span>
         </CdxButton>
         <CdxButton
           weight="quiet"
-          :icon-only="true"
-          aria-label="Revert change"
+          :class="{ 'mobile-labeled-action': props.mobileVersion !== 'B' }" :icon-only="props.mobileVersion === 'B'"
+          :aria-label="props.undone ? 'Undone' : 'Undo'"
           @click="requestUndo"
         >
-          <CdxIcon :icon="props.undone ? completedUndoIcon : cdxIconEditUndo" />
+          <CdxIcon :icon="filledUndoIcon" />
+          <span v-if="props.mobileVersion !== 'B'">{{ props.undone ? 'Undone' : 'Undo' }}</span>
         </CdxButton>
         <CdxButton
           weight="quiet"
-          :icon-only="true"
+          :class="{ 'mobile-labeled-action': props.mobileVersion !== 'B' }" :icon-only="props.mobileVersion === 'B'"
           :aria-label="thankedChanges.has(props.change.title) ? 'Thanked' : 'Thank'"
           @click="requestThanks"
         >
-          <CdxIcon :icon="thankedChanges.has(props.change.title) ? cdxIconHeart : cdxIconHeartOutline" />
+          <CdxIcon :icon="cdxIconUserTalk" />
+          <span v-if="props.mobileVersion !== 'B'">{{ thankedChanges.has(props.change.title) ? 'Thanked' : 'Thank' }}</span>
         </CdxButton>
         <CdxButton
           weight="quiet"
-          :icon-only="true"
+          :class="{ 'mobile-labeled-action': props.mobileVersion !== 'B' }" :icon-only="props.mobileVersion === 'B'"
           aria-label="Previous change"
           :disabled="props.changeIndex === 0"
           @click="emit('navigate', -1)"
         >
           <CdxIcon :icon="cdxIconPrevious" />
+          <span v-if="props.mobileVersion !== 'B'">Back</span>
         </CdxButton>
         <CdxButton
           weight="quiet"
-          :icon-only="true"
+          :class="{ 'mobile-labeled-action': props.mobileVersion !== 'B' }" :icon-only="props.mobileVersion === 'B'"
           aria-label="Next change"
           :disabled="props.changeIndex === props.changeCount - 1"
           @click="emit('navigate', 1)"
         >
           <CdxIcon :icon="cdxIconNext" />
+          <span v-if="props.mobileVersion !== 'B'">Next</span>
         </CdxButton>
       </footer>
       <CdxPopover v-if="props.variant === 'toolbar'" id="mobile-watch-popover"
-        v-model:open="watchOpen" :anchor="watchAnchor" placement="top-start"
+        v-model:open="watchOpen" :anchor="props.mobileVersion === 'B' ? headerWatchAnchor : watchAnchor" :placement="props.mobileVersion === 'B' ? 'bottom-end' : 'top-start'"
         use-bottom-sheet use-close-button
         :title="watchPeriods[props.change.title] ? 'Added to watchlist' : 'Removed from watchlist'">
-        <p>“{{ props.change.title }}” and its talk page have been {{ watchPeriods[props.change.title] ? 'added to' : 'removed from' }} your watchlist.</p>
+        <p>“<a :href="`https://${props.change.wikiHost ?? 'en.wikipedia.org'}/wiki/${encodeURIComponent(props.change.title.replaceAll(' ', '_'))}`">{{ props.change.title }}</a>” and its talk page have been {{ watchPeriods[props.change.title] ? 'added to' : 'removed from' }} your <a href="#" @click.prevent>watchlist</a>.</p>
         <fieldset v-if="watchPeriods[props.change.title]" class="mobile-watch-periods">
-          <legend>Watchlist time period:</legend>
+          <legend>Watchlist time period</legend>
           <CdxRadio v-for="option in watchOptions" :key="option.value"
             v-model="watchPeriods[props.change.title]" name="mobile-watch-period" :input-value="option.value">{{ option.label }}</CdxRadio>
         </fieldset>
@@ -674,6 +684,10 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.diff-preview__page-links { display: flex; align-items: center; gap: 8px; margin-inline-start: auto; }
+.diff-preview__toolbar .mobile-labeled-action { flex: 1 1 0; min-width: 0; flex-direction: column; gap: 6px; padding: 8px 0; font-weight: 400; }
+.mobile-labeled-action span { font-size: 14px; line-height: 20px; }
+
 .mobile-toolbar-confirmation {
   position: absolute;
   bottom: calc(100% + 8px);

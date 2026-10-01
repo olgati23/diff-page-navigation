@@ -81,6 +81,11 @@ const diffLoading = ref(false)
 const diffError = ref<string | null>(null)
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
+const thanksConfirmedKey = 'mobile-watch-thanks-confirmed'
+const hasConfirmedThanks = ref(false)
+try {
+  hasConfirmedThanks.value = sessionStorage.getItem(thanksConfirmedKey) === 'true'
+} catch { /* Keep the preference in memory when browser storage is unavailable. */ }
 const confirmationToast = ref('')
 const confirmationToastType = ref<'success' | 'notice'>('success')
 const reviewedChanges = ref<Set<string>>(new Set())
@@ -224,6 +229,10 @@ function requestUndo(): void {
 }
 
 function showThankConfirmation(): void {
+  hasConfirmedThanks.value = true
+  try {
+    sessionStorage.setItem(thanksConfirmedKey, 'true')
+  } catch { /* The in-memory preference still applies for this preview. */ }
   const next = new Set(thankedChanges.value)
   next.add(props.change.title)
   thankedChanges.value = next
@@ -237,7 +246,11 @@ function requestThanks(): void {
     confirmationToast.value = "A 'Thanks' cannot be undone."
     return
   }
-  thankDialogOpen.value = true
+  if (hasConfirmedThanks.value) {
+    showThankConfirmation()
+  } else {
+    thankDialogOpen.value = true
+  }
 }
 
 function markEditReviewed(): void {

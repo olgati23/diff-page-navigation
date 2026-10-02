@@ -58,7 +58,6 @@ const emit = defineEmits<{
 }>()
 
 const completionIllustration = `${import.meta.env.BASE_URL}images/review-complete.svg`
-const watchAnchor = ref(null)
 const headerWatchAnchor = ref(null)
 const watchOpen = ref(false)
 const watchPeriods = reactive<Record<string, string>>({})
@@ -244,7 +243,7 @@ function showThankConfirmation(): void {
 function requestThanks(): void {
   if (thankedChanges.value.has(props.change.title)) {
     confirmationToastType.value = 'notice'
-    confirmationToast.value = "A ‘Thanks’ cannot be undone"
+    confirmationToast.value = props.mobileVersion !== 'B' ? `You already thanked ${props.change.editor}` : "A ‘Thanks’ cannot be undone"
     return
   }
   if (hasConfirmedThanks.value) {
@@ -525,7 +524,7 @@ onBeforeUnmount(() => {
             {{ props.change.editor }}
           </a>
           <div class="diff-preview__page-links"><a class="diff-preview__full-difference-link" :href="fullDifferenceUrl()" target="_blank" rel="noopener noreferrer">Full difference</a>
-        <CdxButton v-if="props.mobileVersion === 'B'" ref="headerWatchAnchor" weight="quiet" :icon-only="true"
+        <CdxButton ref="headerWatchAnchor" weight="quiet" :icon-only="true"
           :aria-label="watchPeriods[props.change.title] ? 'Unwatch page' : 'Watch page'"
           :aria-pressed="!!watchPeriods[props.change.title]" :aria-expanded="watchOpen"
           aria-controls="mobile-watch-popover" @click="toggleWatch">
@@ -614,30 +613,23 @@ onBeforeUnmount(() => {
             {{ confirmationToast }}
           </CdxToast>
         </div>
-        <CdxButton v-if="props.mobileVersion !== 'B'" ref="watchAnchor" weight="quiet" :class="{ 'mobile-labeled-action': props.mobileVersion !== 'B' }" :icon-only="props.mobileVersion === 'B'"
-          :aria-label="watchPeriods[props.change.title] ? 'Unwatch page' : 'Watch page'"
-          :aria-pressed="!!watchPeriods[props.change.title]" :aria-expanded="watchOpen"
-          aria-controls="mobile-watch-popover" @click="toggleWatch">
-          <CdxIcon :icon="!watchPeriods[props.change.title] ? cdxIconStar : watchPeriods[props.change.title] === 'infinite' ? cdxIconUnStar : cdxIconHalfStar" />
-          <span v-if="props.mobileVersion !== 'B'">{{ watchPeriods[props.change.title] ? 'Unwatch' : 'Watch' }}</span>
-        </CdxButton>
         <CdxButton
           weight="quiet"
           :class="{ 'mobile-labeled-action': props.mobileVersion !== 'B' }" :icon-only="props.mobileVersion === 'B'"
-          :aria-label="props.undone ? 'Undone' : 'Undo'"
+          :aria-label="props.mobileVersion === 'B' && props.undone ? 'Undone' : 'Undo'"
           @click="requestUndo"
         >
           <CdxIcon :icon="filledUndoIcon" />
-          <span v-if="props.mobileVersion !== 'B'">{{ props.undone ? 'Undone' : 'Undo' }}</span>
+          <span v-if="props.mobileVersion !== 'B'">Undo</span>
         </CdxButton>
         <CdxButton
           weight="quiet"
           :class="{ 'mobile-labeled-action': props.mobileVersion !== 'B' }" :icon-only="props.mobileVersion === 'B'"
-          :aria-label="thankedChanges.has(props.change.title) ? 'Thanked' : 'Thank'"
+          :aria-label="props.mobileVersion === 'B' && thankedChanges.has(props.change.title) ? 'Thanked' : 'Thank'"
           @click="requestThanks"
         >
           <CdxIcon :icon="cdxIconUserTalk" />
-          <span v-if="props.mobileVersion !== 'B'">{{ thankedChanges.has(props.change.title) ? 'Thanked' : 'Thank' }}</span>
+          <span v-if="props.mobileVersion !== 'B'">Thank</span>
         </CdxButton>
         <CdxButton
           weight="quiet"
@@ -661,7 +653,7 @@ onBeforeUnmount(() => {
         </CdxButton>
       </footer>
       <CdxPopover v-if="props.variant === 'toolbar'" id="mobile-watch-popover"
-        v-model:open="watchOpen" :anchor="props.mobileVersion === 'B' ? headerWatchAnchor : watchAnchor" :placement="props.mobileVersion === 'B' ? 'bottom-end' : 'top-start'"
+        v-model:open="watchOpen" :anchor="headerWatchAnchor" placement="bottom-end"
         use-bottom-sheet use-close-button
         :title="watchPeriods[props.change.title] ? 'Added to watchlist' : 'Removed from watchlist'">
         <p>“<a :href="`https://${props.change.wikiHost ?? 'en.wikipedia.org'}/wiki/${encodeURIComponent(props.change.title.replaceAll(' ', '_'))}`">{{ props.change.title }}</a>” and its talk page have been {{ watchPeriods[props.change.title] ? 'added to' : 'removed from' }} your <a href="#" @click.prevent>watchlist</a>.</p>

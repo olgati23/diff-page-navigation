@@ -409,7 +409,7 @@ function requestThanks(changeTitle?: string): void {
   const title = changeTitle ?? modalReviewChange.value.title
   if (thankedChanges.value.has(title)) {
     confirmationToastType.value = 'notice'
-    confirmationToast.value = queueVersion.value === 'B2' ? "A ‘Thanks’ cannot be undone" : "A 'Thanks' cannot be undone"
+    confirmationToast.value = queueVersion.value === 'B2' ? `You already thanked ${activeReviewEditor.value}` : "A 'Thanks' cannot be undone"
     return
   }
   if (queueVersion.value === 'B2' && b2ThanksConfirmed.value) showThankConfirmation()
@@ -856,11 +856,11 @@ const impact = {
           </CdxButton>
           <CdxButton v-if="queueVersion === 'B2'" size="medium" @click="requestUndo(modalReviewChange.title)">
             <CdxIcon :icon="filledUndoIcon" />
-            {{ undoneChanges.has(modalReviewChange.title) ? 'Undone' : 'Undo' }}
+            Undo
           </CdxButton>
           <CdxButton size="medium" @click="requestThanks(modalReviewChange.title)">
             <CdxIcon :icon="queueVersion === 'B2' ? cdxIconUserTalk : cdxIconHeartOutline" />
-            {{ thankedChanges.has(modalReviewChange.title) ? 'Thanked' : 'Thank' }}
+            {{ queueVersion !== 'B2' && thankedChanges.has(modalReviewChange.title) ? 'Thanked' : 'Thank' }}
           </CdxButton>
           <CdxButton v-if="queueVersion !== 'B2'" size="medium" @click="requestUndo(modalReviewChange.title)">
             <CdxIcon :icon="cdxIconEditUndo" /> {{ undoneChanges.has(modalReviewChange.title) ? 'Restore' : 'Undo' }}

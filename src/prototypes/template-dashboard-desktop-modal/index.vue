@@ -119,7 +119,7 @@ const completionIllustration = `${import.meta.env.BASE_URL}images/review-complet
 const MAX_EDITS = 20
 const reviewChanges = sourceReviewChanges.slice(0, MAX_EDITS)
 const dashboardPath = '/template-dashboard-desktop-modal'
-const showAllEdits = computed(() => route.path.endsWith('/all-review-changes') || route.query.view === 'all')
+const showAllEdits = computed(() => route.path.replace(/\/$/, '').endsWith('/all-review-changes') || route.query.view === 'all')
 const createQueueState = () => ({ seen: new Set<string>(), reviewed: new Set<string>(), thanked: new Set<string>(), undone: new Set<string>(), completed: new Set<string>(), limit: 7 })
 // Seen or acted-on B edits remain visible until the next visit.
 const retiredStorageKey = 'protowiki-desktop-review-b-completed-v1'

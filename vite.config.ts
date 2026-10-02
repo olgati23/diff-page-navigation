@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import { resolve } from 'node:path'
 
@@ -65,6 +65,18 @@ export default defineConfig(({ command }) => ({
         const fallback = resolve(dist, '404.html')
         if (!existsSync(index)) {
           return
+        }
+        // Give shared prototype URLs their own entry points. This avoids the
+        // root 404 redirect reusing a cached preview index from an older release.
+        for (const route of [
+          'template-dashboard-desktop-modal',
+          'template-dashboard-desktop-modal/all-review-changes',
+          'template-dashboard-mobile-watch',
+          'template-dashboard-mobile-watch/review-changes',
+        ]) {
+          const directory = resolve(dist, route)
+          mkdirSync(directory, { recursive: true })
+          copyFileSync(index, resolve(directory, 'index.html'))
         }
         copyFileSync(index, fallback)
         const html = readFileSync(fallback, 'utf8')

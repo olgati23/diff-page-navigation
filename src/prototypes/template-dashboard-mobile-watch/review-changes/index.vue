@@ -103,6 +103,7 @@ function markRestored(title: string) {
     <nav class="mobile-version-switch" aria-label="Prototype version">
       <CdxButton v-for="version in ['A', 'B']" :key="version" :aria-pressed="mobileVersion === version"
         :action="mobileVersion === version ? 'progressive' : 'default'"
+        :weight="mobileVersion === version ? 'primary' : 'normal'"
         @click="router.replace({ query: { ...route.query, version } })">Version {{ version }}</CdxButton>
     </nav>
     <section class="review-changes-page__list" aria-label="Suggested changes to review">

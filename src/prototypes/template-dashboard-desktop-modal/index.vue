@@ -483,7 +483,6 @@ const impact = {
       </template>
 
       <nav v-if="!showAllEdits" class="queue-version-switch" aria-label="Prototype version">
-        <span v-if="!showAllEdits">Desktop review changes</span>
         <CdxButton v-for="version in (['A', 'B1', 'B2', 'C'] as const)" :key="version"
           :action="queueVersion === version ? 'progressive' : 'default'"
           :weight="queueVersion === version ? 'primary' : 'normal'"

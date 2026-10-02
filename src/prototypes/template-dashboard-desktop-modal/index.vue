@@ -68,6 +68,7 @@ const expandedReviewChange = ref<string | null>(null)
 const desktopReviewPresentation = ref('modal')
 const modalReviewIndex = ref<number | null>(null)
 const modalQueueComplete = ref(false)
+const b1CompletionShown = ref(false)
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
 const b2ThanksConfirmedKey = 'desktop-b2-thanks-confirmed'
@@ -313,6 +314,7 @@ const activeReviewEditor = computed(() => {
 })
 
 function openReviewModal(index: number): void {
+  b1CompletionShown.value = false
   modalQueueComplete.value = false
   closeWatchPopover()
   clearConfirmationToast()
@@ -335,7 +337,13 @@ function moveReviewModal(direction: -1 | 1): void {
   else if (direction === 1) {
     closeWatchPopover()
     clearConfirmationToast()
-    modalQueueComplete.value = true
+    if (queueVersion.value === 'B1') {
+      b1CompletionShown.value = true
+      confirmationToastType.value = 'success'
+      confirmationToast.value = 'Well done! You’ve reviewed all changes.'
+    } else {
+      modalQueueComplete.value = true
+    }
   }
 }
 
@@ -716,7 +724,7 @@ const impact = {
         class="desktop-review-dialog"
         :class="{
           'desktop-review-dialog--confirmation': modalConfirmation,
-          'desktop-review-dialog--illustrated-complete': modalQueueComplete && isBVersion,
+          'desktop-review-dialog--illustrated-complete': modalQueueComplete && queueVersion === 'B1',
           'desktop-review-dialog--german': isGermanPrototype,
         }"
         @update:open="updateReviewModalOpen"
@@ -734,9 +742,12 @@ const impact = {
         </section>
         <div class="desktop-review-dialog__footer">
           <div class="desktop-review-dialog__completion-actions">
-            <CdxButton v-if="queueVersion !== 'B2'" size="medium" :icon-only="true" aria-label="Back to last edit"
+            <CdxButton size="medium" :icon-only="true" aria-label="Back to last edit"
               @click="modalQueueComplete = false"><CdxIcon :icon="cdxIconPrevious" /></CdxButton>
-            <CdxButton size="medium" action="progressive" weight="primary"
+            <CdxButton v-if="queueVersion === 'B2'" size="medium" :icon-only="true" aria-label="Next review change" disabled>
+              <CdxIcon :icon="cdxIconNext" />
+            </CdxButton>
+            <CdxButton v-else size="medium" action="progressive" weight="primary"
               @click="updateReviewModalOpen(false)">Done</CdxButton>
           </div>
         </div>
@@ -842,8 +853,13 @@ const impact = {
         >
         <div v-if="confirmationToast" class="desktop-review-dialog__confirmation">
           <CdxMessage :key="confirmationToast" :type="confirmationToastType" :auto-dismiss="8000" allow-user-dismiss
+            :class="{ 'desktop-review-completion-toast': queueVersion === 'B1' && confirmationToast === 'Well done! You’ve reviewed all changes.' }"
             @auto-dismissed="clearConfirmationToast" @user-dismissed="clearConfirmationToast">
-            {{ confirmationToast }}
+            <template v-if="queueVersion === 'B1' && confirmationToast === 'Well done! You’ve reviewed all changes.'">
+              <strong class="desktop-review-completion-toast-title">Well done! You’ve reviewed all changes.</strong>
+              <p class="desktop-review-completion-toast-description">Check back later for more or explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a></p>
+            </template>
+            <template v-else>{{ confirmationToast }}</template>
           </CdxMessage>
         </div>
 
@@ -887,6 +903,7 @@ const impact = {
               size="medium"
               :icon-only="true"
               aria-label="Next review change"
+              :disabled="queueVersion === 'B1' && b1CompletionShown"
               @click="moveReviewModal(1)"
             >
               <CdxIcon :icon="cdxIconNext" />
@@ -1549,4 +1566,37 @@ const impact = {
 .dashboard-review-complete__copy p + p { margin-top: var(--spacing-50, 8px); }
 .dashboard-review-complete__title { font-weight: var(--font-weight-bold, 700); }
 .dashboard-review-complete__copy a, .dashboard-review-complete__copy a:visited { color: var(--color-progressive, #36c); }
+</style>
+
+<style scoped>
+.desktop-review-completion-toast :deep(.cdx-message__content) {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: none;
+  font-family: var(--font-family-base, sans-serif);
+}
+.desktop-review-completion-toast-title,
+.desktop-review-completion-toast-description {
+  display: block;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  font-family: var(--font-family-base, sans-serif);
+  font-size: var(--font-size-medium, 1rem);
+  line-height: var(--line-height-medium, 1.625rem);
+  text-align: start;
+}
+.desktop-review-completion-toast-title { font-weight: var(--font-weight-bold, 700); }
+.desktop-review-completion-toast-description { font-weight: var(--font-weight-normal, 400); }
+</style>
+
+<style scoped>
+.desktop-review-completion-toast.cdx-message--user-dismissable {
+  padding-inline-end: var(--spacing-75, 12px);
+}
+.desktop-review-completion-toast-title { padding-inline-end: var(--spacing-150, 24px); box-sizing: border-box; }
+.desktop-review-completion-toast-description { white-space: nowrap; }
+@media (max-width: 540px) {
+  .desktop-review-completion-toast-description { white-space: normal; }
+}
 </style>

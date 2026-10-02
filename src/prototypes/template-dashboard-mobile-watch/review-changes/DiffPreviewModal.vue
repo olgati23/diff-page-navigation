@@ -27,6 +27,7 @@ import {
 import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 import { wikimediaApiFetchHeaders } from '@/config'
+import { RouterLink } from 'vue-router'
 import { localeQuery } from '../../prototypeLocale'
 import type { ReviewChange } from '../reviewChanges'
 import ThankConfirmationDialog from './ThankConfirmationDialog.vue'
@@ -38,6 +39,7 @@ const filledUndoIcon = '<path d="m11.76 12.463-5.213 5.216a1 1 0 0 1-.394.242L1.
 
 const props = defineProps<{
   mobileVersion?: 'A' | 'B'
+  complete?: boolean
   change: ReviewChange
   variant: 'card' | 'toolbar' | 'simplified'
   changeIndex: number
@@ -55,6 +57,7 @@ const emit = defineEmits<{
   restored: [title: string]
 }>()
 
+const completionIllustration = `${import.meta.env.BASE_URL}images/review-complete.svg`
 const watchAnchor = ref(null)
 const headerWatchAnchor = ref(null)
 const watchOpen = ref(false)
@@ -379,6 +382,7 @@ onBeforeUnmount(() => {
       class="diff-preview"
       :class="{
         'diff-preview--page': props.page,
+        'diff-preview--complete': props.complete,
         'diff-preview--card': props.variant === 'card',
         'diff-preview--toolbar': props.variant === 'toolbar',
       }"
@@ -397,7 +401,7 @@ onBeforeUnmount(() => {
       >
           <CdxIcon :icon="cdxIconArrowPrevious" />
         </CdxButton>
-        <strong id="diff-preview-title">Diff preview</strong>
+        <strong id="diff-preview-title">Difference preview</strong>
         <CdxButton
           v-if="!props.page"
           class="diff-preview__close"
@@ -410,7 +414,14 @@ onBeforeUnmount(() => {
         </CdxButton>
       </header>
 
-      <div
+      <section v-if="props.complete" class="mobile-queue-complete" role="status">
+        <img class="mobile-complete-illustration" :src="completionIllustration" alt="" />
+        <div class="mobile-complete-copy">
+        <h2>Well done! You’ve reviewed all changes.</h2>
+        <p>Check back later for more, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> or return to <RouterLink :to="{ path: '/template-dashboard-mobile-watch', query: { version: 'B' } }">Home</RouterLink>.</p>
+        </div>
+      </section>
+      <div v-else
         class="diff-preview__body"
         :class="{
           'diff-preview__body--editor-card-open': props.variant === 'card' && editorCardOpen,
@@ -449,7 +460,7 @@ onBeforeUnmount(() => {
             <CdxButton
               :icon-only="true"
               aria-label="Next review change"
-              :disabled="props.changeIndex === props.changeCount - 1"
+              :disabled="props.mobileVersion !== 'B' && props.changeIndex === props.changeCount - 1"
               @click="emit('navigate', 1)"
             >
               <CdxIcon :icon="cdxIconNext" />
@@ -542,8 +553,9 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
+
       <footer
-        v-if="props.variant === 'card'"
+        v-if="!props.complete && props.variant === 'card'"
         class="diff-preview__editor-card"
         :class="{ 'diff-preview__editor-card--open': editorCardOpen }"
       >
@@ -584,7 +596,7 @@ onBeforeUnmount(() => {
       </footer>
 
       <footer
-        v-else-if="props.variant === 'toolbar'"
+        v-else-if="!props.complete && props.variant === 'toolbar'"
         class="diff-preview__toolbar"
         aria-label="Diff review actions"
       >
@@ -641,7 +653,7 @@ onBeforeUnmount(() => {
           weight="quiet"
           :class="{ 'mobile-labeled-action': props.mobileVersion !== 'B' }" :icon-only="props.mobileVersion === 'B'"
           aria-label="Next change"
-          :disabled="props.changeIndex === props.changeCount - 1"
+          :disabled="props.mobileVersion !== 'B' && props.changeIndex === props.changeCount - 1"
           @click="emit('navigate', 1)"
         >
           <CdxIcon :icon="cdxIconNext" />
@@ -684,6 +696,11 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.mobile-queue-complete { min-height: 0; overflow-y: auto; text-align: start; }
+.mobile-complete-illustration { display: block; width: 100%; height: auto; background: #eaf3ff; }
+.mobile-complete-copy { padding: var(--spacing-150, 24px); font-family: var(--font-family-base, sans-serif); font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); color: var(--color-base, #202122); }
+.mobile-complete-copy h2 { margin: 0 0 var(--spacing-100, 16px); padding: 0; border: 0; font-family: var(--font-family-base, sans-serif); font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); font-weight: var(--font-weight-bold, 700); }
+.mobile-complete-copy p { margin: 0; font-family: var(--font-family-base, sans-serif); font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); font-weight: var(--font-weight-normal, 400); }
 .diff-preview__page-links { display: flex; align-items: center; gap: 8px; margin-inline-start: auto; }
 .diff-preview__toolbar .mobile-labeled-action { flex: 1 1 0; min-width: 0; flex-direction: column; gap: 6px; padding: 8px 0; font-weight: 400; }
 .mobile-labeled-action span { font-size: 14px; line-height: 20px; }
@@ -1172,4 +1189,16 @@ onBeforeUnmount(() => {
 .diff-preview--toolbar .visual-diff { height: auto; }
 .diff-preview--toolbar .diff-preview__header,
 .diff-preview--toolbar .diff-preview__toolbar { z-index: 3; background: var(--background-color-base); }
+</style>
+
+<style scoped>
+.mobile-complete-copy a, .mobile-complete-copy a:visited { color: var(--color-progressive, #36c); }
+</style>
+
+<style scoped>
+.diff-preview__toolbar.mobile-completion-actions { justify-content: flex-end; gap: 12px; }
+</style>
+
+<style scoped>
+.diff-preview--complete { grid-template-rows: auto minmax(0, 1fr); }
 </style>

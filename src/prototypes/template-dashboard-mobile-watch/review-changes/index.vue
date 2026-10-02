@@ -25,6 +25,7 @@ const editLimit = ref(7)
 const queueChanges = reviewChanges.slice(0, 20)
 const visibleChanges = computed(() => queueChanges.slice(0, editLimit.value))
 const openedChanges = ref(new Set<string>())
+const queueComplete = ref(false)
 const selectedChangeIndex = ref<number | null>(null)
 const reviewedChanges = ref<Set<string>>(new Set())
 const undoneChanges = ref<Set<string>>(new Set())
@@ -47,13 +48,23 @@ watch(selectedChangeIndex, index => {
 })
 
 function openDiff(change: ReviewChange) {
+  queueComplete.value = false
   selectedChangeIndex.value = queueChanges.indexOf(change)
 }
 
 function navigateDiff(direction: -1 | 1) {
   if (selectedChangeIndex.value === null) return
+  if (queueComplete.value && direction === -1) {
+    queueComplete.value = false
+    return
+  }
   const nextIndex = selectedChangeIndex.value + direction
-  if (nextIndex >= 0 && nextIndex < visibleChanges.value.length) {
+  if (mobileVersion.value === 'B' && nextIndex === queueChanges.length) {
+    queueComplete.value = true
+    return
+  }
+  if (nextIndex >= 0 && nextIndex < (mobileVersion.value === 'B' ? queueChanges.length : visibleChanges.value.length)) {
+    if (mobileVersion.value === 'B') editLimit.value = Math.max(editLimit.value, nextIndex + 1)
     selectedChangeIndex.value = nextIndex
   }
 }
@@ -131,7 +142,8 @@ function markRestored(title: string) {
       :mobile-version="mobileVersion"
       :variant="previewVariant"
       :change-index="selectedChangeIndex ?? 0"
-      :change-count="visibleChanges.length"
+      :change-count="mobileVersion === 'B' ? queueChanges.length : visibleChanges.length"
+      :complete="queueComplete"
       :reviewed="reviewedChanges.has(selectedChange.title)"
       :undone="undoneChanges.has(selectedChange.title)"
       page
@@ -139,7 +151,7 @@ function markRestored(title: string) {
       @reviewed="markReviewed"
       @undone="markUndone"
       @restored="markRestored"
-      @close="selectedChangeIndex = null"
+      @close="selectedChangeIndex = null; queueComplete = false"
     />
   </main>
 </template>

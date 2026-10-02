@@ -115,6 +115,7 @@ const router = useRouter()
 const queueVersion = computed<'A' | 'B1' | 'B2' | 'C'>(() => route.query.version === 'C' ? 'C' : route.query.version === 'B2' ? 'B2' : ['B', 'B1'].includes(String(route.query.version)) ? 'B1' : 'A')
 const isBVersion = computed(() => queueVersion.value === 'B1' || queueVersion.value === 'B2')
 const watchInFooter = computed(() => queueVersion.value === 'A' || queueVersion.value === 'B1')
+const completionIllustration = `${import.meta.env.BASE_URL}images/review-complete.svg`
 const MAX_EDITS = 20
 const reviewChanges = sourceReviewChanges.slice(0, MAX_EDITS)
 const dashboardPath = '/template-dashboard-desktop-modal'
@@ -610,9 +611,6 @@ const impact = {
 
           <template #primary>
             <DashboardModule class="desktop-review-module" :title="MODULE.thankTitle">
-              <p class="dashboard-module-intro">
-                These edits were made by other users. Stay up to date and help maintain Wikipedia’s quality by reviewing them.
-              </p>
               <div v-if="queueIsLoading" class="queue-loading" role="status">
             <CdxProgressBar aria-label="Loading new edits" />
             <span>Loading new edits</span>
@@ -624,8 +622,16 @@ const impact = {
                   :pinned="queueVersion === 'C' && pinnedChanges.has(change.title)"
                   @unpin="togglePin(change.title)" @open="openChange(change)" />
               </div>
-              <div v-if="showReviewedEmptyState" class="queue-empty" role="status">
-                <p v-if="queueVersion === 'B2'">Well done! You’ve reviewed all changes. Check back later for more or explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</p>
+              <div v-if="showReviewedEmptyState" class="queue-empty" :class="{ 'dashboard-review-complete': queueVersion === 'B2' }" role="status">
+                <template v-if="queueVersion === 'B2'">
+                  <div class="dashboard-review-complete__art">
+                    <img :src="completionIllustration" alt="" />
+                  </div>
+                  <div class="dashboard-review-complete__copy">
+                    <p class="dashboard-review-complete__title">Well done! You’ve reviewed all changes.</p>
+                    <p>Check back later for more or explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</p>
+                  </div>
+                </template>
                 <template v-else>
                   <strong>All changes reviewed!</strong>
                   <p>Check back later for new changes.</p>
@@ -646,7 +652,6 @@ const impact = {
                   <span>Latest comment: <a href="#">{{ discussion[2] }}</a></span>
                 </article>
               </div>
-              <p class="discussion-footer">View more edits in the <a href="#" @click.prevent>recent changes page</a></p>
             </DashboardModule>
           </template>
 
@@ -712,18 +717,25 @@ const impact = {
         class="desktop-review-dialog"
         :class="{
           'desktop-review-dialog--confirmation': modalConfirmation,
+          'desktop-review-dialog--illustrated-complete': modalQueueComplete && isBVersion,
           'desktop-review-dialog--german': isGermanPrototype,
         }"
         @update:open="updateReviewModalOpen"
       >
         <template v-if="modalQueueComplete">
-        <section class="desktop-review-dialog__complete" role="status">
-          <p v-if="queueVersion === 'B2'">Well done! You’ve reviewed all changes. Check back later for more or explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</p>
+        <section class="desktop-review-dialog__complete" :class="{ 'desktop-review-dialog__complete--illustrated': isBVersion }" role="status">
+          <template v-if="isBVersion">
+            <img class="review-complete-illustration" :src="completionIllustration" alt="" />
+            <div class="review-complete-copy">
+              <h2>Well done! You’ve reviewed all changes.</h2>
+              <p>Check back later for more, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> or return to <RouterLink :to="{ path: dashboardPath, query: { version: queueVersion, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
+            </div>
+          </template>
           <p v-else>Well done! You’ve reviewed all changes. Check back {{ queueVersion === 'B2' ? 'later' : 'tomorrow' }} for more. In the meantime, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> {{ queueVersion === 'B2' ? 'or' : 'or return to' }} <RouterLink :to="{ path: dashboardPath, query: { version: queueVersion, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
         </section>
         <div class="desktop-review-dialog__footer">
           <div class="desktop-review-dialog__completion-actions">
-            <CdxButton size="medium" :icon-only="true" aria-label="Back to last edit"
+            <CdxButton v-if="queueVersion !== 'B2'" size="medium" :icon-only="true" aria-label="Back to last edit"
               @click="modalQueueComplete = false"><CdxIcon :icon="cdxIconPrevious" /></CdxButton>
             <CdxButton size="medium" action="progressive" weight="primary"
               @click="updateReviewModalOpen(false)">Done</CdxButton>
@@ -1513,4 +1525,29 @@ const impact = {
   }
 }
 
+</style>
+
+<style scoped>
+.desktop-review-dialog__complete--illustrated { display: block; padding: 0; text-align: start; overflow-y: auto; }
+.review-complete-illustration { display: block; width: 100%; height: auto; background: #eaf3ff; }
+.review-complete-copy { padding: var(--spacing-150, 24px); font-family: var(--font-family-base, sans-serif); font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); color: var(--color-base, #202122); }
+.review-complete-copy h2 { margin: 0 0 var(--spacing-100, 16px); padding: 0; border: 0; font-family: var(--font-family-base, sans-serif); font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); font-weight: var(--font-weight-bold, 700); }
+.review-complete-copy p { margin: 0; font-family: var(--font-family-base, sans-serif); font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); font-weight: var(--font-weight-normal, 400); }
+:global(.desktop-review-dialog.desktop-review-dialog--illustrated-complete) { width: min(512px, calc(100vw - 32px)); height: auto; max-height: calc(100dvh - 48px); }
+:global(.desktop-review-dialog--illustrated-complete .desktop-review-dialog__footer) { border-top: 0; padding: 16px 24px 24px; }
+</style>
+
+<style scoped>
+.review-complete-copy a, .review-complete-copy a:visited { color: var(--color-progressive, #36c); }
+</style>
+
+<style scoped>
+.dashboard-review-complete.queue-empty { display: flex; flex-direction: column; margin: 0; padding: 0; text-align: start; color: var(--color-base, #202122); }
+.dashboard-review-complete__art { display: flex; justify-content: center; overflow: hidden; border-radius: var(--border-radius-base, 2px); background: #eaf0ff; }
+.dashboard-review-complete__art img { display: block; width: 100%; max-width: 324px; height: auto; max-height: 180px; object-fit: contain; }
+.dashboard-review-complete__copy { padding-top: var(--spacing-100, 16px); font-family: var(--font-family-base, sans-serif); font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); }
+.dashboard-review-complete__copy p { margin: 0; }
+.dashboard-review-complete__copy p + p { margin-top: var(--spacing-50, 8px); }
+.dashboard-review-complete__title { font-weight: var(--font-weight-bold, 700); }
+.dashboard-review-complete__copy a, .dashboard-review-complete__copy a:visited { color: var(--color-progressive, #36c); }
 </style>

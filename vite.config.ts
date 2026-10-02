@@ -69,6 +69,7 @@ export default defineConfig(({ command }) => ({
         // Give shared prototype URLs their own entry points. This avoids the
         // root 404 redirect reusing a cached preview index from an older release.
         for (const route of [
+          'review-changes',
           'template-dashboard-desktop-modal',
           'template-dashboard-desktop-modal/all-review-changes',
           'template-dashboard-mobile-watch',

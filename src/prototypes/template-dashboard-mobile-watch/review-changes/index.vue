@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
-import { cdxIconArrowPrevious, cdxIconInfoFilled, cdxIconUserAvatar } from '@wikimedia/codex-icons'
+import { cdxIconArrowPrevious, cdxIconEllipsis, cdxIconUserAvatar } from '@wikimedia/codex-icons'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { computed, ref, watch } from 'vue'
 
@@ -15,9 +15,10 @@ definePage({
   },
 })
 
+const props = defineProps<{ standalone?: boolean }>()
 const route = useRoute()
 const router = useRouter()
-const mobileVersion = computed(() => route.query.version === 'B' ? 'B' : 'A')
+const mobileVersion = computed(() => !props.standalone && route.query.version === 'B' ? 'B' : 'A')
 
 const previewVariant = ref<'card' | 'toolbar' | 'simplified'>('toolbar')
 const dashboardRoute = localizedPrototypeRoute('/template-dashboard-mobile-watch')
@@ -63,8 +64,8 @@ function navigateDiff(direction: -1 | 1) {
     queueComplete.value = true
     return
   }
-  if (nextIndex >= 0 && nextIndex < (mobileVersion.value === 'B' ? queueChanges.length : visibleChanges.value.length)) {
-    if (mobileVersion.value === 'B') editLimit.value = Math.max(editLimit.value, nextIndex + 1)
+  if (nextIndex >= 0 && nextIndex < (props.standalone || mobileVersion.value === 'B' ? queueChanges.length : visibleChanges.value.length)) {
+    if (props.standalone || mobileVersion.value === 'B') editLimit.value = Math.max(editLimit.value, nextIndex + 1)
     selectedChangeIndex.value = nextIndex
   }
 }
@@ -92,15 +93,15 @@ function markRestored(title: string) {
 <template>
   <main class="review-changes-page">
     <template v-if="!selectedChange">
-    <header class="review-changes-page__header">
-      <RouterLink :to="dashboardRoute" class="review-changes-page__back" aria-label="Back to dashboard">
+    <header class="review-changes-page__header" :class="{ 'review-changes-page__header--standalone': props.standalone }">
+      <RouterLink v-if="!props.standalone" :to="dashboardRoute" class="review-changes-page__back" aria-label="Back to dashboard">
         <CdxIcon :icon="cdxIconArrowPrevious" />
       </RouterLink>
       <h1 class="review-changes-page__title">Review changes</h1>
-      <CdxIcon :icon="cdxIconInfoFilled" aria-label="About review changes" />
+      <CdxIcon :icon="cdxIconEllipsis" aria-label="More options" />
     </header>
 
-    <nav class="mobile-version-switch" aria-label="Prototype version">
+    <nav v-if="!props.standalone" class="mobile-version-switch" aria-label="Prototype version">
       <CdxButton v-for="version in ['A', 'B']" :key="version" :aria-pressed="mobileVersion === version"
         :action="mobileVersion === version ? 'progressive' : 'default'"
         :weight="mobileVersion === version ? 'primary' : 'normal'"
@@ -123,15 +124,15 @@ function markRestored(title: string) {
           <h2>{{ change.title }}</h2>
         </div>
         <p class="review-queue-card__description">{{ change.description }}</p>
+        <p v-if="change.summary" class="review-queue-card__summary">{{ change.summary }}</p>
         <p class="review-queue-card__editor">
           <CdxIcon :icon="cdxIconUserAvatar" size="small" aria-hidden="true" />
           {{ change.editor }} · {{ change.time }}
         </p>
-        <p class="review-queue-card__summary">{{ change.summary }}</p>
       </article>
     </section>
     <div class="review-queue-footer">
-      <CdxButton v-if="visibleChanges.length < queueChanges.length" @click="editLimit = Math.min(editLimit + 7, 20)">Show more edits</CdxButton>
+      <CdxButton v-if="visibleChanges.length < queueChanges.length" @click="editLimit = Math.min(editLimit + 7, 20)">Show more changes</CdxButton>
       <p v-else>There are no more changes for now. Check back later or explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</p>
     </div>
     </template>
@@ -141,9 +142,11 @@ function markRestored(title: string) {
       :key="previewVariant"
       :change="selectedPreviewChange!"
       :mobile-version="mobileVersion"
+      :completion-toast="props.standalone"
+      :all-changes-opened="queueChanges.every(change => openedChanges.has(change.title))"
       :variant="previewVariant"
       :change-index="selectedChangeIndex ?? 0"
-      :change-count="mobileVersion === 'B' ? queueChanges.length : visibleChanges.length"
+      :change-count="props.standalone || mobileVersion === 'B' ? queueChanges.length : visibleChanges.length"
       :complete="queueComplete"
       :reviewed="reviewedChanges.has(selectedChange.title)"
       :undone="undoneChanges.has(selectedChange.title)"
@@ -212,8 +215,8 @@ function markRestored(title: string) {
 .review-changes-page__list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-25);
-  padding: var(--spacing-25);
+  gap: 0;
+  padding: 0;
 }
 
 .review-changes-page__variant {
@@ -234,9 +237,10 @@ function markRestored(title: string) {
 }
 
 .review-queue-card {
-  padding: var(--spacing-100);
+  position: relative;
+  padding: var(--spacing-100, 16px);
   background: var(--background-color-base);
-  border: var(--border-subtle);
+  border: 0;
   cursor: pointer;
   transition:
     background-color 100ms,
@@ -295,4 +299,38 @@ function markRestored(title: string) {
   gap: var(--spacing-25);
   margin-top: var(--spacing-50) !important;
 }
+</style>
+
+<style scoped>
+.review-changes-page__header { padding-inline: 16px; }
+.review-changes-page__header--standalone { grid-template-columns: minmax(0, 1fr) auto; }
+.review-changes-page__header--standalone .review-changes-page__title { justify-self: start; text-align: start; }
+</style>
+
+<style scoped>
+.review-queue-card:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  inset-inline: 16px;
+  bottom: 0;
+  border-bottom: 1px solid var(--border-color-base, #a2a9b1);
+}
+.review-queue-card__description,
+.review-queue-card__summary,
+.review-queue-card__editor { color: var(--color-subtle, #54595d); }
+.review-queue-card__description {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.review-queue-card__description,
+.review-queue-card__summary {
+  font-size: var(--font-size-medium, 1rem);
+  line-height: var(--line-height-medium, 1.625rem);
+}
+.review-queue-card__editor {
+  font-size: var(--font-size-small, 0.875rem);
+  line-height: var(--line-height-small, 1.375rem);
+}
+.review-queue-card__editor :deep(.cdx-icon) { color: inherit; }
 </style>

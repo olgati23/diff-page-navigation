@@ -196,7 +196,7 @@ const impact = {
               class="dashboard-slot--mobile-primary"
               :to="REVIEW_CHANGES_ROUTE"
               :title="MODULE.thankTitle"
-              cta="Show more edits"
+              cta="Show more changes"
             >
               <p class="dashboard-preview-line">
                 <CdxIcon :icon="cdxIconEdit" size="small" aria-hidden="true" />

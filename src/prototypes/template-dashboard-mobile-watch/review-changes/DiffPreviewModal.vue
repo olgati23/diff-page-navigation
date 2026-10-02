@@ -24,7 +24,7 @@ import {
   cdxIconPrevious,
   cdxIconUserAvatar,
 } from '@wikimedia/codex-icons'
-import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 import { wikimediaApiFetchHeaders } from '@/config'
 import { RouterLink } from 'vue-router'
@@ -39,6 +39,8 @@ const filledUndoIcon = '<path d="m11.76 12.463-5.213 5.216a1 1 0 0 1-.394.242L1.
 
 const props = defineProps<{
   mobileVersion?: 'A' | 'B'
+  completionToast?: boolean
+  allChangesOpened?: boolean
   complete?: boolean
   change: ReviewChange
   variant: 'card' | 'toolbar' | 'simplified'
@@ -58,6 +60,19 @@ const emit = defineEmits<{
 }>()
 
 const completionIllustration = `${import.meta.env.BASE_URL}images/review-complete.svg`
+const completionTitle = computed(() => props.allChangesOpened ? 'Well done! You’ve reviewed all changes.' : 'You’ve reached the end of the changes.')
+const completionShown = ref(false)
+watch(() => props.changeIndex, () => { completionShown.value = false })
+function nextChange() {
+  if (props.completionToast && props.changeIndex === props.changeCount - 1) {
+    completionShown.value = true
+    confirmationToastType.value = 'success'
+    confirmationToast.value = completionTitle.value
+    return
+  }
+  emit('navigate', 1)
+}
+
 const headerWatchAnchor = ref(null)
 const watchOpen = ref(false)
 const watchPeriods = reactive<Record<string, string>>({})
@@ -459,8 +474,8 @@ onBeforeUnmount(() => {
             <CdxButton
               :icon-only="true"
               aria-label="Next review change"
-              :disabled="props.mobileVersion !== 'B' && props.changeIndex === props.changeCount - 1"
-              @click="emit('navigate', 1)"
+              :disabled="props.completionToast ? completionShown : props.mobileVersion !== 'B' && props.changeIndex === props.changeCount - 1"
+              @click="nextChange"
             >
               <CdxIcon :icon="cdxIconNext" />
             </CdxButton>
@@ -610,7 +625,11 @@ onBeforeUnmount(() => {
             @auto-dismissed="clearConfirmationToast"
             @user-dismissed="clearConfirmationToast"
           >
-            {{ confirmationToast }}
+            <template v-if="props.completionToast && confirmationToast === completionTitle">
+              <strong class="mobile-completion-toast-title">{{ completionTitle }}</strong>
+              <span>Check back later for more or explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</span>
+            </template>
+            <template v-else>{{ confirmationToast }}</template>
           </CdxToast>
         </div>
         <CdxButton
@@ -645,8 +664,8 @@ onBeforeUnmount(() => {
           weight="quiet"
           :class="{ 'mobile-labeled-action': props.mobileVersion !== 'B' }" :icon-only="props.mobileVersion === 'B'"
           aria-label="Next change"
-          :disabled="props.mobileVersion !== 'B' && props.changeIndex === props.changeCount - 1"
-          @click="emit('navigate', 1)"
+          :disabled="props.completionToast ? completionShown : props.mobileVersion !== 'B' && props.changeIndex === props.changeCount - 1"
+          @click="nextChange"
         >
           <CdxIcon :icon="cdxIconNext" />
           <span v-if="props.mobileVersion !== 'B'">Next</span>
@@ -1193,4 +1212,8 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .diff-preview--complete { grid-template-rows: auto minmax(0, 1fr); }
+</style>
+
+<style scoped>
+.mobile-completion-toast-title { display: block; font-size: inherit; line-height: inherit; margin-bottom: 4px; }
 </style>

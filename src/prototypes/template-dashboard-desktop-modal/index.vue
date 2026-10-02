@@ -17,6 +17,7 @@ import {
   cdxIconHalfStar,
   cdxIconUnStar,
   cdxIconReload,
+  cdxIconEllipsis,
   cdxIconPushPin,
   cdxIconEdit,
   cdxIconEditUndo,
@@ -55,6 +56,7 @@ definePage({
   },
 })
 
+const props = defineProps<{ standalone?: boolean }>()
 const { pageTitle } = useConfig()
 const dashboardView: Skin = 'desktop'
 const isGermanPrototype = /-de(?:\/|$)/.test(window.location.pathname)
@@ -113,14 +115,14 @@ const confirmationToast = ref('')
 const confirmationToastType = ref<'success' | 'notice'>('success')
 const route = useRoute()
 const router = useRouter()
-const queueVersion = computed<'A' | 'B1' | 'B2' | 'C'>(() => route.query.version === 'C' ? 'C' : route.query.version === 'B2' ? 'B2' : ['B', 'B1'].includes(String(route.query.version)) ? 'B1' : 'A')
+const queueVersion = computed<'A' | 'B1' | 'B2' | 'C'>(() => props.standalone ? 'B2' : route.query.version === 'C' ? 'C' : route.query.version === 'B2' ? 'B2' : ['B', 'B1'].includes(String(route.query.version)) ? 'B1' : 'A')
 const isBVersion = computed(() => queueVersion.value === 'B1' || queueVersion.value === 'B2')
 const watchInFooter = computed(() => queueVersion.value === 'A' || queueVersion.value === 'B1')
 const completionIllustration = `${import.meta.env.BASE_URL}images/review-complete.svg`
 const MAX_EDITS = 20
 const reviewChanges = sourceReviewChanges.slice(0, MAX_EDITS)
 const dashboardPath = '/template-dashboard-desktop-modal'
-const showAllEdits = computed(() => route.path.replace(/\/$/, '').endsWith('/all-review-changes') || route.query.view === 'all')
+const showAllEdits = computed(() => props.standalone || route.path.replace(/\/$/, '').endsWith('/all-review-changes') || route.query.view === 'all')
 const createQueueState = () => ({ seen: new Set<string>(), reviewed: new Set<string>(), thanked: new Set<string>(), undone: new Set<string>(), completed: new Set<string>(), limit: 7 })
 // Seen or acted-on B edits remain visible until the next visit.
 const retiredStorageKey = 'protowiki-desktop-review-b-completed-v1'
@@ -203,6 +205,7 @@ const availableChanges = computed(() => {
   }
   return reviewChanges.filter(change => isBVersion.value ? !retiredBEdits.value.has(change.title) : !retiredAEdits.value.has(change.title))
 })
+const allQueueChangesOpened = computed(() => availableChanges.value.every(change => queueState.value.seen.has(change.title)))
 const fullQueueLimit = computed(() => queueVersion.value === 'B1' ? MAX_EDITS : queueState.value.limit)
 const visibleChanges = computed(() => availableChanges.value.slice(0, showAllEdits.value ? fullQueueLimit.value : 2))
 const showReviewedEmptyState = computed(() =>
@@ -224,6 +227,7 @@ function openAllEdits() {
 }
 function returnToDashboard() {
   updateReviewModalOpen(false)
+  if (props.standalone) return
   const { view, ...query } = route.query
   router.push({ path: dashboardPath, query: { ...query, version: queueVersion.value, view: 'dashboard' } })
   window.scrollTo(0, 0)
@@ -503,7 +507,7 @@ const impact = {
           <a href="#review-changes">Review changes</a>
         </aside>
         <main class="all-review-main">
-          <div class="all-review-title-row">
+          <div v-if="!props.standalone" class="all-review-title-row">
           <h1>Hello, NewEditor!</h1>
       <nav class="queue-version-switch" aria-label="Prototype version">
         <CdxButton v-for="version in (['A', 'B1', 'B2', 'C'] as const)" :key="version"
@@ -514,8 +518,9 @@ const impact = {
       </nav>
           </div>
           <header id="review-changes" class="all-review-heading">
-            <CdxButton weight="quiet" :icon-only="true" aria-label="Back to dashboard" @click="returnToDashboard"><CdxIcon :icon="cdxIconPrevious" /></CdxButton>
+            <CdxButton v-if="!props.standalone" weight="quiet" :icon-only="true" aria-label="Back to dashboard" @click="returnToDashboard"><CdxIcon :icon="cdxIconPrevious" /></CdxButton>
             <h2>Review changes</h2>
+            <CdxIcon v-if="props.standalone" class="queue-more-icon" :icon="cdxIconEllipsis" aria-label="More options" />
             <CdxButton v-if="queueVersion === 'C'" class="queue-refresh-button" weight="quiet" :action="queueVersion === 'C' ? 'progressive' : 'default'" :icon-only="queueVersion !== 'C'"
               aria-label="Refresh edits" title="Refresh edits" @click="requestBQueueRefresh">
               <CdxIcon :icon="cdxIconReload" />
@@ -537,7 +542,7 @@ const impact = {
             <p v-if="queueVersion === 'B2'">Well done! You’ve reviewed all changes. Check back later for more or explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</p>
             <p v-else>You’ve reviewed all changes. Check back tomorrow, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
           </div>
-          <CdxButton v-if="!showReviewedEmptyState && hasMoreEdits" class="view-more-edits" @click="queueState.limit = Math.min(queueState.limit + 7, MAX_EDITS)">Show more edits</CdxButton>
+          <CdxButton v-if="!showReviewedEmptyState && hasMoreEdits" class="view-more-edits" @click="queueState.limit = Math.min(queueState.limit + 7, MAX_EDITS)">Show more changes</CdxButton>
           <p v-if="queueVersion !== 'B1' && !showReviewedEmptyState && !hasMoreEdits" class="queue-end">
             <template v-if="queueVersion === 'B2'">Check back later for more changes or explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</template>
             <template v-else>{{ isBVersion ? 'There are no more changes for now. Check back later, explore ' : 'You’ve reviewed all changes. Check back tomorrow, explore ' }}<a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</template>
@@ -564,7 +569,7 @@ const impact = {
               class="dashboard-slot--mobile-primary"
               :to="REVIEW_CHANGES_ROUTE"
               :title="MODULE.thankTitle"
-              cta="Show more edits"
+              cta="Show more changes"
             >
               <p class="dashboard-preview-line">
                 <CdxIcon :icon="cdxIconEdit" size="small" aria-hidden="true" />
@@ -644,7 +649,7 @@ const impact = {
                   <p>Check back later for new changes.</p>
                 </template>
               </div>
-              <CdxButton v-else class="view-more-edits" @click="openAllEdits">Show more edits</CdxButton>
+              <CdxButton v-else class="view-more-edits" @click="openAllEdits">Show more changes</CdxButton>
             </DashboardModule>
             <DashboardModule title="Active discussions">
               <div class="discussion-list">
@@ -734,8 +739,8 @@ const impact = {
           <template v-if="isBVersion">
             <img class="review-complete-illustration" :src="completionIllustration" alt="" />
             <div class="review-complete-copy">
-              <h2>Well done! You’ve reviewed all changes.</h2>
-              <p>Check back later for more, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> or return to <RouterLink :to="{ path: dashboardPath, query: { version: queueVersion, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
+              <h2>{{ !props.standalone || allQueueChangesOpened ? 'Well done! You’ve reviewed all changes.' : 'You’ve reached the end of the changes.' }}</h2>
+              <p>Check back later for more, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a><template v-if="!props.standalone"> or return to <RouterLink :to="{ path: dashboardPath, query: { version: queueVersion, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink></template>.</p>
             </div>
           </template>
           <p v-else>Well done! You’ve reviewed all changes. Check back {{ queueVersion === 'B2' ? 'later' : 'tomorrow' }} for more. In the meantime, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> {{ queueVersion === 'B2' ? 'or' : 'or return to' }} <RouterLink :to="{ path: dashboardPath, query: { version: queueVersion, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
@@ -947,7 +952,7 @@ const impact = {
 .all-review-title-row .queue-version-switch { margin: 0; flex-wrap: wrap; }
 .all-review-main h1 { margin: 0; font: 29px/1.4 Georgia, serif; }
 .all-review-heading { display: flex; align-items: center; gap: 8px; margin: 8px 0 12px; }
-.queue-refresh-button { margin-inline-start: auto; }
+.queue-refresh-button, .queue-more-icon { margin-inline-start: auto; }
 .all-review-heading h2 { margin: 0; font: bold 16px/1.5 sans-serif; }
 .all-review-list { display: flex; flex-direction: column; }
 .all-review-contents, .all-review-tools { padding-top: 60px; font-size: 14px; line-height: 1.6; }

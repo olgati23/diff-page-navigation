@@ -431,7 +431,7 @@ onBeforeUnmount(() => {
       <section v-if="props.complete" class="mobile-queue-complete" role="status">
         <img class="mobile-complete-illustration" :src="completionIllustration" alt="" />
         <div class="mobile-complete-copy">
-        <h2>Well done! You’ve reviewed all changes.</h2>
+        <h2>{{ completionTitle }}</h2>
         <p>Check back later for more, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> or return to <RouterLink :to="{ path: '/template-dashboard-mobile-watch', query: { version: 'B' } }">Home</RouterLink>.</p>
         </div>
       </section>
@@ -568,6 +568,14 @@ onBeforeUnmount(() => {
       </div>
 
 
+      <footer v-if="props.complete" class="diff-preview__toolbar mobile-completion-actions" aria-label="Diff review navigation">
+        <CdxButton weight="quiet" class="mobile-labeled-action" aria-label="Back to last edit" @click="emit('navigate', -1)">
+          <CdxIcon :icon="cdxIconPrevious" /><span>Back</span>
+        </CdxButton>
+        <CdxButton weight="quiet" class="mobile-labeled-action" aria-label="Next change" disabled>
+          <CdxIcon :icon="cdxIconNext" /><span>Next</span>
+        </CdxButton>
+      </footer>
       <footer
         v-if="!props.complete && props.variant === 'card'"
         class="diff-preview__editor-card"
@@ -1211,9 +1219,13 @@ onBeforeUnmount(() => {
 </style>
 
 <style scoped>
-.diff-preview--complete { grid-template-rows: auto minmax(0, 1fr); }
+.diff-preview--complete { grid-template-rows: auto minmax(0, 1fr) auto; }
 </style>
 
 <style scoped>
 .mobile-completion-toast-title { display: block; font-size: inherit; line-height: inherit; margin-bottom: 4px; }
+</style>
+
+<style scoped>
+.diff-preview__toolbar.mobile-completion-actions .mobile-labeled-action { flex: 0 0 56px; }
 </style>

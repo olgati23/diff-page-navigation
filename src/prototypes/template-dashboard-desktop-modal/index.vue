@@ -740,7 +740,7 @@ const impact = {
           <template v-if="isBVersion">
             <img class="review-complete-illustration" :src="completionIllustration" alt="" />
             <div class="review-complete-copy">
-              <h2>{{ !props.standalone || allQueueChangesOpened ? 'Well done! You’ve reviewed all changes.' : 'You’ve reached the end of the changes.' }}</h2>
+              <h2>{{ allQueueChangesOpened ? 'Well done! You’ve reviewed all changes.' : 'You’ve reached the end of the changes.' }}</h2>
               <p>Check back later for more, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a><template v-if="!props.standalone"> or return to <RouterLink :to="{ path: dashboardPath, query: { version: queueVersion, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink></template>.</p>
             </div>
           </template>

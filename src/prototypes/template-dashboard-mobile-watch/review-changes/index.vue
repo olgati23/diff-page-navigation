@@ -64,8 +64,8 @@ function navigateDiff(direction: -1 | 1) {
     queueComplete.value = true
     return
   }
-  if (nextIndex >= 0 && nextIndex < (props.standalone || mobileVersion.value === 'B' ? queueChanges.length : visibleChanges.value.length)) {
-    if (props.standalone || mobileVersion.value === 'B') editLimit.value = Math.max(editLimit.value, nextIndex + 1)
+  if (nextIndex >= 0 && nextIndex < queueChanges.length) {
+    editLimit.value = Math.max(editLimit.value, nextIndex + 1)
     selectedChangeIndex.value = nextIndex
   }
 }
@@ -142,11 +142,11 @@ function markRestored(title: string) {
       :key="previewVariant"
       :change="selectedPreviewChange!"
       :mobile-version="mobileVersion"
-      :completion-toast="props.standalone"
+      :completion-toast="mobileVersion === 'A'"
       :all-changes-opened="queueChanges.every(change => openedChanges.has(change.title))"
       :variant="previewVariant"
       :change-index="selectedChangeIndex ?? 0"
-      :change-count="props.standalone || mobileVersion === 'B' ? queueChanges.length : visibleChanges.length"
+      :change-count="queueChanges.length"
       :complete="queueComplete"
       :reviewed="reviewedChanges.has(selectedChange.title)"
       :undone="undoneChanges.has(selectedChange.title)"

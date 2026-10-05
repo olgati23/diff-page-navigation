@@ -56,7 +56,7 @@ definePage({
   },
 })
 
-const props = defineProps<{ standalone?: boolean }>()
+const props = defineProps<{ standalone?: boolean; thankExperiment?: 'panel' | 'sheet' | 'bar' }>()
 const { pageTitle } = useConfig()
 const dashboardView: Skin = 'desktop'
 const isGermanPrototype = /-de(?:\/|$)/.test(window.location.pathname)
@@ -285,6 +285,7 @@ function adjacentReviewChange(direction: -1 | 1): ReviewChange | undefined {
   })
 }
 const modalConfirmation = ref<'undo' | 'thank' | null>(null)
+const inlineConfirmation = computed(() => !!modalConfirmation.value && (queueVersion.value === 'B1' || (!!props.thankExperiment && modalConfirmation.value === 'thank')))
 const modalUndoReason = ref('')
 
 watch(desktopReviewPresentation, () => {
@@ -424,7 +425,7 @@ function requestThanks(changeTitle?: string): void {
     confirmationToast.value = queueVersion.value === 'B2' ? `You already thanked ${activeReviewEditor.value}` : "A 'Thanks' cannot be undone"
     return
   }
-  if (queueVersion.value === 'B2' && b2ThanksConfirmed.value) showThankConfirmation()
+  if (!props.thankExperiment && queueVersion.value === 'B2' && b2ThanksConfirmed.value) showThankConfirmation()
   else openModalConfirmation('thank')
 }
 
@@ -719,16 +720,16 @@ const impact = {
 
       <CdxDialog
         :open="modalReviewIndex !== null"
-        :title="modalQueueComplete ? 'Difference preview' : modalConfirmation === 'undo'
+        :title="modalQueueComplete ? 'Difference preview' : modalConfirmation === 'undo' && !inlineConfirmation
           ? 'Undo edit'
-          : modalConfirmation === 'thank'
+          : modalConfirmation === 'thank' && !inlineConfirmation
             ? 'Publicly send ‘Thanks’'
             : `Difference preview: ${modalReviewChange.title}`"
-        :subtitle="modalConfirmation || modalQueueComplete ? undefined : `Revision from ${modalRevisionDate}`"
-        :use-close-button="!modalConfirmation"
+        :subtitle="(modalConfirmation && !inlineConfirmation) || modalQueueComplete ? undefined : `Revision from ${modalRevisionDate}`"
+        :use-close-button="!modalConfirmation || inlineConfirmation"
         class="desktop-review-dialog"
         :class="{
-          'desktop-review-dialog--confirmation': modalConfirmation,
+          'desktop-review-dialog--confirmation': modalConfirmation && !inlineConfirmation,
           'desktop-review-dialog--illustrated-complete': modalQueueComplete && queueVersion === 'B1',
           'desktop-review-dialog--german': isGermanPrototype,
         }"
@@ -757,7 +758,7 @@ const impact = {
           </div>
         </div>
         </template>
-        <template v-else-if="modalConfirmation === 'undo'">
+        <template v-else-if="modalConfirmation === 'undo' && !inlineConfirmation">
           <p class="desktop-modal-confirmation__description">
             This will undo the change(s) shown in this revision. Please provide a reason for
             undoing the edit(s)
@@ -774,7 +775,7 @@ const impact = {
             </CdxButton>
           </div>
         </template>
-        <template v-else-if="modalConfirmation === 'thank'">
+        <template v-else-if="modalConfirmation === 'thank' && !inlineConfirmation">
           <p class="desktop-modal-confirmation__description">
             It is an easy way to show appreciation for an editor’s work on Wikipedia. ‘Thanks’
             cannot be undone and are publicly viewable
@@ -852,7 +853,23 @@ const impact = {
             :height-offset="germanMetadataWrapped ? 36 : 0"
           />
         </div>
-        <div
+        <section v-if="inlineConfirmation" class="thank-experiment" :class="`thank-experiment--${props.thankExperiment || 'panel'}`" role="region" :aria-label="modalConfirmation === 'undo' ? 'Undo edit' : 'Publicly send Thanks'">
+          <template v-if="modalConfirmation === 'undo'">
+            <strong>Undo edit</strong>
+            <p>This will undo the change(s) shown in this revision. Please provide a reason for undoing the edit(s).</p>
+            <CdxTextInput v-model="modalUndoReason" placeholder="eg. Inaccurate information" aria-label="Reason for undoing the edit" />
+          </template>
+          <template v-else>
+            <strong>{{ props.thankExperiment === 'bar' ? `Thank ${activeReviewEditor}?` : 'Publicly send ‘Thanks’' }}</strong>
+            <p v-if="props.thankExperiment !== 'bar'">It is an easy way to show appreciation for an editor’s work on Wikipedia. ‘Thanks’ cannot be undone and are publicly viewable.</p>
+            <p v-else>Thanks are public and cannot be undone.</p>
+          </template>
+          <div class="thank-experiment__actions">
+            <CdxButton @click="modalConfirmation = null">Cancel</CdxButton>
+            <CdxButton action="progressive" :weight="queueVersion === 'B1' ? 'normal' : 'primary'" @click="confirmModalAction">{{ modalConfirmation === 'undo' ? 'Undo' : 'Thank' }}</CdxButton>
+          </div>
+        </section>
+        <div v-show="!inlineConfirmation"
           class="desktop-review-dialog__footer"
           :class="{ 'desktop-review-dialog__footer--german': isGermanPrototype }"
         >
@@ -1604,4 +1621,13 @@ const impact = {
 @media (max-width: 540px) {
   .desktop-review-completion-toast-description { white-space: normal; }
 }
+</style>
+
+<style scoped>
+.thank-experiment { flex: 0 0 auto; background: var(--background-color-base, #fff); border-top: 1px solid var(--border-color-subtle, #c8ccd1); padding: 20px 24px; font: 16px/1.625 sans-serif; }
+.thank-experiment p { margin: 8px 0 16px; }
+.thank-experiment__actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 8px; }
+.thank-experiment--sheet { position: absolute; z-index: 5; bottom: 0; inset-inline: 0; box-shadow: 0 -4px 16px #0002; border-radius: 8px 8px 0 0; }
+.thank-experiment--bar { padding: 12px 16px; }
+.thank-experiment--bar p { margin: 0 0 8px; font-size: 14px; }
 </style>

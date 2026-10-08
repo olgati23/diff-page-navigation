@@ -70,7 +70,7 @@ const expandedReviewChange = ref<string | null>(null)
 const desktopReviewPresentation = ref('modal')
 const modalReviewIndex = ref<number | null>(null)
 const modalQueueComplete = ref(false)
-const b1CompletionShown = ref(false)
+const b2CompletionShown = ref(false)
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
 const b2ThanksConfirmedKey = 'desktop-b2-thanks-confirmed'
@@ -206,6 +206,7 @@ const availableChanges = computed(() => {
   return reviewChanges.filter(change => isBVersion.value ? !retiredBEdits.value.has(change.title) : !retiredAEdits.value.has(change.title))
 })
 const allQueueChangesOpened = computed(() => availableChanges.value.every(change => queueState.value.seen.has(change.title)))
+const completionTitle = computed(() => allQueueChangesOpened.value ? 'You’ve reviewed all changes.' : 'That’s everything for now.')
 const fullQueueLimit = computed(() => queueVersion.value === 'B1' ? MAX_EDITS : queueState.value.limit)
 const visibleChanges = computed(() => availableChanges.value.slice(0, showAllEdits.value ? fullQueueLimit.value : 2))
 const showReviewedEmptyState = computed(() =>
@@ -319,7 +320,7 @@ const activeReviewEditor = computed(() => {
 })
 
 function openReviewModal(index: number): void {
-  b1CompletionShown.value = false
+  b2CompletionShown.value = false
   modalQueueComplete.value = false
   closeWatchPopover()
   clearConfirmationToast()
@@ -342,10 +343,10 @@ function moveReviewModal(direction: -1 | 1): void {
   else if (direction === 1) {
     closeWatchPopover()
     clearConfirmationToast()
-    if (queueVersion.value === 'B1') {
-      b1CompletionShown.value = true
+    if (queueVersion.value === 'B2') {
+      b2CompletionShown.value = true
       confirmationToastType.value = 'success'
-      confirmationToast.value = 'Well done! You’ve reviewed all changes.'
+      confirmationToast.value = completionTitle.value
     } else {
       modalQueueComplete.value = true
     }
@@ -540,12 +541,12 @@ const impact = {
                   @unpin="togglePin(change.title)" @open="openChange(change)" />
           </div>
           <div v-if="showReviewedEmptyState" class="queue-empty" role="status">
-            <p v-if="queueVersion === 'B2'">Well done! You’ve reviewed all changes. Check back later for more or explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</p>
+            <p v-if="queueVersion === 'B2'">There are currently no recommended changes for you to review. Check back later or explore all <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</p>
             <p v-else>You’ve reviewed all changes. Check back tomorrow, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
           </div>
           <CdxButton v-if="!showReviewedEmptyState && hasMoreEdits" class="view-more-edits" @click="queueState.limit = Math.min(queueState.limit + 7, MAX_EDITS)">Show more changes</CdxButton>
           <p v-if="queueVersion !== 'B1' && !showReviewedEmptyState && !hasMoreEdits" class="queue-end">
-            <template v-if="queueVersion === 'B2'">Check back later for more changes or explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</template>
+            <template v-if="queueVersion === 'B2'">There are currently no recommended changes for you to review. Check back later or explore all <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</template>
             <template v-else>{{ isBVersion ? 'There are no more changes for now. Check back later, explore ' : 'You’ve reviewed all changes. Check back tomorrow, explore ' }}<a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>, or return to <RouterLink :to="{ path: dashboardPath, query: { ...route.query, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</template>
           </p>
         </main>
@@ -641,8 +642,7 @@ const impact = {
                     <img :src="completionIllustration" alt="" />
                   </div>
                   <div class="dashboard-review-complete__copy">
-                    <p class="dashboard-review-complete__title">Well done! You’ve reviewed all changes.</p>
-                    <p>Check back later for more or explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</p>
+                    <p>There are currently no recommended changes for you to review. Check back later or explore all <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</p>
                   </div>
                 </template>
                 <template v-else>
@@ -725,12 +725,12 @@ const impact = {
           : modalConfirmation === 'thank' && !inlineConfirmation
             ? 'Publicly send ‘Thanks’'
             : `Difference preview: ${modalReviewChange.title}`"
-        :subtitle="(modalConfirmation && !inlineConfirmation) || modalQueueComplete ? undefined : `Revision from ${modalRevisionDate}`"
+        :subtitle="(modalConfirmation && !inlineConfirmation) || modalQueueComplete ? undefined : `${modalRevisionDate}`"
         :use-close-button="!modalConfirmation || inlineConfirmation"
         class="desktop-review-dialog"
         :class="{
           'desktop-review-dialog--confirmation': modalConfirmation && !inlineConfirmation,
-          'desktop-review-dialog--illustrated-complete': modalQueueComplete && queueVersion === 'B1',
+          'desktop-review-dialog--illustrated-complete': false,
           'desktop-review-dialog--german': isGermanPrototype,
         }"
         @update:open="updateReviewModalOpen"
@@ -740,8 +740,8 @@ const impact = {
           <template v-if="isBVersion">
             <img class="review-complete-illustration" :src="completionIllustration" alt="" />
             <div class="review-complete-copy">
-              <h2>{{ allQueueChangesOpened ? 'Well done! You’ve reviewed all changes.' : 'You’ve reached the end of the changes.' }}</h2>
-              <p>Check back later for more, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a><template v-if="!props.standalone"> or return to <RouterLink :to="{ path: dashboardPath, query: { version: queueVersion, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink></template>.</p>
+              <h2>{{ completionTitle }}</h2>
+              <p>Check back later for new changes, explore all <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a><template v-if="!props.standalone"> or return to <RouterLink :to="{ path: dashboardPath, query: { version: queueVersion, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink></template>.</p>
             </div>
           </template>
           <p v-else>Well done! You’ve reviewed all changes. Check back {{ queueVersion === 'B2' ? 'later' : 'tomorrow' }} for more. In the meantime, explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> {{ queueVersion === 'B2' ? 'or' : 'or return to' }} <RouterLink :to="{ path: dashboardPath, query: { version: queueVersion, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
@@ -750,7 +750,7 @@ const impact = {
           <div class="desktop-review-dialog__completion-actions">
             <CdxButton size="medium" :icon-only="true" aria-label="Back to last edit"
               @click="modalQueueComplete = false"><CdxIcon :icon="cdxIconPrevious" /></CdxButton>
-            <CdxButton v-if="queueVersion === 'B2'" size="medium" :icon-only="true" aria-label="Next review change" disabled>
+            <CdxButton v-if="isBVersion" size="medium" :icon-only="true" aria-label="Next review change" disabled>
               <CdxIcon :icon="cdxIconNext" />
             </CdxButton>
             <CdxButton v-else size="medium" action="progressive" weight="primary"
@@ -875,11 +875,11 @@ const impact = {
         >
         <div v-if="confirmationToast" class="desktop-review-dialog__confirmation">
           <CdxMessage :key="confirmationToast" :type="confirmationToastType" :auto-dismiss="8000" allow-user-dismiss
-            :class="{ 'desktop-review-completion-toast': queueVersion === 'B1' && confirmationToast === 'Well done! You’ve reviewed all changes.' }"
+            :class="{ 'desktop-review-completion-toast': queueVersion === 'B2' && confirmationToast === completionTitle }"
             @auto-dismissed="clearConfirmationToast" @user-dismissed="clearConfirmationToast">
-            <template v-if="queueVersion === 'B1' && confirmationToast === 'Well done! You’ve reviewed all changes.'">
-              <strong class="desktop-review-completion-toast-title">Well done! You’ve reviewed all changes.</strong>
-              <p class="desktop-review-completion-toast-description">Check back later for more or explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a></p>
+            <template v-if="queueVersion === 'B2' && confirmationToast === completionTitle">
+              <strong class="desktop-review-completion-toast-title">{{ completionTitle }}</strong>
+              <p class="desktop-review-completion-toast-description">Check back later for new changes, explore all <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> or return to <RouterLink :to="{ path: dashboardPath, query: { version: queueVersion, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
             </template>
             <template v-else>{{ confirmationToast }}</template>
           </CdxMessage>
@@ -925,7 +925,7 @@ const impact = {
               size="medium"
               :icon-only="true"
               aria-label="Next review change"
-              :disabled="queueVersion === 'B1' && b1CompletionShown"
+              :disabled="queueVersion === 'B2' && b2CompletionShown"
               @click="moveReviewModal(1)"
             >
               <CdxIcon :icon="cdxIconNext" />
@@ -1617,7 +1617,7 @@ const impact = {
   padding-inline-end: var(--spacing-75, 12px);
 }
 .desktop-review-completion-toast-title { padding-inline-end: var(--spacing-150, 24px); box-sizing: border-box; }
-.desktop-review-completion-toast-description { white-space: nowrap; }
+.desktop-review-completion-toast-description { white-space: normal; }
 @media (max-width: 540px) {
   .desktop-review-completion-toast-description { white-space: normal; }
 }

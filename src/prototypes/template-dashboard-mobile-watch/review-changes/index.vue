@@ -133,7 +133,7 @@ function markRestored(title: string) {
     </section>
     <div class="review-queue-footer">
       <CdxButton v-if="visibleChanges.length < queueChanges.length" @click="editLimit = Math.min(editLimit + 7, 20)">Show more changes</CdxButton>
-      <p v-else>There are no more changes for now. Check back later or explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</p>
+      <p v-else>{{ mobileVersion === 'A' ? 'There are currently no recommended changes for you to review. Check back later or explore all ' : 'There are no more changes for now. Check back later or explore ' }}<a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</p>
     </div>
     </template>
 

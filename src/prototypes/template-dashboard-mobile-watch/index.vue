@@ -449,7 +449,7 @@ const impact = {
           : modalConfirmation === 'thank'
             ? 'Publicly send ‘Thanks’'
             : modalReviewChange.title"
-        :subtitle="modalConfirmation ? undefined : `Revision from ${modalReviewChange.revisionDate} (UTC)`"
+        :subtitle="modalConfirmation ? undefined : `${modalReviewChange.revisionDate} (UTC)`"
         :use-close-button="!modalConfirmation"
         class="desktop-review-dialog"
         :class="{ 'desktop-review-dialog--confirmation': modalConfirmation }"

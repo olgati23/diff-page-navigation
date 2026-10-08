@@ -60,7 +60,9 @@ const emit = defineEmits<{
 }>()
 
 const completionIllustration = `${import.meta.env.BASE_URL}images/review-complete.svg`
-const completionTitle = computed(() => props.allChangesOpened ? 'Well done! You’ve reviewed all changes.' : 'You’ve reached the end of the changes.')
+const completionTitle = computed(() => props.mobileVersion !== 'B' ? (props.allChangesOpened ? 'You’ve reviewed all changes.' : 'That’s everything for now.') : (props.allChangesOpened ? 'Well done! You’ve reviewed all changes.' : 'You’ve reached the end of the changes.'))
+const summaryExpanded = ref(false)
+watch(() => props.changeIndex, () => { summaryExpanded.value = false })
 const completionShown = ref(false)
 watch(() => props.changeIndex, () => { completionShown.value = false })
 function nextChange() {
@@ -444,14 +446,14 @@ onBeforeUnmount(() => {
         <div class="diff-preview__article-heading">
           <h1>{{ props.change.title }}</h1>
           <p v-if="props.variant === 'toolbar'">
-            Revision from: {{ props.change.revisionDate }} (UTC)
+            {{ props.change.revisionDate }} (UTC)
           </p>
           <p v-if="props.variant !== 'toolbar'">Difference between revisions</p>
         </div>
 
         <div v-if="props.variant !== 'toolbar'" class="diff-preview__details-row">
           <p v-if="props.variant === 'card'" class="diff-preview__revision-date">
-            <strong>Revision from:</strong> {{ props.change.revisionDate }} (UTC)
+            {{ props.change.revisionDate }} (UTC)
           </p>
           <CdxButton
             v-else
@@ -505,7 +507,7 @@ onBeforeUnmount(() => {
               v-if="props.variant !== 'card'"
               class="edit-details-accordion__revision-date"
             >
-              <strong>Revision from:</strong> {{ props.change.revisionDate }} (UTC)
+              {{ props.change.revisionDate }} (UTC)
             </p>
             <section>
               <p class="edit-details-accordion__edit-summary">
@@ -547,6 +549,26 @@ onBeforeUnmount(() => {
         </CdxButton>
           </div>
         </div>
+
+        <CdxAccordion
+          v-if="props.variant === 'toolbar' && props.mobileVersion !== 'B' && props.change.summary"
+          :key="props.change.title"
+          class="mobile-edit-summary"
+          separation="minimal"
+          heading-level="h2"
+        >
+          <template #title>
+            Edit summary
+          </template>
+          <p class="mobile-edit-summary__full">{{ props.change.summary }}</p>
+        </CdxAccordion>
+
+        <section v-if="props.variant === 'toolbar' && props.mobileVersion === 'B' && props.change.summary" class="mobile-summary-disclosure" aria-label="Edit summary">
+          <CdxButton class="mobile-summary-disclosure__toggle" weight="quiet" :aria-label="summaryExpanded ? 'Collapse edit summary' : 'Expand edit summary'" :aria-expanded="summaryExpanded" aria-controls="mobile-edit-summary-text" @click="summaryExpanded = !summaryExpanded">
+            <CdxIcon :icon="summaryExpanded ? cdxIconCollapse : cdxIconExpand" size="small" />
+            <span id="mobile-edit-summary-text" :class="{ 'mobile-summary-disclosure__collapsed': !summaryExpanded }">{{ props.change.summary }}</span>
+          </CdxButton>
+        </section>
 
         <CdxProgressBar v-if="diffLoading" inline aria-label="Loading Wikipedia visual diff" />
         <CdxMessage v-else-if="diffError" type="error" :allow-user-dismiss="false">
@@ -635,7 +657,7 @@ onBeforeUnmount(() => {
           >
             <template v-if="props.completionToast && confirmationToast === completionTitle">
               <strong class="mobile-completion-toast-title">{{ completionTitle }}</strong>
-              <span>Check back later for more or explore <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</span>
+              <span>Check back later for new changes, explore all <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> or return to <RouterLink :to="{ path: '/template-dashboard-mobile-watch', query: { version: 'A' } }">Home</RouterLink>.</span>
             </template>
             <template v-else>{{ confirmationToast }}</template>
           </CdxToast>
@@ -1228,4 +1250,21 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .diff-preview__toolbar.mobile-completion-actions .mobile-labeled-action { flex: 0 0 56px; }
+</style>
+
+<style scoped>
+.mobile-edit-summary { margin: 0 16px 12px 0; flex-shrink: 0; font-family: var(--font-family-base, sans-serif); }
+.mobile-edit-summary :deep(.cdx-accordion__header) { min-width: 0; font-family: var(--font-family-base, sans-serif); font-size: var(--font-size-medium, 1rem); font-weight: var(--font-weight-bold, 700); border: 0; }
+.mobile-edit-summary__excerpt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; font: inherit; }
+.mobile-edit-summary[open] :deep(.cdx-accordion__header__description) { display: none; }
+.mobile-edit-summary__full { margin: 0; overflow-wrap: anywhere; font-family: var(--font-family-base, sans-serif); font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); font-weight: var(--font-weight-normal, 400); }
+</style>
+
+<style scoped>
+.mobile-summary-disclosure { display: flex; align-items: flex-start; gap: 8px; margin: 0 16px 12px 0; flex-shrink: 0; font-family: var(--font-family-base, sans-serif); font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); }
+.mobile-summary-disclosure__toggle span:not(.cdx-icon) { flex: 1 1 auto; min-width: 0; margin: 3px 0; font-style: italic; overflow-wrap: anywhere; color: var(--color-subtle, #54595d); }
+.mobile-summary-disclosure__collapsed { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mobile-summary-disclosure .mobile-summary-disclosure__toggle { width: 100%; max-width: none; min-width: 0; min-height: 44px; padding: 6px 0; align-items: flex-start; justify-content: flex-start; gap: 8px; white-space: normal; font-weight: var(--font-weight-normal, 400); text-align: start; }
+.mobile-summary-disclosure__toggle :deep(.cdx-icon) { flex-shrink: 0; margin-top: 8px; }
+.mobile-summary-disclosure__toggle span:not(.cdx-icon) { display: block; line-height: var(--line-height-medium, 1.625rem); }
 </style>

@@ -286,7 +286,7 @@ function adjacentReviewChange(direction: -1 | 1): ReviewChange | undefined {
   })
 }
 const modalConfirmation = ref<'undo' | 'thank' | null>(null)
-const inlineConfirmation = computed(() => !!modalConfirmation.value && (queueVersion.value === 'B1' || (!!props.thankExperiment && modalConfirmation.value === 'thank')))
+const inlineConfirmation = computed(() => !!modalConfirmation.value && (queueVersion.value === 'B2' || (!!props.thankExperiment && modalConfirmation.value === 'thank')))
 const modalUndoReason = ref('')
 
 watch(desktopReviewPresentation, () => {
@@ -866,7 +866,7 @@ const impact = {
           </template>
           <div class="thank-experiment__actions">
             <CdxButton @click="modalConfirmation = null">Cancel</CdxButton>
-            <CdxButton action="progressive" :weight="queueVersion === 'B1' ? 'normal' : 'primary'" @click="confirmModalAction">{{ modalConfirmation === 'undo' ? 'Undo' : 'Thank' }}</CdxButton>
+            <CdxButton action="progressive" :weight="queueVersion === 'B2' ? 'normal' : 'primary'" @click="confirmModalAction">{{ modalConfirmation === 'undo' ? 'Undo' : 'Thank' }}</CdxButton>
           </div>
         </section>
         <div v-show="!inlineConfirmation"

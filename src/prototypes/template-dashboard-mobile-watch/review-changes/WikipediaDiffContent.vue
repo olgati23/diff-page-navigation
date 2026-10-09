@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CdxMessage, CdxProgressBar } from '@wikimedia/codex'
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 
 import { wikimediaApiFetchHeaders } from '@/config'
 import type { ReviewChange } from '../reviewChanges'
@@ -9,13 +9,10 @@ import { buildVisualDiffDocument } from './visualDiff'
 const props = withDefaults(defineProps<{
   change: ReviewChange
   tall?: boolean
-  topPadding?: number
   showHeading?: boolean
-  heightOffset?: number
 }>(), {
   tall: false,
   showHeading: true,
-  heightOffset: 0,
 })
 
 const loading = ref(false)
@@ -42,7 +39,7 @@ function firstChangedSection(diffMarkup: string): string {
 }
 
 function maximumDiffHeight(): number {
-  return Math.max(284, Math.floor(window.innerHeight * 0.62) - props.heightOffset)
+  return Math.max(320, Math.floor(window.innerHeight * 0.62))
 }
 
 async function loadDiff(): Promise<void> {
@@ -71,7 +68,6 @@ async function loadDiff(): Promise<void> {
     documentHtml.value = await buildVisualDiffDocument(markup, request.signal, {
       heading: firstChangedSection(markup),
       showHeading: props.showHeading,
-      topPadding: props.topPadding,
       wikiHost: props.change.wikiHost,
       mobile: true,
     })
@@ -94,12 +90,7 @@ function resizeFrame(): void {
 }
 
 watch(() => props.change, loadDiff, { immediate: true })
-watch(() => props.heightOffset, resizeFrame)
-onMounted(() => window.addEventListener('resize', resizeFrame))
-onBeforeUnmount(() => {
-  request?.abort()
-  window.removeEventListener('resize', resizeFrame)
-})
+onBeforeUnmount(() => request?.abort())
 </script>
 
 <template>

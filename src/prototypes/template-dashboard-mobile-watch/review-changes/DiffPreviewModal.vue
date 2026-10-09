@@ -2,8 +2,10 @@
 import {
   CdxAccordion,
   CdxButton,
+  CdxMenuButton,
   CdxPopover,
-  CdxRadio,
+  CdxSelect,
+  CdxTextInput,
   CdxIcon,
   CdxMessage,
   CdxProgressBar,
@@ -11,6 +13,8 @@ import {
 } from '@wikimedia/codex'
 import {
   cdxIconStar,
+  cdxIconEllipsis,
+  cdxIconLinkExternal,
   cdxIconUnStar,
   cdxIconHalfStar,
   cdxIconArrowPrevious,
@@ -38,7 +42,7 @@ const toolbarReviewIcon = '<circle cx="10" cy="10" r="8" fill="none" stroke="cur
 const filledUndoIcon = '<path d="m11.76 12.463-5.213 5.216a1 1 0 0 1-.394.242L1.91 19.335.64 18.076l1.413-4.243a1 1 0 0 1 .242-.39l5.222-5.222z"/><path d="m14.124 1.5-3 3H14a6 6 0 0 1 6 6V14h-2v-3.5a4 4 0 0 0-4-4h-2.876l3 3-1.414 1.414-4.707-4.707V4.793L12.71.086z"/>'
 
 const props = defineProps<{
-  mobileVersion?: 'A' | 'B'
+  mobileVersion?: 'A' | 'B' | 'C'
   completionToast?: boolean
   allChangesOpened?: boolean
   complete?: boolean
@@ -61,7 +65,26 @@ const emit = defineEmits<{
 
 const completionIllustration = `${import.meta.env.BASE_URL}images/review-complete.svg`
 const completionTitle = computed(() => props.mobileVersion !== 'B' ? (props.allChangesOpened ? 'You’ve reviewed all changes.' : 'That’s everything for now.') : (props.allChangesOpened ? 'Well done! You’ve reviewed all changes.' : 'You’ve reached the end of the changes.'))
+const compactPreviewMetadata = computed(() => props.variant === 'toolbar' && props.mobileVersion !== 'B')
 const summaryExpanded = ref(false)
+const summaryMeasure = ref<HTMLElement | null>(null)
+const summaryOverflows = ref(false)
+let summaryResizeObserver: ResizeObserver | undefined
+function measureSummary() {
+  const element = summaryMeasure.value
+  summaryOverflows.value = !!element && element.scrollWidth > element.clientWidth + 1
+  if (!summaryOverflows.value) summaryExpanded.value = false
+}
+watch(summaryMeasure, element => {
+  summaryResizeObserver?.disconnect()
+  if (element) {
+    summaryResizeObserver = new ResizeObserver(measureSummary)
+    summaryResizeObserver.observe(element)
+  }
+  measureSummary()
+}, { flush: 'post' })
+watch(() => props.change.summary, measureSummary, { flush: 'post' })
+onBeforeUnmount(() => summaryResizeObserver?.disconnect())
 watch(() => props.changeIndex, () => { summaryExpanded.value = false })
 const completionShown = ref(false)
 watch(() => props.changeIndex, () => { completionShown.value = false })
@@ -76,7 +99,18 @@ function nextChange() {
 }
 
 const headerWatchAnchor = ref(null)
+const overflowSelection = ref(null)
+const overflowItems = computed(() => [
+  { value: 'watch', label: watchPeriods[props.change.title] ? 'Unwatch' : 'Watch', icon: watchPeriods[props.change.title] ? cdxIconUnStar : cdxIconStar },
+  { value: 'full', label: 'Full difference', icon: cdxIconLinkExternal, url: fullDifferenceUrl(), urlNewTab: true },
+])
+function selectOverflow(value: unknown) {
+  if (value === 'watch') toggleWatch()
+  overflowSelection.value = null
+}
+
 const watchOpen = ref(false)
+const watchLabels = reactive<Record<string, string>>({})
 const watchPeriods = reactive<Record<string, string>>({})
 const watchOptions = [
   { value: 'infinite', label: 'Permanent' },
@@ -179,7 +213,7 @@ async function loadWikipediaVisualDiff() {
     diffDocumentHtml.value = await buildVisualDiffDocument(
       comparisonMarkup,
       diffRequest.signal,
-      { heading: section, mobile: true, wikiHost: props.change.wikiHost },
+      { heading: section, mobile: true, headingDivider: !(props.variant === 'toolbar' && props.mobileVersion !== 'B' && props.mobileVersion !== 'C'), wikiHost: props.change.wikiHost },
     )
   } catch (error) {
     if ((error as Error).name !== 'AbortError') {
@@ -398,6 +432,8 @@ onBeforeUnmount(() => {
       class="diff-preview"
       :class="{
         'diff-preview--page': props.page,
+        'diff-preview--mobile-c': compactPreviewMetadata,
+        'diff-preview--mobile-a': props.variant === 'toolbar' && props.mobileVersion !== 'B' && props.mobileVersion !== 'C',
         'diff-preview--complete': props.complete,
         'diff-preview--card': props.variant === 'card',
         'diff-preview--toolbar': props.variant === 'toolbar',
@@ -417,7 +453,7 @@ onBeforeUnmount(() => {
       >
           <CdxIcon :icon="cdxIconArrowPrevious" />
         </CdxButton>
-        <strong id="diff-preview-title">Difference preview</strong>
+        <strong id="diff-preview-title">Difference</strong>
         <CdxButton
           v-if="!props.page"
           class="diff-preview__close"
@@ -446,7 +482,7 @@ onBeforeUnmount(() => {
         <div class="diff-preview__article-heading">
           <h1>{{ props.change.title }}</h1>
           <p v-if="props.variant === 'toolbar'">
-            {{ props.change.revisionDate }} (UTC)
+            {{ compactPreviewMetadata ? props.change.revisionDate.replace(/^(.*),\s*(\d{1,2}:\d{2})$/, '$2, $1') : props.change.revisionDate + ' (UTC)' }}
           </p>
           <p v-if="props.variant !== 'toolbar'">Difference between revisions</p>
         </div>
@@ -540,7 +576,12 @@ onBeforeUnmount(() => {
             <CdxIcon :icon="cdxIconUserAvatar" size="small" aria-hidden="true" />
             {{ props.change.editor }}
           </a>
-          <div class="diff-preview__page-links"><a class="diff-preview__full-difference-link" :href="fullDifferenceUrl()" target="_blank" rel="noopener noreferrer">Full difference</a>
+          <CdxMenuButton v-if="compactPreviewMetadata" ref="headerWatchAnchor"
+            v-model:selected="overflowSelection" :menu-items="overflowItems" weight="quiet"
+            class="mobile-overflow-menu" aria-label="More options" @update:selected="selectOverflow">
+            <CdxIcon :icon="cdxIconEllipsis" />
+          </CdxMenuButton>
+          <div v-else class="diff-preview__page-links"><a class="diff-preview__full-difference-link" :href="fullDifferenceUrl()" target="_blank" rel="noopener noreferrer">Full difference</a>
         <CdxButton ref="headerWatchAnchor" weight="quiet" :icon-only="true"
           :aria-label="watchPeriods[props.change.title] ? 'Unwatch page' : 'Watch page'"
           :aria-pressed="!!watchPeriods[props.change.title]" :aria-expanded="watchOpen"
@@ -550,25 +591,16 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <CdxAccordion
-          v-if="props.variant === 'toolbar' && props.mobileVersion !== 'B' && props.change.summary"
-          :key="props.change.title"
-          class="mobile-edit-summary"
-          separation="minimal"
-          heading-level="h2"
-        >
-          <template #title>
-            Edit summary
-          </template>
-          <p class="mobile-edit-summary__full">{{ props.change.summary }}</p>
-        </CdxAccordion>
-
-        <section v-if="props.variant === 'toolbar' && props.mobileVersion === 'B' && props.change.summary" class="mobile-summary-disclosure" aria-label="Edit summary">
-          <CdxButton class="mobile-summary-disclosure__toggle" weight="quiet" :aria-label="summaryExpanded ? 'Collapse edit summary' : 'Expand edit summary'" :aria-expanded="summaryExpanded" aria-controls="mobile-edit-summary-text" @click="summaryExpanded = !summaryExpanded">
+        <section v-if="props.variant === 'toolbar' && props.change.summary?.trim()" class="mobile-summary-disclosure" aria-label="Edit summary">
+          <span ref="summaryMeasure" class="mobile-summary-disclosure__measure" aria-hidden="true">{{ props.change.summary }}</span>
+          <p v-if="!summaryOverflows" class="mobile-summary-disclosure__plain">{{ props.change.summary }}</p>
+          <CdxButton v-else class="mobile-summary-disclosure__toggle" weight="quiet" :aria-label="summaryExpanded ? 'Collapse edit summary' : 'Expand edit summary'" :aria-expanded="summaryExpanded" aria-controls="mobile-edit-summary-text" @click="summaryExpanded = !summaryExpanded">
             <CdxIcon :icon="summaryExpanded ? cdxIconCollapse : cdxIconExpand" size="small" />
             <span id="mobile-edit-summary-text" :class="{ 'mobile-summary-disclosure__collapsed': !summaryExpanded }">{{ props.change.summary }}</span>
           </CdxButton>
         </section>
+
+        <p v-if="compactPreviewMetadata && !props.change.summary?.trim()" class="mobile-empty-summary">No edit summary</p>
 
         <CdxProgressBar v-if="diffLoading" inline aria-label="Loading Wikipedia visual diff" />
         <CdxMessage v-else-if="diffError" type="error" :allow-user-dismiss="false">
@@ -705,12 +737,22 @@ onBeforeUnmount(() => {
         v-model:open="watchOpen" :anchor="headerWatchAnchor" placement="bottom-end"
         use-bottom-sheet use-close-button
         :title="watchPeriods[props.change.title] ? 'Added to watchlist' : 'Removed from watchlist'">
-        <p>“<a :href="`https://${props.change.wikiHost ?? 'en.wikipedia.org'}/wiki/${encodeURIComponent(props.change.title.replaceAll(' ', '_'))}`">{{ props.change.title }}</a>” and its talk page have been {{ watchPeriods[props.change.title] ? 'added to' : 'removed from' }} your <a href="#" @click.prevent>watchlist</a>.</p>
-        <fieldset v-if="watchPeriods[props.change.title]" class="mobile-watch-periods">
-          <legend>Watchlist time period</legend>
-          <CdxRadio v-for="option in watchOptions" :key="option.value"
-            v-model="watchPeriods[props.change.title]" name="mobile-watch-period" :input-value="option.value">{{ option.label }}</CdxRadio>
-        </fieldset>
+        <template #header>
+          <div class="watch-confirmation-heading">
+            <CdxIcon :icon="cdxIconSuccess" class="watch-confirmation-icon" size="small" />
+            <p><a :href="`https://${props.change.wikiHost ?? 'en.wikipedia.org'}/wiki/${encodeURIComponent(props.change.title.replaceAll(' ', '_'))}`">{{ props.change.title }}</a> and its talk page have been {{ watchPeriods[props.change.title] ? 'added to' : 'removed from' }} your <a href="#" @click.prevent>watchlist</a>.</p>
+            <CdxButton weight="quiet" :icon-only="true" aria-label="Close" @click="watchOpen = false"><CdxIcon :icon="cdxIconClose" /></CdxButton>
+          </div>
+        </template>
+        <div v-if="watchPeriods[props.change.title]" class="mobile-watch-fields">
+          <label for="mobile-watch-period">Watchlist time period:</label>
+          <CdxSelect id="mobile-watch-period" v-model:selected="watchPeriods[props.change.title]" :menu-items="watchOptions" />
+          <p>Change default time period in <a href="https://en.wikipedia.org/wiki/Special:Preferences#mw-prefsection-watchlist" target="_blank" rel="noopener noreferrer">preferences</a>.</p>
+          <label for="mobile-watch-label">Watchlist label:</label>
+          <CdxTextInput v-if="props.mobileVersion !== 'B' && props.mobileVersion !== 'C'" id="mobile-watch-label" v-model="watchLabels[props.change.title]" placeholder="Add label…" />
+          <CdxTextInput v-else id="mobile-watch-label" model-value="" placeholder="No label exists" readonly />
+          <p v-if="props.mobileVersion === 'B' || props.mobileVersion === 'C'">Create a new label in <a href="https://en.wikipedia.org/wiki/Special:EditWatchlist" target="_blank" rel="noopener noreferrer">manage labels</a>.</p>
+        </div>
       </CdxPopover>
     </section>
     <UndoConfirmationDialog
@@ -1267,4 +1309,73 @@ onBeforeUnmount(() => {
 .mobile-summary-disclosure .mobile-summary-disclosure__toggle { width: 100%; max-width: none; min-width: 0; min-height: 44px; padding: 6px 0; align-items: flex-start; justify-content: flex-start; gap: 8px; white-space: normal; font-weight: var(--font-weight-normal, 400); text-align: start; }
 .mobile-summary-disclosure__toggle :deep(.cdx-icon) { flex-shrink: 0; margin-top: 8px; }
 .mobile-summary-disclosure__toggle span:not(.cdx-icon) { display: block; line-height: var(--line-height-medium, 1.625rem); }
+</style>
+
+<style scoped>
+.diff-preview--mobile-c .mobile-summary-disclosure { margin: 0 0 12px; }
+.diff-preview--mobile-c .mobile-summary-disclosure__toggle { min-height: 26px; padding: 0; }
+.diff-preview--mobile-c .mobile-summary-disclosure__toggle span:not(.cdx-icon) { margin: 0; }
+.diff-preview--mobile-c .mobile-summary-disclosure__toggle :deep(.cdx-icon) { margin-top: 5px; }
+.mobile-empty-summary { margin: 0 0 12px; font-size: 16px; line-height: 26px; font-style: italic; color: var(--color-subtle, #54595d); }
+.diff-preview--mobile-c .diff-preview__article-heading h1 { font-size: 28px; line-height: 36px; }
+.diff-preview--mobile-c .diff-preview__article-heading p { font-size: 16px; line-height: 26px; margin-top: 8px; }
+.diff-preview--mobile-c .diff-preview__username :deep(.cdx-icon) { color: var(--color-progressive, #36c); }
+.mobile-overflow-menu { margin-inline-start: auto; }
+.mobile-overflow-menu :deep(.cdx-menu) { min-width: 166px; inset-inline-start: auto; inset-inline-end: 0; }
+</style>
+
+<style scoped>
+.watch-confirmation-heading { display: flex; align-items: flex-start; gap: 8px; width: 100%; }
+.watch-confirmation-heading p { flex: 1; margin: 0; font-size: 16px; line-height: 26px; font-weight: 700; }
+.watch-confirmation-heading .watch-confirmation-icon { color: var(--color-success, #14866d); flex-shrink: 0; margin-top: 4px; }
+.watch-confirmation-heading .cdx-button { flex-shrink: 0; }
+.mobile-watch-fields { width: 100%; min-width: 0; font-size: 16px; line-height: 22px; }
+.mobile-watch-fields :deep(.cdx-select),
+.mobile-watch-fields :deep(.cdx-text-input) { width: 100%; max-width: none; min-width: 0; box-sizing: border-box; }
+.mobile-watch-fields label { display: block; font-weight: 400; }
+.mobile-watch-fields p { margin: 4px 0 8px; font-size: 14px; line-height: 20px; color: var(--color-subtle, #54595d); }
+.mobile-watch-fields p:last-child { margin-bottom: 0; }
+</style>
+
+<style scoped>
+.mobile-summary-disclosure { position: relative; }
+.mobile-summary-disclosure__measure { position: absolute; inset-inline: 0; top: 0; visibility: hidden; pointer-events: none; white-space: nowrap; overflow: hidden; font-style: italic; font-weight: 400; }
+.mobile-summary-disclosure__plain { margin: 9px 0; font-style: italic; font-weight: 400; color: var(--color-subtle, #54595d); }
+.diff-preview--mobile-c .mobile-summary-disclosure__plain { margin: 0; }
+</style>
+
+<style scoped>
+.diff-preview--mobile-a .mobile-summary-disclosure,
+.diff-preview--mobile-a .mobile-empty-summary { padding-bottom: 12px; border-bottom: 1px solid var(--border-color-subtle, #c8ccd1); margin-bottom: 12px; }
+</style>
+
+<style scoped>
+:global(#mobile-watch-popover.cdx-popover--bottom-sheet) {
+  width: 100%;
+  max-width: none;
+  align-self: stretch;
+  margin-inline: 0;
+}
+:global(#mobile-watch-popover .cdx-popover__header),
+:global(#mobile-watch-popover .cdx-popover__body) {
+  padding-inline: 16px;
+}
+.mobile-watch-fields :deep(.cdx-select-vue),
+.mobile-watch-fields :deep(.cdx-select-vue__handle) {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
+}
+</style>
+
+<style scoped>
+/* Codex scroll locking reserves a scrollbar gutter; this mobile sheet is edge-to-edge. */
+:global(.cdx-popover__backdrop--bottom-sheet:has(#mobile-watch-popover)) {
+  width: auto !important;
+  inset-inline: 0 !important;
+}
+:global(#mobile-watch-popover.cdx-popover--bottom-sheet) {
+  width: 100%;
+}
 </style>

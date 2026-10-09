@@ -18,7 +18,7 @@ definePage({
 const props = defineProps<{ standalone?: boolean }>()
 const route = useRoute()
 const router = useRouter()
-const mobileVersion = computed(() => !props.standalone && route.query.version === 'B' ? 'B' : 'A')
+const mobileVersion = computed(() => !props.standalone && ['B', 'C'].includes(String(route.query.version)) ? route.query.version as 'B' | 'C' : 'A')
 
 const previewVariant = ref<'card' | 'toolbar' | 'simplified'>('toolbar')
 const dashboardRoute = localizedPrototypeRoute('/template-dashboard-mobile-watch')
@@ -102,7 +102,7 @@ function markRestored(title: string) {
     </header>
 
     <nav v-if="!props.standalone" class="mobile-version-switch" aria-label="Prototype version">
-      <CdxButton v-for="version in ['A', 'B']" :key="version" :aria-pressed="mobileVersion === version"
+      <CdxButton v-for="version in ['A', 'B', 'C']" :key="version" :aria-pressed="mobileVersion === version"
         :action="mobileVersion === version ? 'progressive' : 'default'"
         :weight="mobileVersion === version ? 'primary' : 'normal'"
         @click="router.replace({ query: { ...route.query, version } })">Version {{ version }}</CdxButton>
@@ -133,7 +133,7 @@ function markRestored(title: string) {
     </section>
     <div class="review-queue-footer">
       <CdxButton v-if="visibleChanges.length < queueChanges.length" @click="editLimit = Math.min(editLimit + 7, 20)">Show more changes</CdxButton>
-      <p v-else>{{ mobileVersion === 'A' ? 'There are currently no recommended changes for you to review. Check back later or explore all ' : 'There are no more changes for now. Check back later or explore ' }}<a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</p>
+      <p v-else>{{ mobileVersion !== 'B' ? 'There are currently no recommended changes for you to review. Check back later or explore all ' : 'There are no more changes for now. Check back later or explore ' }}<a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</p>
     </div>
     </template>
 
@@ -142,7 +142,7 @@ function markRestored(title: string) {
       :key="previewVariant"
       :change="selectedPreviewChange!"
       :mobile-version="mobileVersion"
-      :completion-toast="mobileVersion === 'A'"
+      :completion-toast="mobileVersion !== 'B'"
       :all-changes-opened="queueChanges.every(change => openedChanges.has(change.title))"
       :variant="previewVariant"
       :change-index="selectedChangeIndex ?? 0"

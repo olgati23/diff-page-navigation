@@ -1,5 +1,6 @@
 interface VisualDiffOptions {
   heading?: string | null
+  topPadding?: number
   showHeading?: boolean
   mobile?: boolean
   wikiHost?: string
@@ -142,7 +143,7 @@ export async function buildVisualDiffDocument(
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     html, body { margin: 0; color: #202122; background: ${background}; font: ${fontSize}/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Lato, Helvetica, Arial, sans-serif; }
-    main { padding: ${showHeading ? '0 16px 16px' : '16px'}; }
+    main { padding: ${showHeading ? '0 16px 16px' : `${options.topPadding ?? 16}px 16px 16px`}; }
     h2 { margin: 0 -16px 12px; padding: 12px 16px 0; ${headingBorder}
       color: #54595d; background: transparent; font-size: 14px; font-weight: 700; line-height: 1.5; }
     .ve-ui-diffElement { position: relative; }

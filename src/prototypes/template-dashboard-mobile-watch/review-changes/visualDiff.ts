@@ -1,6 +1,7 @@
 interface VisualDiffOptions {
   heading?: string | null
   showHeading?: boolean
+  headingDivider?: boolean
   mobile?: boolean
   wikiHost?: string
 }
@@ -138,7 +139,7 @@ export async function buildVisualDiffDocument(
     : ''
   const fontSize = options.mobile ? '16px' : '14px'
   const background = options.mobile ? '#fff' : '#f8f9fa'
-  const headingBorder = options.mobile ? 'border-top: 1px solid #c8ccd1;' : ''
+  const headingBorder = options.mobile && options.headingDivider !== false ? 'border-top: 1px solid #c8ccd1;' : ''
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     html, body { margin: 0; color: #202122; background: ${background}; font: ${fontSize}/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Lato, Helvetica, Arial, sans-serif; }

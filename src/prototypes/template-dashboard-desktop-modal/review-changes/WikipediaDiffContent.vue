@@ -9,6 +9,7 @@ import { buildVisualDiffDocument } from './visualDiff'
 const props = withDefaults(defineProps<{
   change: ReviewChange
   tall?: boolean
+  topPadding?: number
   showHeading?: boolean
   heightOffset?: number
 }>(), {
@@ -70,6 +71,7 @@ async function loadDiff(): Promise<void> {
     documentHtml.value = await buildVisualDiffDocument(markup, request.signal, {
       heading: firstChangedSection(markup),
       showHeading: props.showHeading,
+      topPadding: props.topPadding,
       wikiHost: props.change.wikiHost,
       mobile: true,
     })

@@ -15,7 +15,7 @@ definePage({
   },
 })
 
-const props = defineProps<{ standalone?: boolean }>()
+const props = defineProps<{ standalone?: boolean; watchToast?: boolean }>()
 const route = useRoute()
 const router = useRouter()
 const mobileVersion = computed(() => !props.standalone && ['B', 'C'].includes(String(route.query.version)) ? route.query.version as 'B' | 'C' : 'A')
@@ -142,6 +142,7 @@ function markRestored(title: string) {
       :key="previewVariant"
       :change="selectedPreviewChange!"
       :mobile-version="mobileVersion"
+      :watch-toast="props.watchToast"
       :completion-toast="mobileVersion !== 'B'"
       :all-changes-opened="queueChanges.every(change => openedChanges.has(change.title))"
       :variant="previewVariant"

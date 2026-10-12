@@ -61,7 +61,7 @@ definePage({
   },
 })
 
-const props = defineProps<{ standalone?: boolean; standaloneVersion?: 'B1' | 'B2'; thankExperiment?: 'panel' | 'sheet' | 'bar' }>()
+const props = defineProps<{ standalone?: boolean; watchToast?: boolean; standaloneVersion?: 'B1' | 'B2'; thankExperiment?: 'panel' | 'sheet' | 'bar' }>()
 const { pageTitle } = useConfig()
 const dashboardView: Skin = 'desktop'
 const isGermanPrototype = /-de(?:\/|$)/.test(window.location.pathname)
@@ -87,6 +87,22 @@ const watchedChanges = reactive(new Set<string>())
 const watchAnchor = ref(null)
 const watchFooterAnchor = ref(null)
 const watchPopoverOpen = ref(false)
+const watchToastVisible = ref(false)
+const watchSettingsOpen = ref(false)
+const draftWatchPeriod = ref('infinite')
+const draftWatchLabel = ref('')
+function editWatchSettings() {
+  watchToastVisible.value = false
+  watchPopoverOpen.value = false
+  draftWatchPeriod.value = watchPeriods[modalReviewChange.value.title] ?? 'infinite'
+  draftWatchLabel.value = watchLabels[modalReviewChange.value.title] ?? ''
+  watchSettingsOpen.value = true
+}
+function saveWatchSettings() {
+  watchPeriods[modalReviewChange.value.title] = draftWatchPeriod.value
+  watchLabels[modalReviewChange.value.title] = draftWatchLabel.value
+  watchSettingsOpen.value = false
+}
 const watchLabels = reactive<Record<string, string>>({})
 const watchPeriods = reactive<Record<string, string>>({})
 const watchPeriodOptions = [
@@ -100,6 +116,8 @@ function scheduleWatchDismiss() {
   watchDismissTimer = setTimeout(() => { watchPopoverOpen.value = false }, 8000)
 }
 function closeWatchPopover() {
+  watchSettingsOpen.value = false
+  watchToastVisible.value = false
   watchPopoverOpen.value = false
   pauseWatchDismiss()
 }
@@ -109,7 +127,8 @@ function toggleWatch(title: string) {
     watchedChanges.add(title)
     watchPeriods[title] = 'infinite'
   }
-  watchPopoverOpen.value = true
+  watchPopoverOpen.value = !props.watchToast
+  watchToastVisible.value = !!props.watchToast
   pauseWatchDismiss()
 }
 function setWatchPeriod(value: string | number) {
@@ -919,7 +938,22 @@ const impact = {
             :height-offset="germanMetadataWrapped ? 36 : 0"
           />
         </div>
-        <section v-if="inlineConfirmation" class="thank-experiment" :class="`thank-experiment--${props.thankExperiment || 'panel'}`" role="region" :aria-label="modalConfirmation === 'undo' ? 'Undo edit' : 'Publicly send Thanks'">
+        <section v-if="watchSettingsOpen" class="thank-experiment desktop-watch-settings" role="region" aria-label="Edit watch">
+          <strong>Edit watch</strong>
+          <CdxField>
+            <template #label>Watchlist time period:</template>
+            <CdxSelect v-model:selected="draftWatchPeriod" :menu-items="watchPeriodOptions" />
+          </CdxField>
+          <CdxField>
+            <template #label>Watchlist label:</template>
+            <CdxTextInput v-model="draftWatchLabel" placeholder="Add label…" />
+          </CdxField>
+          <div class="thank-experiment__actions">
+            <CdxButton @click="watchSettingsOpen = false">Cancel</CdxButton>
+            <CdxButton action="progressive" weight="primary" @click="saveWatchSettings">Save</CdxButton>
+          </div>
+        </section>
+        <section v-else-if="inlineConfirmation" class="thank-experiment" :class="`thank-experiment--${props.thankExperiment || 'panel'}`" role="region" :aria-label="modalConfirmation === 'undo' ? 'Undo edit' : 'Publicly send Thanks'">
           <template v-if="modalConfirmation === 'undo'">
             <strong>Undo edit</strong>
             <p>This will undo the change(s) shown in this revision. Please provide a reason for undoing the edit(s).</p>
@@ -935,11 +969,21 @@ const impact = {
             <CdxButton action="progressive" :weight="queueVersion === 'B2' ? 'normal' : 'primary'" @click="confirmModalAction">{{ modalConfirmation === 'undo' ? 'Undo' : 'Thank' }}</CdxButton>
           </div>
         </section>
-        <div v-show="!inlineConfirmation"
+        <div v-show="!inlineConfirmation && !watchSettingsOpen"
           class="desktop-review-dialog__footer"
           :class="{ 'desktop-review-dialog__footer--german': isGermanPrototype }"
         >
-        <div v-if="confirmationToast" class="desktop-review-dialog__confirmation">
+        <div v-if="watchToastVisible" class="desktop-review-dialog__confirmation watch-action-toast">
+          <CdxToast standalone render-in-place type="success" :auto-dismiss="false"
+            :action-button-label="watchedChanges.has(modalReviewChange.title) ? 'Edit watch' : ''"
+            @action-button-click="editWatchSettings"
+            @user-dismissed="watchToastVisible = false">
+            <template v-if="watchedChanges.has(modalReviewChange.title)"><strong>{{ modalReviewChange.title }}</strong> and its talk page have been added to your <a href="https://en.wikipedia.org/wiki/Special:Watchlist" target="_blank" rel="noopener noreferrer">watchlist</a>.
+            </template>
+            <template v-else>Removed <strong>{{ modalReviewChange.title }}</strong> from your <a href="https://en.wikipedia.org/wiki/Special:Watchlist" target="_blank" rel="noopener noreferrer">watchlist</a>.</template>
+          </CdxToast>
+        </div>
+        <div v-else-if="confirmationToast" class="desktop-review-dialog__confirmation">
           <CdxMessage :key="confirmationToast" :type="confirmationToastType" :auto-dismiss="8000" allow-user-dismiss
             :class="{ 'desktop-review-completion-toast': queueVersion === 'B2' && confirmationToast === completionTitle }"
             @auto-dismissed="clearConfirmationToast" @user-dismissed="clearConfirmationToast">
@@ -1778,4 +1822,23 @@ const impact = {
 <style scoped>
 .desktop-review-dialog--b1 .desktop-review-dialog__meta { padding-bottom: 0; }
 .desktop-review-dialog--b1 .desktop-b2-summary { padding-top: 4px; }
+</style>
+
+<style scoped>
+.watch-action-toast :deep(.cdx-toast) { position: relative; inset: auto; transform: none; width: 100%; max-width: none; }
+</style>
+
+<style scoped>
+.desktop-watch-settings .cdx-field { margin-top: 12px; }
+.desktop-watch-settings :deep(.cdx-select-vue),
+.desktop-watch-settings :deep(.cdx-select-vue__handle) { width: 100%; min-width: 0; max-width: none; }
+.desktop-watch-settings { max-height: 55vh; overflow-y: auto; }
+</style>
+
+<style scoped>
+.watch-action-toast :deep(.cdx-message__action-button) { margin-inline-start: 12px; }
+</style>
+
+<style scoped>
+.desktop-watch-settings :deep(.cdx-label__label__text) { font-weight: 400; }
 </style>

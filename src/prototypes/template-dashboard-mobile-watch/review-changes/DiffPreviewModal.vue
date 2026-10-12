@@ -5,6 +5,7 @@ import {
   CdxMenuButton,
   CdxPopover,
   CdxSelect,
+  CdxField,
   CdxTextInput,
   CdxIcon,
   CdxMessage,
@@ -42,6 +43,7 @@ const toolbarReviewIcon = '<circle cx="10" cy="10" r="8" fill="none" stroke="cur
 const filledUndoIcon = '<path d="m11.76 12.463-5.213 5.216a1 1 0 0 1-.394.242L1.91 19.335.64 18.076l1.413-4.243a1 1 0 0 1 .242-.39l5.222-5.222z"/><path d="m14.124 1.5-3 3H14a6 6 0 0 1 6 6V14h-2v-3.5a4 4 0 0 0-4-4h-2.876l3 3-1.414 1.414-4.707-4.707V4.793L12.71.086z"/>'
 
 const props = defineProps<{
+  watchToast?: boolean
   mobileVersion?: 'A' | 'B' | 'C'
   completionToast?: boolean
   allChangesOpened?: boolean
@@ -110,6 +112,7 @@ function selectOverflow(value: unknown) {
 }
 
 const watchOpen = ref(false)
+const watchToastVisible = ref(false)
 const watchLabels = reactive<Record<string, string>>({})
 const watchPeriods = reactive<Record<string, string>>({})
 const watchOptions = [
@@ -119,9 +122,10 @@ const watchOptions = [
 function toggleWatch() {
   if (watchPeriods[props.change.title]) delete watchPeriods[props.change.title]
   else watchPeriods[props.change.title] = 'infinite'
-  watchOpen.value = true
+  watchOpen.value = !props.watchToast
+  watchToastVisible.value = !!props.watchToast
 }
-watch(() => props.change.title, () => { watchOpen.value = false })
+watch(() => props.change.title, () => { watchOpen.value = false; watchToastVisible.value = false })
 function fullDifferenceUrl() {
   return `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(props.change.title)}${localeQuery()}`
 }
@@ -676,7 +680,17 @@ onBeforeUnmount(() => {
         class="diff-preview__toolbar"
         aria-label="Diff review actions"
       >
-        <div v-if="confirmationToast" class="mobile-toolbar-confirmation">
+        <div v-if="watchToastVisible" class="mobile-watch-toast">
+          <CdxToast standalone render-in-place type="success" :auto-dismiss="false"
+            :action-button-label="watchPeriods[props.change.title] ? 'Edit watch' : ''"
+            @action-button-click="watchToastVisible = false; watchOpen = true"
+            @user-dismissed="watchToastVisible = false">
+            <template v-if="watchPeriods[props.change.title]"><strong>{{ props.change.title }}</strong> and its talk page have been added to your <a href="https://en.wikipedia.org/wiki/Special:Watchlist" target="_blank" rel="noopener noreferrer">watchlist</a>.
+            </template>
+            <template v-else>Removed <strong>{{ props.change.title }}</strong> from your <a href="https://en.wikipedia.org/wiki/Special:Watchlist" target="_blank" rel="noopener noreferrer">watchlist</a>.</template>
+          </CdxToast>
+        </div>
+        <div v-if="confirmationToast && !watchToastVisible" class="mobile-toolbar-confirmation">
           <CdxToast
             standalone
             render-in-place
@@ -736,15 +750,27 @@ onBeforeUnmount(() => {
       <CdxPopover v-if="props.variant === 'toolbar'" id="mobile-watch-popover"
         v-model:open="watchOpen" :anchor="headerWatchAnchor" placement="bottom-end"
         use-bottom-sheet use-close-button
-        :title="watchPeriods[props.change.title] ? 'Added to watchlist' : 'Removed from watchlist'">
-        <template #header>
+        :title="props.watchToast ? 'Edit watch' : watchPeriods[props.change.title] ? 'Added to watchlist' : 'Removed from watchlist'">
+        <template v-if="!props.watchToast" #header>
           <div class="watch-confirmation-heading">
-            <CdxIcon :icon="cdxIconSuccess" class="watch-confirmation-icon" size="small" />
-            <p><a :href="`https://${props.change.wikiHost ?? 'en.wikipedia.org'}/wiki/${encodeURIComponent(props.change.title.replaceAll(' ', '_'))}`">{{ props.change.title }}</a> and its talk page have been {{ watchPeriods[props.change.title] ? 'added to' : 'removed from' }} your <a href="#" @click.prevent>watchlist</a>.</p>
+            <CdxIcon v-if="!props.watchToast" :icon="cdxIconSuccess" class="watch-confirmation-icon" size="small" />
+            <p v-if="props.watchToast">Edit watch</p>
+            <p v-else><a :href="`https://${props.change.wikiHost ?? 'en.wikipedia.org'}/wiki/${encodeURIComponent(props.change.title.replaceAll(' ', '_'))}`">{{ props.change.title }}</a> and its talk page have been {{ watchPeriods[props.change.title] ? 'added to' : 'removed from' }} your <a href="#" @click.prevent>watchlist</a>.</p>
             <CdxButton weight="quiet" :icon-only="true" aria-label="Close" @click="watchOpen = false"><CdxIcon :icon="cdxIconClose" /></CdxButton>
           </div>
         </template>
-        <div v-if="watchPeriods[props.change.title]" class="mobile-watch-fields">
+        <div v-if="watchPeriods[props.change.title] && props.watchToast" class="mobile-watch-fields mobile-watch-fields--toast">
+          <CdxField>
+            <template #label>Watchlist time period:</template>
+            <CdxSelect v-model:selected="watchPeriods[props.change.title]" :menu-items="watchOptions" />
+            <template #help-text>Change default time period in <a href="https://en.wikipedia.org/wiki/Special:Preferences#mw-prefsection-watchlist" target="_blank" rel="noopener noreferrer">preferences</a>.</template>
+          </CdxField>
+          <CdxField>
+            <template #label>Watchlist label:</template>
+            <CdxTextInput v-model="watchLabels[props.change.title]" placeholder="Add label…" />
+          </CdxField>
+        </div>
+        <div v-else-if="watchPeriods[props.change.title]" class="mobile-watch-fields">
           <label for="mobile-watch-period">Watchlist time period:</label>
           <CdxSelect id="mobile-watch-period" v-model:selected="watchPeriods[props.change.title]" :menu-items="watchOptions" />
           <p>Change default time period in <a href="https://en.wikipedia.org/wiki/Special:Preferences#mw-prefsection-watchlist" target="_blank" rel="noopener noreferrer">preferences</a>.</p>
@@ -1390,4 +1416,21 @@ onBeforeUnmount(() => {
   height: 32px;
   margin-bottom: 4px;
 }
+</style>
+
+<style scoped>
+.mobile-watch-toast { position: absolute; bottom: calc(100% + 8px); inset-inline: 16px; text-align: start; }
+</style>
+
+<style scoped>
+.mobile-watch-toast :deep(.cdx-toast) { position: relative; inset: auto; transform: none; width: 100%; max-width: none; }
+</style>
+
+<style scoped>
+.mobile-watch-toast :deep(.cdx-message__action-button) { margin-inline-start: 12px; }
+</style>
+
+<style scoped>
+.mobile-watch-fields--toast .cdx-field + .cdx-field { margin-top: 12px; }
+.mobile-watch-fields--toast :deep(.cdx-label__label__text) { font-weight: 400; }
 </style>

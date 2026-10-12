@@ -292,7 +292,7 @@ function adjacentReviewChange(direction: -1 | 1): ReviewChange | undefined {
   })
 }
 const modalConfirmation = ref<'undo' | 'thank' | null>(null)
-const inlineConfirmation = computed(() => !!modalConfirmation.value && (queueVersion.value === 'B2' || (!!props.thankExperiment && modalConfirmation.value === 'thank')))
+const inlineConfirmation = computed(() => !!modalConfirmation.value && (isBVersion.value || (!!props.thankExperiment && modalConfirmation.value === 'thank')))
 const modalUndoReason = ref('')
 
 watch(desktopReviewPresentation, () => {
@@ -1764,7 +1764,8 @@ const impact = {
 
 <style scoped>
 :global(.desktop-review-dialog--b1:not(.desktop-review-dialog--confirmation) .cdx-dialog__header) {
-  border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
+  padding-inline: 16px;
+  border-bottom: 0;
 }
 .desktop-review-dialog--b1 .desktop-b2-summary {
   margin-inline: 16px;
@@ -1772,4 +1773,9 @@ const impact = {
 }
 .desktop-review-dialog--b1 .desktop-b2-summary__measure { inset-inline: 0; }
 .desktop-review-dialog--b1 .desktop-review-dialog__meta { padding-inline: 16px; }
+</style>
+
+<style scoped>
+.desktop-review-dialog--b1 .desktop-review-dialog__meta { padding-bottom: 0; }
+.desktop-review-dialog--b1 .desktop-b2-summary { padding-top: 4px; }
 </style>

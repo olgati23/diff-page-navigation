@@ -213,7 +213,7 @@ async function loadWikipediaVisualDiff() {
     diffDocumentHtml.value = await buildVisualDiffDocument(
       comparisonMarkup,
       diffRequest.signal,
-      { heading: section, mobile: true, headingDivider: !(props.variant === 'toolbar' && props.mobileVersion !== 'B' && props.mobileVersion !== 'C'), wikiHost: props.change.wikiHost },
+      { heading: section, mobile: true, horizontalPadding: props.variant === 'toolbar' ? 0 : 16, headingDivider: !(props.variant === 'toolbar' && props.mobileVersion !== 'B' && props.mobileVersion !== 'C'), wikiHost: props.change.wikiHost },
     )
   } catch (error) {
     if ((error as Error).name !== 'AbortError') {
@@ -1377,5 +1377,17 @@ onBeforeUnmount(() => {
 }
 :global(#mobile-watch-popover.cdx-popover--bottom-sheet) {
   width: 100%;
+}
+</style>
+
+<style scoped>
+.diff-preview--mobile-a .diff-preview__article-heading { border-bottom: 0; }
+</style>
+
+<style scoped>
+.diff-preview--mobile-a .diff-preview__metadata {
+  flex: 0 0 32px;
+  height: 32px;
+  margin-bottom: 4px;
 }
 </style>

@@ -938,8 +938,8 @@ const impact = {
             :height-offset="germanMetadataWrapped ? 36 : 0"
           />
         </div>
-        <section v-if="watchSettingsOpen" class="thank-experiment desktop-watch-settings" role="region" aria-label="Edit watch">
-          <strong>Edit watch</strong>
+        <section v-if="watchSettingsOpen" class="thank-experiment desktop-watch-settings" role="region" aria-label="Customize">
+          <strong>Customize</strong>
           <CdxField>
             <template #label>Watchlist time period:</template>
             <CdxSelect v-model:selected="draftWatchPeriod" :menu-items="watchPeriodOptions" />
@@ -975,7 +975,7 @@ const impact = {
         >
         <div v-if="watchToastVisible" class="desktop-review-dialog__confirmation watch-action-toast">
           <CdxToast standalone render-in-place type="success" :auto-dismiss="false"
-            :action-button-label="watchedChanges.has(modalReviewChange.title) ? 'Edit watch' : ''"
+            :action-button-label="watchedChanges.has(modalReviewChange.title) ? 'Customize' : ''"
             @action-button-click="editWatchSettings"
             @user-dismissed="watchToastVisible = false">
             <template v-if="watchedChanges.has(modalReviewChange.title)"><strong>{{ modalReviewChange.title }}</strong> and its talk page have been added to your <a href="https://en.wikipedia.org/wiki/Special:Watchlist" target="_blank" rel="noopener noreferrer">watchlist</a>.

@@ -682,7 +682,7 @@ onBeforeUnmount(() => {
       >
         <div v-if="watchToastVisible" class="mobile-watch-toast">
           <CdxToast standalone render-in-place type="success" :auto-dismiss="false"
-            :action-button-label="watchPeriods[props.change.title] ? 'Edit watch' : ''"
+            :action-button-label="watchPeriods[props.change.title] ? 'Customize' : ''"
             @action-button-click="watchToastVisible = false; watchOpen = true"
             @user-dismissed="watchToastVisible = false">
             <template v-if="watchPeriods[props.change.title]"><strong>{{ props.change.title }}</strong> and its talk page have been added to your <a href="https://en.wikipedia.org/wiki/Special:Watchlist" target="_blank" rel="noopener noreferrer">watchlist</a>.
@@ -750,11 +750,11 @@ onBeforeUnmount(() => {
       <CdxPopover v-if="props.variant === 'toolbar'" id="mobile-watch-popover"
         v-model:open="watchOpen" :anchor="headerWatchAnchor" placement="bottom-end"
         use-bottom-sheet use-close-button
-        :title="props.watchToast ? 'Edit watch' : watchPeriods[props.change.title] ? 'Added to watchlist' : 'Removed from watchlist'">
+        :title="props.watchToast ? 'Customize' : watchPeriods[props.change.title] ? 'Added to watchlist' : 'Removed from watchlist'">
         <template v-if="!props.watchToast" #header>
           <div class="watch-confirmation-heading">
             <CdxIcon v-if="!props.watchToast" :icon="cdxIconSuccess" class="watch-confirmation-icon" size="small" />
-            <p v-if="props.watchToast">Edit watch</p>
+            <p v-if="props.watchToast">Customize</p>
             <p v-else><a :href="`https://${props.change.wikiHost ?? 'en.wikipedia.org'}/wiki/${encodeURIComponent(props.change.title.replaceAll(' ', '_'))}`">{{ props.change.title }}</a> and its talk page have been {{ watchPeriods[props.change.title] ? 'added to' : 'removed from' }} your <a href="#" @click.prevent>watchlist</a>.</p>
             <CdxButton weight="quiet" :icon-only="true" aria-label="Close" @click="watchOpen = false"><CdxIcon :icon="cdxIconClose" /></CdxButton>
           </div>

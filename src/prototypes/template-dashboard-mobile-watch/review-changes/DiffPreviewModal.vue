@@ -129,8 +129,8 @@ const watchOptions = [
 function toggleWatch() {
   if (watchPeriods[props.change.title]) { previousWatchPeriods[props.change.title] = watchPeriods[props.change.title]; delete watchPeriods[props.change.title] }
   else watchPeriods[props.change.title] = 'infinite'
-  watchOpen.value = !props.watchToast
-  watchToastVisible.value = !!props.watchToast
+  watchOpen.value = true
+  watchToastVisible.value = false
 }
 watch(() => props.change.title, () => { watchOpen.value = false; watchToastVisible.value = false })
 function fullDifferenceUrl() {
@@ -761,27 +761,15 @@ onBeforeUnmount(() => {
       <CdxPopover v-if="props.variant === 'toolbar'" id="mobile-watch-popover"
         v-model:open="watchOpen" :anchor="headerWatchAnchor" placement="bottom-end"
         use-bottom-sheet use-close-button
-        :title="props.watchToast ? 'Customize' : watchPeriods[props.change.title] ? 'Added to watchlist' : 'Removed from watchlist'">
-        <template v-if="!props.watchToast" #header>
+        :title="watchPeriods[props.change.title] ? 'Added to watchlist' : 'Removed from watchlist'">
+        <template #header>
           <div class="watch-confirmation-heading">
-            <CdxIcon v-if="!props.watchToast" :icon="cdxIconSuccess" class="watch-confirmation-icon" size="small" />
-            <p v-if="props.watchToast">Customize</p>
-            <p v-else>"<a :href="`https://${props.change.wikiHost ?? 'en.wikipedia.org'}/wiki/${encodeURIComponent(props.change.title.replaceAll(' ', '_'))}`">{{ props.change.title }}</a>" and its discussion page have been {{ watchPeriods[props.change.title] ? 'added to' : 'removed from' }} your <a href="https://en.wikipedia.org/wiki/Special:Watchlist" target="_blank" rel="noopener noreferrer">watchlist</a><template v-if="watchPeriods[props.change.title]"> permanently</template>.</p>
+            <CdxIcon :icon="cdxIconSuccess" class="watch-confirmation-icon" size="small" />
+            <p>"<a :href="`https://${props.change.wikiHost ?? 'en.wikipedia.org'}/wiki/${encodeURIComponent(props.change.title.replaceAll(' ', '_'))}`">{{ props.change.title }}</a>" and its discussion page have been {{ watchPeriods[props.change.title] ? 'added to' : 'removed from' }} your <a href="https://en.wikipedia.org/wiki/Special:Watchlist" target="_blank" rel="noopener noreferrer">watchlist</a><template v-if="watchPeriods[props.change.title]"> permanently</template>.</p>
             <CdxButton weight="quiet" :icon-only="true" aria-label="Close" @click="watchOpen = false"><CdxIcon :icon="cdxIconClose" /></CdxButton>
           </div>
         </template>
-        <div v-if="watchPeriods[props.change.title] && props.watchToast" class="mobile-watch-fields mobile-watch-fields--toast">
-          <CdxField>
-            <template #label>Watchlist time period:</template>
-            <CdxSelect v-model:selected="watchPeriods[props.change.title]" :menu-items="watchOptions" />
-            <template #help-text>Change default time period in <a href="https://en.wikipedia.org/wiki/Special:Preferences#mw-prefsection-watchlist" target="_blank" rel="noopener noreferrer">preferences</a>.</template>
-          </CdxField>
-          <CdxField>
-            <template #label>Watchlist label:</template>
-            <CdxTextInput v-model="watchLabels[props.change.title]" placeholder="Add label…" />
-          </CdxField>
-        </div>
-        <div v-else-if="watchPeriods[props.change.title]" class="mobile-watch-fields mobile-watch-fields--default">
+        <div v-if="watchPeriods[props.change.title]" class="mobile-watch-fields mobile-watch-fields--default">
           <label for="mobile-watch-period">Watchlist time period:</label>
           <CdxSelect id="mobile-watch-period" v-model:selected="watchPeriods[props.change.title]" :menu-items="watchOptions" />
           <p>You can change the default expiry in your <a href="https://en.wikipedia.org/wiki/Special:Preferences#mw-prefsection-watchlist" target="_blank" rel="noopener noreferrer">watchlist preferences</a>.</p>
@@ -789,7 +777,7 @@ onBeforeUnmount(() => {
           <CdxTextInput id="mobile-watch-label" model-value="" placeholder="No labels yet" readonly />
           <p>Create a new label in <a href="https://en.wikipedia.org/wiki/Special:EditWatchlist" target="_blank" rel="noopener noreferrer">manage labels</a>.</p>
         </div>
-        <CdxButton v-else-if="!props.watchToast" action="progressive" @click="watchPeriods[props.change.title] = previousWatchPeriods[props.change.title] ?? 'infinite'"><CdxIcon :icon="cdxIconEditUndo" />Undo</CdxButton>
+        <CdxButton v-else action="progressive" @click="watchPeriods[props.change.title] = previousWatchPeriods[props.change.title] ?? 'infinite'"><CdxIcon :icon="cdxIconEditUndo" />Undo</CdxButton>
       </CdxPopover>
     </section>
     <UndoConfirmationDialog

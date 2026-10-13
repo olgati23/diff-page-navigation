@@ -130,8 +130,8 @@ function toggleWatch(title: string) {
     watchedChanges.add(title)
     watchPeriods[title] = 'infinite'
   }
-  watchPopoverOpen.value = !props.watchToast
-  watchToastVisible.value = !!props.watchToast
+  watchPopoverOpen.value = true
+  watchToastVisible.value = false
   pauseWatchDismiss()
 }
 function setWatchPeriod(value: string | number) {
@@ -908,7 +908,7 @@ const impact = {
           </div>
         </div>
           <CdxPopover id="watch-page-popover" v-model:open="watchPopoverOpen"
-            :class="{ 'watch-popover--default-design': !props.watchToast }"
+            class="watch-popover--default-design"
             :anchor="watchInFooter ? watchFooterAnchor : watchAnchor" :placement="watchInFooter ? 'top-end' : 'bottom-end'" render-in-place
             :title="watchedChanges.has(modalReviewChange.title) ? 'Added to watchlist' : 'Removed from watchlist'"
             use-close-button close-button-label="Close watchlist popover">

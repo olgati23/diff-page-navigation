@@ -14,7 +14,9 @@ import {
 } from '@wikimedia/codex'
 import {
   cdxIconStar,
+  cdxIconEditUndo,
   cdxIconEllipsis,
+  cdxIconConfigure,
   cdxIconLinkExternal,
   cdxIconUnStar,
   cdxIconHalfStar,
@@ -29,8 +31,9 @@ import {
   cdxIconPrevious,
   cdxIconUserAvatar,
 } from '@wikimedia/codex-icons'
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, inject } from 'vue'
 
+import { customizeDiffKey } from '../../review-changes/customizeDiff'
 import { wikimediaApiFetchHeaders } from '@/config'
 import { RouterLink } from 'vue-router'
 import { localeQuery } from '../../prototypeLocale'
@@ -102,11 +105,14 @@ function nextChange() {
 
 const headerWatchAnchor = ref(null)
 const overflowSelection = ref(null)
+const customizeDiff = inject(customizeDiffKey, null)
 const overflowItems = computed(() => [
   { value: 'watch', label: watchPeriods[props.change.title] ? 'Unwatch' : 'Watch', icon: watchPeriods[props.change.title] ? cdxIconUnStar : cdxIconStar },
   { value: 'full', label: 'Full difference', icon: cdxIconLinkExternal, url: fullDifferenceUrl(), urlNewTab: true },
+  ...(customizeDiff ? [{ value: 'customize', label: 'Customize preview', icon: cdxIconConfigure }] : []),
 ])
 function selectOverflow(value: unknown) {
+  if (value === 'customize') { emit('close'); customizeDiff?.() }
   if (value === 'watch') toggleWatch()
   overflowSelection.value = null
 }
@@ -114,13 +120,14 @@ function selectOverflow(value: unknown) {
 const watchOpen = ref(false)
 const watchToastVisible = ref(false)
 const watchLabels = reactive<Record<string, string>>({})
+const previousWatchPeriods = reactive<Record<string, string>>({})
 const watchPeriods = reactive<Record<string, string>>({})
 const watchOptions = [
   { value: 'infinite', label: 'Permanent' },
   ...['1 week', '1 month', '3 months', '6 months', '1 year'].map(value => ({ value, label: value })),
 ]
 function toggleWatch() {
-  if (watchPeriods[props.change.title]) delete watchPeriods[props.change.title]
+  if (watchPeriods[props.change.title]) { previousWatchPeriods[props.change.title] = watchPeriods[props.change.title]; delete watchPeriods[props.change.title] }
   else watchPeriods[props.change.title] = 'infinite'
   watchOpen.value = !props.watchToast
   watchToastVisible.value = !!props.watchToast
@@ -217,7 +224,7 @@ async function loadWikipediaVisualDiff() {
     diffDocumentHtml.value = await buildVisualDiffDocument(
       comparisonMarkup,
       diffRequest.signal,
-      { heading: section, mobile: true, horizontalPadding: props.variant === 'toolbar' ? 0 : 16, headingDivider: !(props.variant === 'toolbar' && props.mobileVersion !== 'B' && props.mobileVersion !== 'C'), wikiHost: props.change.wikiHost },
+      { heading: section, mobile: true, topPadding: props.watchToast ? 0 : undefined, horizontalPadding: props.variant === 'toolbar' ? 0 : 16, headingDivider: !(props.variant === 'toolbar' && props.mobileVersion !== 'B' && props.mobileVersion !== 'C'), wikiHost: props.change.wikiHost },
     )
   } catch (error) {
     if ((error as Error).name !== 'AbortError') {
@@ -436,6 +443,7 @@ onBeforeUnmount(() => {
       class="diff-preview"
       :class="{
         'diff-preview--page': props.page,
+        'diff-preview--data': props.watchToast,
         'diff-preview--mobile-c': compactPreviewMetadata,
         'diff-preview--mobile-a': props.variant === 'toolbar' && props.mobileVersion !== 'B' && props.mobileVersion !== 'C',
         'diff-preview--complete': props.complete,
@@ -458,6 +466,7 @@ onBeforeUnmount(() => {
           <CdxIcon :icon="cdxIconArrowPrevious" />
         </CdxButton>
         <strong id="diff-preview-title">Difference</strong>
+        <CdxMenuButton v-if="props.watchToast && !props.complete" ref="headerWatchAnchor" v-model:selected="overflowSelection" :menu-items="overflowItems" weight="quiet" class="data-header-menu" aria-label="More options" @update:selected="selectOverflow"><CdxIcon :icon="cdxIconEllipsis" /></CdxMenuButton>
         <CdxButton
           v-if="!props.page"
           class="diff-preview__close"
@@ -485,7 +494,8 @@ onBeforeUnmount(() => {
       >
         <div class="diff-preview__article-heading">
           <h1>{{ props.change.title }}</h1>
-          <p v-if="props.variant === 'toolbar'">
+          <p v-if="props.watchToast && props.change.description">{{ props.change.description }}</p>
+          <p v-else-if="props.variant === 'toolbar' && !props.watchToast">
             {{ compactPreviewMetadata ? props.change.revisionDate.replace(/^(.*),\s*(\d{1,2}:\d{2})$/, '$2, $1') : props.change.revisionDate + ' (UTC)' }}
           </p>
           <p v-if="props.variant !== 'toolbar'">Difference between revisions</p>
@@ -577,10 +587,11 @@ onBeforeUnmount(() => {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <CdxIcon :icon="cdxIconUserAvatar" size="small" aria-hidden="true" />
+            <CdxIcon v-if="!props.watchToast" :icon="cdxIconUserAvatar" size="small" aria-hidden="true" />
             {{ props.change.editor }}
           </a>
-          <CdxMenuButton v-if="compactPreviewMetadata" ref="headerWatchAnchor"
+          <span v-if="props.watchToast" class="data-revision-date">{{ props.change.revisionDate.replace(/^(.*),\s*(\d{1,2}:\d{2})$/, '$2, $1') }}</span>
+          <CdxMenuButton v-else-if="compactPreviewMetadata" ref="headerWatchAnchor"
             v-model:selected="overflowSelection" :menu-items="overflowItems" weight="quiet"
             class="mobile-overflow-menu" aria-label="More options" @update:selected="selectOverflow">
             <CdxIcon :icon="cdxIconEllipsis" />
@@ -755,7 +766,7 @@ onBeforeUnmount(() => {
           <div class="watch-confirmation-heading">
             <CdxIcon v-if="!props.watchToast" :icon="cdxIconSuccess" class="watch-confirmation-icon" size="small" />
             <p v-if="props.watchToast">Customize</p>
-            <p v-else><a :href="`https://${props.change.wikiHost ?? 'en.wikipedia.org'}/wiki/${encodeURIComponent(props.change.title.replaceAll(' ', '_'))}`">{{ props.change.title }}</a> and its talk page have been {{ watchPeriods[props.change.title] ? 'added to' : 'removed from' }} your <a href="#" @click.prevent>watchlist</a>.</p>
+            <p v-else>"<a :href="`https://${props.change.wikiHost ?? 'en.wikipedia.org'}/wiki/${encodeURIComponent(props.change.title.replaceAll(' ', '_'))}`">{{ props.change.title }}</a>" and its discussion page have been {{ watchPeriods[props.change.title] ? 'added to' : 'removed from' }} your <a href="https://en.wikipedia.org/wiki/Special:Watchlist" target="_blank" rel="noopener noreferrer">watchlist</a><template v-if="watchPeriods[props.change.title]"> permanently</template>.</p>
             <CdxButton weight="quiet" :icon-only="true" aria-label="Close" @click="watchOpen = false"><CdxIcon :icon="cdxIconClose" /></CdxButton>
           </div>
         </template>
@@ -770,15 +781,15 @@ onBeforeUnmount(() => {
             <CdxTextInput v-model="watchLabels[props.change.title]" placeholder="Add label…" />
           </CdxField>
         </div>
-        <div v-else-if="watchPeriods[props.change.title]" class="mobile-watch-fields">
+        <div v-else-if="watchPeriods[props.change.title]" class="mobile-watch-fields mobile-watch-fields--default">
           <label for="mobile-watch-period">Watchlist time period:</label>
           <CdxSelect id="mobile-watch-period" v-model:selected="watchPeriods[props.change.title]" :menu-items="watchOptions" />
-          <p>Change default time period in <a href="https://en.wikipedia.org/wiki/Special:Preferences#mw-prefsection-watchlist" target="_blank" rel="noopener noreferrer">preferences</a>.</p>
-          <label for="mobile-watch-label">Watchlist label:</label>
-          <CdxTextInput v-if="props.mobileVersion !== 'B' && props.mobileVersion !== 'C'" id="mobile-watch-label" v-model="watchLabels[props.change.title]" placeholder="Add label…" />
-          <CdxTextInput v-else id="mobile-watch-label" model-value="" placeholder="No label exists" readonly />
-          <p v-if="props.mobileVersion === 'B' || props.mobileVersion === 'C'">Create a new label in <a href="https://en.wikipedia.org/wiki/Special:EditWatchlist" target="_blank" rel="noopener noreferrer">manage labels</a>.</p>
+          <p>You can change the default expiry in your <a href="https://en.wikipedia.org/wiki/Special:Preferences#mw-prefsection-watchlist" target="_blank" rel="noopener noreferrer">watchlist preferences</a>.</p>
+          <label for="mobile-watch-label">Watchlist labels:</label>
+          <CdxTextInput id="mobile-watch-label" model-value="" placeholder="No labels yet" readonly />
+          <p>Create a new label in <a href="https://en.wikipedia.org/wiki/Special:EditWatchlist" target="_blank" rel="noopener noreferrer">manage labels</a>.</p>
         </div>
+        <CdxButton v-else-if="!props.watchToast" action="progressive" @click="watchPeriods[props.change.title] = previousWatchPeriods[props.change.title] ?? 'infinite'"><CdxIcon :icon="cdxIconEditUndo" />Undo</CdxButton>
       </CdxPopover>
     </section>
     <UndoConfirmationDialog
@@ -1433,4 +1444,20 @@ onBeforeUnmount(() => {
 <style scoped>
 .mobile-watch-fields--toast .cdx-field + .cdx-field { margin-top: 12px; }
 .mobile-watch-fields--toast :deep(.cdx-label__label__text) { font-weight: 400; }
+</style>
+
+<style scoped>
+.watch-confirmation-heading p { font-weight: 400; }
+.mobile-watch-fields--default label { margin-bottom: 8px; }
+.mobile-watch-fields--default p { margin: 4px 0 20px; }
+.mobile-watch-fields--default p:last-child { margin-bottom: 0; }
+</style>
+
+<style scoped>
+.diff-preview--data .diff-preview__header { position: relative; }
+.data-header-menu { position: absolute; inset-inline-end: 8px; top: 6px; }
+.diff-preview--data .diff-preview__article-heading { border-bottom: 1px solid var(--border-color-subtle, #c8ccd1); margin-bottom: 12px; }
+.diff-preview--data .diff-preview__metadata { gap: 8px; }
+.data-revision-date { margin-inline-start: auto; font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); font-weight: 400; color: var(--color-subtle, #54595d); text-align: end; }
+.diff-preview--data .mobile-summary-disclosure, .diff-preview--data .mobile-empty-summary { border-bottom: 0; padding-bottom: 0; margin-bottom: 16px; }
 </style>

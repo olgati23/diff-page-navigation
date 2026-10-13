@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { CdxButton, CdxIcon } from '@wikimedia/codex'
-import { cdxIconArrowPrevious, cdxIconEllipsis, cdxIconUserAvatar } from '@wikimedia/codex-icons'
+import { CdxButton, CdxIcon, CdxMenuButton } from '@wikimedia/codex'
+import { cdxIconArrowPrevious, cdxIconEllipsis, cdxIconConfigure, cdxIconUserAvatar } from '@wikimedia/codex-icons'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, inject } from 'vue'
 
 import { reviewChanges, type ReviewChange } from '../reviewChanges'
+import { customizeDiffKey } from '../../review-changes/customizeDiff'
 import DiffPreviewModal from './DiffPreviewModal.vue'
 import { localizedPrototypeRoute } from '../../prototypeLocale'
 
@@ -15,7 +16,7 @@ definePage({
   },
 })
 
-const props = defineProps<{ standalone?: boolean; watchToast?: boolean }>()
+const props = defineProps<{ standalone?: boolean; customChanges?: ReviewChange[]; watchToast?: boolean }>()
 const route = useRoute()
 const router = useRouter()
 const mobileVersion = computed(() => !props.standalone && ['B', 'C'].includes(String(route.query.version)) ? route.query.version as 'B' | 'C' : 'A')
@@ -23,7 +24,9 @@ const mobileVersion = computed(() => !props.standalone && ['B', 'C'].includes(St
 const previewVariant = ref<'card' | 'toolbar' | 'simplified'>('toolbar')
 const dashboardRoute = localizedPrototypeRoute('/template-dashboard-mobile-watch')
 const editLimit = ref(7)
-const queueChanges = reviewChanges.slice(0, 20)
+const queueChanges = (props.customChanges ?? reviewChanges).slice(0, props.customChanges ? 10 : 20)
+const customizeDiff = inject(customizeDiffKey, null)
+const customizeSelection = ref(null)
 const visibleChanges = computed(() => queueChanges.slice(0, editLimit.value))
 const openedChanges = ref(new Set<string>())
 const queueComplete = ref(false)
@@ -98,7 +101,8 @@ function markRestored(title: string) {
         <CdxIcon :icon="cdxIconArrowPrevious" />
       </RouterLink>
       <h1 class="review-changes-page__title">Review changes</h1>
-      <CdxIcon :icon="cdxIconEllipsis" aria-label="More options" />
+      <CdxMenuButton v-if="customizeDiff" v-model:selected="customizeSelection" :menu-items="[{ value: 'customize', label: 'Customize preview', icon: cdxIconConfigure }]" weight="quiet" aria-label="More options" @update:selected="customizeSelection = null; customizeDiff()"><CdxIcon :icon="cdxIconEllipsis" /></CdxMenuButton>
+      <CdxIcon v-else :icon="cdxIconEllipsis" aria-label="More options" />
     </header>
 
     <nav v-if="!props.standalone" class="mobile-version-switch" aria-label="Prototype version">

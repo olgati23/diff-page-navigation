@@ -22,6 +22,7 @@ import {
   cdxIconUnStar,
   cdxIconReload,
   cdxIconEllipsis,
+  cdxIconConfigure,
   cdxIconLinkExternal,
   cdxIconPushPin,
   cdxIconEdit,
@@ -35,8 +36,9 @@ import {
   cdxIconUserAvatar,
   cdxIconUserTalk,
 } from '@wikimedia/codex-icons'
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, inject } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { customizeDiffKey } from '../review-changes/customizeDiff'
 import ReviewEditCard from './ReviewEditCard.vue'
 
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
@@ -61,7 +63,7 @@ definePage({
   },
 })
 
-const props = defineProps<{ standalone?: boolean; watchToast?: boolean; standaloneVersion?: 'B1' | 'B2'; thankExperiment?: 'panel' | 'sheet' | 'bar' }>()
+const props = defineProps<{ standalone?: boolean; customChanges?: ReviewChange[]; watchToast?: boolean; standaloneVersion?: 'B1' | 'B2'; thankExperiment?: 'panel' | 'sheet' | 'bar' }>()
 const { pageTitle } = useConfig()
 const dashboardView: Skin = 'desktop'
 const isGermanPrototype = /-de(?:\/|$)/.test(window.location.pathname)
@@ -76,6 +78,7 @@ const desktopReviewPresentation = ref('modal')
 const modalReviewIndex = ref<number | null>(null)
 const modalQueueComplete = ref(false)
 const b2CompletionShown = ref(false)
+const useCompletionToast = computed(() => props.standalone || queueVersion.value === 'B2')
 const undoDialogOpen = ref(false)
 const thankDialogOpen = ref(false)
 const b2ThanksConfirmedKey = 'desktop-b2-thanks-confirmed'
@@ -144,8 +147,10 @@ const queueVersion = computed<'A' | 'B1' | 'B2' | 'C'>(() => props.standalone ? 
 const isBVersion = computed(() => queueVersion.value === 'B1' || queueVersion.value === 'B2')
 const watchInFooter = computed(() => queueVersion.value === 'A')
 const completionIllustration = `${import.meta.env.BASE_URL}images/review-complete.svg`
-const MAX_EDITS = 20
-const reviewChanges = sourceReviewChanges.slice(0, MAX_EDITS)
+const customizeDiff = inject(customizeDiffKey, null)
+const customizeSelection = ref(null)
+const MAX_EDITS = props.customChanges ? 10 : 20
+const reviewChanges = (props.customChanges ?? sourceReviewChanges).slice(0, MAX_EDITS)
 const dashboardPath = '/template-dashboard-desktop-modal'
 const showAllEdits = computed(() => props.standalone || route.path.replace(/\/$/, '').endsWith('/all-review-changes') || route.query.view === 'all')
 const createQueueState = () => ({ seen: new Set<string>(), reviewed: new Set<string>(), thanked: new Set<string>(), undone: new Set<string>(), completed: new Set<string>(), limit: 7 })
@@ -157,7 +162,7 @@ function readRetiredEdits(): Set<string> {
     return new Set(Array.isArray(saved) ? saved.filter(value => typeof value === 'string') : [])
   } catch { return new Set() }
 }
-const retiredBEdits = ref(readRetiredEdits())
+const retiredBEdits = ref(props.customChanges ? new Set<string>() : readRetiredEdits())
 const cStorageKey = 'protowiki-desktop-review-c-v1'
 function readCState() {
   try { return JSON.parse(sessionStorage.getItem(cStorageKey) ?? '{}') } catch { return {} }
@@ -356,8 +361,10 @@ const b1MenuSelection = ref(null)
 const b1MenuItems = computed(() => [
   { value: 'watch', label: watchedChanges.has(modalReviewChange.value.title) ? 'Unwatch' : 'Watch', icon: watchedChanges.has(modalReviewChange.value.title) ? cdxIconUnStar : cdxIconStar },
   { value: 'full', label: 'Full difference', icon: cdxIconLinkExternal, url: fullDiffUrl(modalReviewChange.value), urlNewTab: true },
+  ...(customizeDiff ? [{ value: 'customize', label: 'Customize preview', icon: cdxIconConfigure }] : []),
 ])
 function selectB1Menu(value: unknown) {
+  if (value === 'customize') { updateReviewModalOpen(false); customizeDiff?.() }
   if (value === 'watch') toggleWatch(modalReviewChange.value.title)
   b1MenuSelection.value = null
 }
@@ -395,7 +402,7 @@ function moveReviewModal(direction: -1 | 1): void {
   else if (direction === 1) {
     closeWatchPopover()
     clearConfirmationToast()
-    if (queueVersion.value === 'B2') {
+    if (useCompletionToast.value) {
       b2CompletionShown.value = true
       confirmationToastType.value = 'success'
       confirmationToast.value = completionTitle.value
@@ -574,7 +581,8 @@ const impact = {
           <header id="review-changes" class="all-review-heading">
             <CdxButton v-if="!props.standalone" weight="quiet" :icon-only="true" aria-label="Back to dashboard" @click="returnToDashboard"><CdxIcon :icon="cdxIconPrevious" /></CdxButton>
             <h2>Review changes</h2>
-            <CdxIcon v-if="props.standalone" class="queue-more-icon" :icon="cdxIconEllipsis" aria-label="More options" />
+            <CdxMenuButton v-if="customizeDiff" class="queue-more-menu" v-model:selected="customizeSelection" :menu-items="[{ value: 'customize', label: 'Customize preview', icon: cdxIconConfigure }]" weight="quiet" aria-label="More options" @update:selected="customizeSelection = null; customizeDiff()"><CdxIcon :icon="cdxIconEllipsis" /></CdxMenuButton>
+            <CdxIcon v-else-if="props.standalone" class="queue-more-icon" :icon="cdxIconEllipsis" aria-label="More options" />
             <CdxButton v-if="queueVersion === 'C'" class="queue-refresh-button" weight="quiet" :action="queueVersion === 'C' ? 'progressive' : 'default'" :icon-only="queueVersion !== 'C'"
               aria-label="Refresh edits" title="Refresh edits" @click="requestBQueueRefresh">
               <CdxIcon :icon="cdxIconReload" />
@@ -786,9 +794,18 @@ const impact = {
           'desktop-review-dialog--german': isGermanPrototype,
           'desktop-review-dialog--b2': queueVersion === 'B2',
           'desktop-review-dialog--b1': queueVersion === 'B1',
+          'desktop-review-dialog--data': props.watchToast,
         }"
         @update:open="updateReviewModalOpen"
       >
+        <template v-if="props.watchToast && !modalQueueComplete" #header>
+          <div class="data-dialog-heading">
+            <h2>Difference: {{ modalReviewChange.title }}</h2>
+            <CdxMenuButton ref="watchAnchor" v-model:selected="b1MenuSelection" :menu-items="b1MenuItems" weight="quiet" aria-label="More options" class="desktop-b1-menu" @update:selected="selectB1Menu"><CdxIcon :icon="cdxIconEllipsis" /></CdxMenuButton>
+            <CdxButton weight="quiet" :icon-only="true" aria-label="Close" @click="updateReviewModalOpen(false)"><CdxIcon :icon="cdxIconClose" /></CdxButton>
+          </div>
+          <p v-if="modalReviewChange.description" class="data-dialog-description">{{ modalReviewChange.description }}</p>
+        </template>
         <template v-if="modalQueueComplete">
         <section class="desktop-review-dialog__complete" :class="{ 'desktop-review-dialog__complete--illustrated': isBVersion }" role="status">
           <template v-if="isBVersion">
@@ -842,6 +859,7 @@ const impact = {
           </div>
         </template>
         <template v-else>
+        <div :key="modalReviewIndex" class="desktop-review-dialog__scroll-content">
         <div
           class="desktop-review-dialog__meta"
           :class="{ 'desktop-review-dialog__meta--german': isGermanPrototype }"
@@ -853,10 +871,10 @@ const impact = {
               rel="noopener noreferrer"
               class="desktop-review-dialog__user"
             >
-              <CdxIcon :icon="cdxIconUserAvatar" size="small" />
+              <CdxIcon v-if="!props.watchToast" :icon="cdxIconUserAvatar" size="small" />
               {{ modalReviewChange.editor }}
             </a>
-            <span aria-hidden="true">(</span>
+            <template v-if="!props.watchToast"><span aria-hidden="true">(</span>
             <span class="desktop-review-dialog__secondary-user-link">
               {{ isGermanPrototype ? 'Diskussion' : isThaiPrototype ? 'อภิปราย' : isHebrewPrototype ? 'שיחה' : 'talk' }}
             </span>
@@ -864,9 +882,9 @@ const impact = {
             <span class="desktop-review-dialog__secondary-user-link">
               {{ isGermanPrototype ? 'Beiträge' : isThaiPrototype ? 'เรื่องที่เขียน' : isHebrewPrototype ? 'תרומות' : 'contribs' }}
             </span>
-            <span aria-hidden="true">)</span>
+            <span aria-hidden="true">)</span></template>
           </div>
-          <span v-if="queueVersion === 'B2'" class="desktop-b2-date">{{ modalRevisionDate }}</span>
+          <span v-if="queueVersion === 'B2' || props.watchToast" class="desktop-b2-date">{{ modalRevisionDate }}</span>
           <CdxMenuButton v-else-if="queueVersion === 'B1'" ref="watchAnchor" v-model:selected="b1MenuSelection" :menu-items="b1MenuItems" weight="quiet" aria-label="More options" class="desktop-b1-menu" @update:selected="selectB1Menu">
             <CdxIcon :icon="cdxIconEllipsis" />
           </CdxMenuButton>
@@ -890,24 +908,26 @@ const impact = {
           </div>
         </div>
           <CdxPopover id="watch-page-popover" v-model:open="watchPopoverOpen"
-            :class="{ 'watch-popover--menu-aligned': queueVersion === 'B1' }"
+            :class="{ 'watch-popover--default-design': !props.watchToast }"
             :anchor="watchInFooter ? watchFooterAnchor : watchAnchor" :placement="watchInFooter ? 'top-end' : 'bottom-end'" render-in-place
             :title="watchedChanges.has(modalReviewChange.title) ? 'Added to watchlist' : 'Removed from watchlist'"
             use-close-button close-button-label="Close watchlist popover">
             <template #header>
               <div class="desktop-watch-heading">
                 <CdxIcon :icon="cdxIconSuccess" size="small" />
-                <p><a :href="`https://${modalReviewChange.wikiHost ?? 'en.wikipedia.org'}/wiki/${encodeURIComponent(modalReviewChange.title.replaceAll(' ', '_'))}`">{{ modalReviewChange.title }}</a> and its talk page have been {{ watchedChanges.has(modalReviewChange.title) ? 'added to' : 'removed from' }} your <a href="#" @click.prevent>watchlist</a>.</p>
+                <p>"<a :href="`https://${modalReviewChange.wikiHost ?? 'en.wikipedia.org'}/wiki/${encodeURIComponent(modalReviewChange.title.replaceAll(' ', '_'))}`">{{ modalReviewChange.title }}</a>" and its discussion page have been {{ watchedChanges.has(modalReviewChange.title) ? 'added to' : 'removed from' }} your <a href="https://en.wikipedia.org/wiki/Special:Watchlist" target="_blank" rel="noopener noreferrer">watchlist</a><template v-if="watchedChanges.has(modalReviewChange.title)"> permanently</template>.</p>
                 <CdxButton weight="quiet" :icon-only="true" aria-label="Close watchlist popover" @click="watchPopoverOpen = false"><CdxIcon :icon="cdxIconClose" /></CdxButton>
               </div>
             </template>
             <div v-if="watchedChanges.has(modalReviewChange.title)" class="watch-popover-content">
               <label for="desktop-watch-period">Watchlist time period:</label>
               <CdxSelect id="desktop-watch-period" :selected="watchPeriods[modalReviewChange.title] ?? 'infinite'" :menu-items="watchPeriodOptions" @update:selected="setWatchPeriod" />
-              <p class="desktop-watch-help">Change default time period in <a href="https://en.wikipedia.org/wiki/Special:Preferences#mw-prefsection-watchlist" target="_blank" rel="noopener noreferrer">preferences</a>.</p>
-              <label for="desktop-watch-label">Watchlist label:</label>
-              <CdxTextInput id="desktop-watch-label" v-model="watchLabels[modalReviewChange.title]" placeholder="Add label…" />
+              <p class="desktop-watch-help">You can change the default expiry in your <a href="https://en.wikipedia.org/wiki/Special:Preferences#mw-prefsection-watchlist" target="_blank" rel="noopener noreferrer">watchlist preferences</a>.</p>
+              <label for="desktop-watch-label">Watchlist labels:</label>
+              <CdxTextInput id="desktop-watch-label" model-value="" placeholder="No labels yet" readonly />
+              <p class="desktop-watch-help">Create a new label in <a href="https://en.wikipedia.org/wiki/Special:EditWatchlist" target="_blank" rel="noopener noreferrer">manage labels</a>.</p>
             </div>
+            <CdxButton v-if="!watchedChanges.has(modalReviewChange.title)" action="progressive" class="watch-undo" @click="watchedChanges.add(modalReviewChange.title)"><CdxIcon :icon="cdxIconEditUndo" />Undo</CdxButton>
           </CdxPopover>
         <template v-if="isBVersion">
           <div class="desktop-b2-summary" aria-label="Edit summary">
@@ -932,11 +952,13 @@ const impact = {
         <div class="desktop-review-dialog__diff">
           <WikipediaDiffContent
             :change="displayedModalChange"
+            expand-to-content
             :top-padding="queueVersion === 'B2' ? 12 : undefined"
             tall
             :show-heading="false"
             :height-offset="germanMetadataWrapped ? 36 : 0"
           />
+        </div>
         </div>
         <section v-if="watchSettingsOpen" class="thank-experiment desktop-watch-settings" role="region" aria-label="Customize">
           <strong>Customize</strong>
@@ -985,9 +1007,9 @@ const impact = {
         </div>
         <div v-else-if="confirmationToast" class="desktop-review-dialog__confirmation">
           <CdxMessage :key="confirmationToast" :type="confirmationToastType" :auto-dismiss="8000" allow-user-dismiss
-            :class="{ 'desktop-review-completion-toast': queueVersion === 'B2' && confirmationToast === completionTitle }"
+            :class="{ 'desktop-review-completion-toast': useCompletionToast && confirmationToast === completionTitle }"
             @auto-dismissed="clearConfirmationToast" @user-dismissed="clearConfirmationToast">
-            <template v-if="queueVersion === 'B2' && confirmationToast === completionTitle">
+            <template v-if="useCompletionToast && confirmationToast === completionTitle">
               <strong class="desktop-review-completion-toast-title">{{ completionTitle }}</strong>
               <p class="desktop-review-completion-toast-description">Check back later for new changes, explore all <a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a> or return to <RouterLink :to="{ path: dashboardPath, query: { version: queueVersion, view: 'dashboard' } }" @click.prevent="returnToDashboard">Home</RouterLink>.</p>
             </template>
@@ -1035,7 +1057,7 @@ const impact = {
               size="medium"
               :icon-only="true"
               aria-label="Next review change"
-              :disabled="queueVersion === 'B2' && b2CompletionShown"
+              :disabled="useCompletionToast && b2CompletionShown"
               @click="moveReviewModal(1)"
             >
               <CdxIcon :icon="cdxIconNext" />
@@ -1079,7 +1101,7 @@ const impact = {
 .all-review-title-row .queue-version-switch { margin: 0; flex-wrap: wrap; }
 .all-review-main h1 { margin: 0; font: 29px/1.4 Georgia, serif; }
 .all-review-heading { display: flex; align-items: center; gap: 8px; margin: 8px 0 12px; }
-.queue-refresh-button, .queue-more-icon { margin-inline-start: auto; }
+.queue-refresh-button, .queue-more-icon, .queue-more-menu { margin-inline-start: auto; }
 .all-review-heading h2 { margin: 0; font: bold 16px/1.5 sans-serif; }
 .all-review-list { display: flex; flex-direction: column; }
 .all-review-contents, .all-review-tools { padding-top: 60px; font-size: 14px; line-height: 1.6; }
@@ -1759,8 +1781,8 @@ const impact = {
 .desktop-review-dialog--b2 .desktop-review-dialog__meta { border-bottom: 0; padding: 8px 16px 0; gap: 8px; }
 .desktop-review-dialog--b2 .desktop-review-dialog__user :deep(.cdx-icon) { color: var(--color-progressive, #36c); }
 .desktop-review-dialog--b2 .desktop-review-dialog__user-links { margin-block: 0; line-height: 22px; }
-.desktop-b2-date { margin-inline-start: auto; white-space: nowrap; font-size: 14px; line-height: 22px; color: var(--color-subtle, #54595d); }
-.desktop-b2-summary { position: relative; flex: 0 0 auto; padding: 8px 16px 12px; border-bottom: 1px solid var(--border-color-subtle, #c8ccd1); font-size: 14px; line-height: 22px; font-style: italic; color: var(--color-subtle, #54595d); max-height: 130px; overflow-y: auto; }
+.desktop-b2-date { margin-inline-start: auto; white-space: nowrap; font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); color: var(--color-subtle, #54595d); }
+.desktop-b2-summary { position: relative; flex: 0 0 auto; padding: 8px 16px 12px; border-bottom: 1px solid var(--border-color-subtle, #c8ccd1); font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); font-style: italic; color: var(--color-subtle, #54595d); max-height: 130px; overflow-y: auto; }
 .desktop-b2-summary__measure { position: absolute; inset-inline: 16px; visibility: hidden; white-space: nowrap; overflow: hidden; }
 .desktop-b2-summary p { margin: 0; }
 .desktop-b2-summary .desktop-b2-summary__toggle { display: flex; width: 100%; min-width: 0; padding: 0; min-height: 22px; gap: 8px; font: inherit; color: inherit; text-align: start; justify-content: flex-start; align-items: flex-start; }
@@ -1821,7 +1843,8 @@ const impact = {
 
 <style scoped>
 .desktop-review-dialog--b1 .desktop-review-dialog__meta { padding-bottom: 0; }
-.desktop-review-dialog--b1 .desktop-b2-summary { padding-top: 4px; }
+.desktop-review-dialog--b1 .desktop-b2-summary,
+.desktop-review-dialog--b2 .desktop-b2-summary { padding-top: var(--spacing-75, 12px); }
 </style>
 
 <style scoped>
@@ -1841,4 +1864,39 @@ const impact = {
 
 <style scoped>
 .desktop-watch-settings :deep(.cdx-label__label__text) { font-weight: 400; }
+</style>
+
+<style scoped>
+:global(#watch-page-popover.watch-popover--default-design) { border-radius: 2px; }
+:global(#watch-page-popover.watch-popover--default-design .cdx-popover__arrow) { display: block; }
+.desktop-watch-heading p { font-weight: 400; }
+.watch-popover-content label { margin-bottom: 8px; }
+.watch-popover-content .desktop-watch-help:last-child { margin-bottom: 0; }
+.watch-undo { margin-top: 16px; align-self: flex-start; }
+</style>
+
+<style scoped>
+.data-dialog-heading { display: flex; align-items: center; gap: 12px; }
+.data-dialog-heading h2 { flex: 1; margin: 0; padding: 0; border: 0; font-family: var(--font-family-base, sans-serif); font-size: var(--font-size-large, 1.125rem); line-height: var(--line-height-large, 1.75rem); font-weight: 700; }
+.data-dialog-description { margin: 8px 0 0; color: var(--color-subtle, #54595d); font-size: 16px; line-height: 26px; }
+:global(.desktop-review-dialog--data .cdx-dialog__header) { display: block; border-bottom: 1px solid var(--border-color-subtle, #c8ccd1) !important; padding-bottom: 16px; }
+.desktop-review-dialog--data .desktop-b2-summary { border-bottom: 0; padding-bottom: 0; }
+</style>
+
+<style scoped>
+.desktop-review-dialog__scroll-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; }
+:global(.desktop-review-dialog .desktop-review-dialog__scroll-content .wikipedia-diff-content),
+:global(.desktop-review-dialog .desktop-review-dialog__scroll-content iframe) { height: var(--diff-content-height, 224px) !important; }
+.desktop-review-dialog__scroll-content .desktop-b2-summary { max-height: none; overflow: visible; }
+</style>
+
+<style scoped>
+/* Match the Codex onboarding dialog header spacing and title scale. */
+:global(.desktop-review-dialog:not(.desktop-review-dialog--confirmation) .cdx-dialog__header) {
+  padding: var(--spacing-100, 16px) var(--spacing-150, 24px);
+}
+:global(.desktop-review-dialog:not(.desktop-review-dialog--confirmation) .cdx-dialog__header__title) {
+  font-size: var(--font-size-large, 1.125rem);
+  line-height: var(--line-height-large, 1.75rem);
+}
 </style>

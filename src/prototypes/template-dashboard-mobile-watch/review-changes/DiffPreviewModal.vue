@@ -455,6 +455,7 @@ onBeforeUnmount(() => {
       aria-labelledby="diff-preview-title"
     >
       <header class="diff-preview__header">
+        <CdxProgressBar v-if="props.watchToast && diffLoading && !props.complete" class="preview-divider-loader" aria-label="Loading Wikipedia visual diff" />
         <CdxButton
           v-if="props.page"
           class="diff-preview__back"
@@ -583,12 +584,13 @@ onBeforeUnmount(() => {
         <div v-else class="diff-preview__metadata">
           <a
             class="diff-preview__username"
+            :title="props.change.editor"
             :href="userPageUrl()"
             target="_blank"
             rel="noopener noreferrer"
           >
             <CdxIcon v-if="!props.watchToast" :icon="cdxIconUserAvatar" size="small" aria-hidden="true" />
-            {{ props.change.editor }}
+            <span class="diff-preview__username-text">{{ props.change.editor }}</span>
           </a>
           <span v-if="props.watchToast" class="data-revision-date">{{ props.change.revisionDate.replace(/^(.*),\s*(\d{1,2}:\d{2})$/, '$2, $1') }}</span>
           <CdxMenuButton v-else-if="compactPreviewMetadata" ref="headerWatchAnchor"
@@ -617,7 +619,7 @@ onBeforeUnmount(() => {
 
         <p v-if="compactPreviewMetadata && !props.change.summary?.trim()" class="mobile-empty-summary">No edit summary</p>
 
-        <CdxProgressBar v-if="diffLoading" inline aria-label="Loading Wikipedia visual diff" />
+        <CdxProgressBar v-if="diffLoading && !props.watchToast" inline aria-label="Loading Wikipedia visual diff" />
         <CdxMessage v-else-if="diffError" type="error" :allow-user-dismiss="false">
           {{ diffError }}
         </CdxMessage>
@@ -1448,4 +1450,25 @@ onBeforeUnmount(() => {
 .diff-preview--data .diff-preview__metadata { gap: 8px; }
 .data-revision-date { margin-inline-start: auto; font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); font-weight: 400; color: var(--color-subtle, #54595d); text-align: end; }
 .diff-preview--data .mobile-summary-disclosure, .diff-preview--data .mobile-empty-summary { border-bottom: 0; padding-bottom: 0; margin-bottom: 16px; }
+</style>
+
+<style scoped>
+.preview-divider-loader { position: absolute; inset-inline: 0; bottom: -1px; width: 100%; max-width: none; margin: 0; }
+</style>
+
+<style scoped>
+.diff-preview__metadata .diff-preview__username { flex: 1 1 0; min-width: 0; overflow: hidden; }
+.diff-preview__metadata .diff-preview__username-text { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.diff-preview__username :deep(.cdx-icon) { flex-shrink: 0; }
+.diff-preview__metadata .data-revision-date { flex-shrink: 0; white-space: nowrap; }
+</style>
+
+<style scoped>
+/* The mobile preview owns its scroll surface; no outer scrollbar gutter is needed. */
+@media (max-width: 767px) {
+  :global(html:has(.diff-preview--toolbar.diff-preview--page)) {
+    scrollbar-gutter: auto;
+    overflow: hidden;
+  }
+}
 </style>

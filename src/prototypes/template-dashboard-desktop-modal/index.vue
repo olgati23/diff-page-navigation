@@ -77,6 +77,7 @@ const expandedReviewChange = ref<string | null>(null)
 const desktopReviewPresentation = ref('modal')
 const modalReviewIndex = ref<number | null>(null)
 const modalQueueComplete = ref(false)
+const previewDiffLoading = ref(false)
 const b2CompletionShown = ref(false)
 const useCompletionToast = computed(() => props.standalone || queueVersion.value === 'B2')
 const undoDialogOpen = ref(false)
@@ -799,6 +800,7 @@ const impact = {
         @update:open="updateReviewModalOpen"
       >
         <template v-if="props.watchToast && !modalQueueComplete" #header>
+          <CdxProgressBar v-if="previewDiffLoading" class="preview-divider-loader" aria-label="Loading Wikipedia visual diff" />
           <div class="data-dialog-heading">
             <h2>Difference: {{ modalReviewChange.title }}</h2>
             <CdxMenuButton ref="watchAnchor" v-model:selected="b1MenuSelection" :menu-items="b1MenuItems" weight="quiet" aria-label="More options" class="desktop-b1-menu" @update:selected="selectB1Menu"><CdxIcon :icon="cdxIconEllipsis" /></CdxMenuButton>
@@ -952,6 +954,8 @@ const impact = {
         <div class="desktop-review-dialog__diff">
           <WikipediaDiffContent
             :change="displayedModalChange"
+            :external-loader="props.watchToast"
+            @loading="previewDiffLoading = $event"
             expand-to-content
             :top-padding="queueVersion === 'B2' ? 12 : undefined"
             tall
@@ -1899,4 +1903,9 @@ const impact = {
   font-size: var(--font-size-large, 1.125rem);
   line-height: var(--line-height-large, 1.75rem);
 }
+</style>
+
+<style scoped>
+:global(.desktop-review-dialog--data .cdx-dialog__header) { position: relative; }
+.preview-divider-loader { position: absolute; inset-inline: 0; bottom: -1px; width: 100%; max-width: none; margin: 0; }
 </style>

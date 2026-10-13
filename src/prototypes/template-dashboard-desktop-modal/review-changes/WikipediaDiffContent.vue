@@ -10,6 +10,7 @@ const props = withDefaults(defineProps<{
   change: ReviewChange
   tall?: boolean
   expandToContent?: boolean
+  externalLoader?: boolean
   topPadding?: number
   showHeading?: boolean
   heightOffset?: number
@@ -20,7 +21,9 @@ const props = withDefaults(defineProps<{
   heightOffset: 0,
 })
 
+const emit = defineEmits<{ loading: [value: boolean] }>()
 const loading = ref(false)
+watch(loading, value => emit('loading', value))
 const error = ref(false)
 const documentHtml = ref('')
 const frameHeight = ref(224)
@@ -133,7 +136,7 @@ onBeforeUnmount(() => {
     :class="{ 'wikipedia-diff-content--tall': props.tall }"
     :style="{ height: props.tall || props.expandToContent ? `${frameHeight}px` : undefined, '--diff-content-height': `${frameHeight}px` }"
   >
-    <CdxProgressBar v-if="loading" aria-label="Loading Wikipedia diff" />
+    <CdxProgressBar v-if="loading && !props.externalLoader" aria-label="Loading Wikipedia diff" />
     <CdxMessage v-else-if="error" type="error" :allow-user-dismiss="false">
       The Wikipedia visual diff could not be loaded.
     </CdxMessage>

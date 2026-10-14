@@ -823,7 +823,6 @@ const impact = {
             <CdxMenuButton ref="watchAnchor" v-model:selected="b1MenuSelection" :menu-items="b1MenuItems" weight="quiet" aria-label="More options" class="desktop-b1-menu" @pointerdown.capture="onWatchMenuPointerDown" @keydown.capture="onWatchMenuKeydown" @click.capture="onWatchMenuClick" @update:selected="selectB1Menu"><CdxIcon :icon="cdxIconEllipsis" /></CdxMenuButton>
             <CdxButton weight="quiet" :icon-only="true" aria-label="Close" @click="updateReviewModalOpen(false)"><CdxIcon :icon="cdxIconClose" /></CdxButton>
           </div>
-          <p v-if="modalReviewChange.description" class="data-dialog-description">{{ modalReviewChange.description }}</p>
         </template>
         <template v-if="modalQueueComplete">
         <section class="desktop-review-dialog__complete" :class="{ 'desktop-review-dialog__complete--illustrated': isBVersion }" role="status">

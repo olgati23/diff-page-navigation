@@ -225,7 +225,7 @@ async function loadWikipediaVisualDiff() {
     diffDocumentHtml.value = await buildVisualDiffDocument(
       comparisonMarkup,
       diffRequest.signal,
-      { heading: section, mobile: true, topPadding: props.watchToast ? 0 : undefined, horizontalPadding: props.variant === 'toolbar' ? 0 : 16, headingDivider: !(props.variant === 'toolbar' && props.mobileVersion !== 'B' && props.mobileVersion !== 'C'), wikiHost: props.change.wikiHost },
+      { heading: section, showHeading: false, mobile: true, topPadding: props.watchToast ? 0 : undefined, horizontalPadding: props.variant === 'toolbar' ? 0 : 16, headingDivider: !(props.variant === 'toolbar' && props.mobileVersion !== 'B' && props.mobileVersion !== 'C'), wikiHost: props.change.wikiHost },
     )
   } catch (error) {
     if ((error as Error).name !== 'AbortError') {
@@ -496,8 +496,7 @@ onBeforeUnmount(() => {
       >
         <div class="diff-preview__article-heading">
           <h1>{{ props.change.title }}</h1>
-          <p v-if="props.watchToast && props.change.description">{{ props.change.description }}</p>
-          <p v-else-if="props.variant === 'toolbar' && !props.watchToast">
+          <p v-if="props.variant === 'toolbar' && !props.watchToast">
             {{ compactPreviewMetadata ? props.change.revisionDate.replace(/^(.*),\s*(\d{1,2}:\d{2})$/, '$2, $1') : props.change.revisionDate + ' (UTC)' }}
           </p>
           <p v-if="props.variant !== 'toolbar'">Difference between revisions</p>
@@ -1474,4 +1473,16 @@ onBeforeUnmount(() => {
     overflow: hidden;
   }
 }
+</style>
+
+<style scoped>
+.diff-preview--data .diff-preview__body { padding-top: var(--spacing-75, 12px); }
+.diff-preview--data .diff-preview__article-heading { padding-bottom: var(--spacing-75, 12px); margin-bottom: var(--spacing-100, 16px); }
+.diff-preview--data .diff-preview__metadata { height: auto; min-height: 26px; margin-bottom: var(--spacing-50, 8px); }
+.diff-preview--data .mobile-summary-disclosure,
+.diff-preview--data .mobile-empty-summary { margin: 0 0 var(--spacing-75, 12px); }
+.diff-preview--data .mobile-summary-disclosure__plain,
+.diff-preview--data .mobile-summary-disclosure__toggle span:not(.cdx-icon) { margin-block: 0; }
+.diff-preview--data .mobile-summary-disclosure__toggle { padding-block: 0; min-height: 26px; }
+.diff-preview--data .mobile-summary-disclosure__toggle :deep(.cdx-icon) { margin-top: 5px; }
 </style>

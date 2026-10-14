@@ -360,7 +360,7 @@ const b2SummaryMeasure = ref<HTMLElement | null>(null)
 let b2SummaryObserver: ResizeObserver | undefined
 function measureB2Summary() {
   const el = b2SummaryMeasure.value
-  b2SummaryOverflows.value = !!el && el.scrollWidth > el.clientWidth + 1
+  b2SummaryOverflows.value = !!el && el.scrollHeight > parseFloat(getComputedStyle(el).lineHeight) * 2 + 1
 }
 watch(b2SummaryMeasure, el => {
   b2SummaryObserver?.disconnect()
@@ -1045,13 +1045,13 @@ const impact = {
             <CdxIcon :icon="watchedChanges.has(modalReviewChange.title) ? (watchPeriods[modalReviewChange.title] === 'infinite' ? cdxIconUnStar : cdxIconHalfStar) : cdxIconStar" />
             {{ watchedChanges.has(modalReviewChange.title) ? 'Unwatch' : 'Watch' }}
           </CdxButton>
-          <CdxButton v-if="isBVersion" size="medium" @click="requestUndo(modalReviewChange.title)">
-            <CdxIcon :icon="filledUndoIcon" />
-            Undo
+          <CdxButton v-if="isBVersion" size="medium" :disabled="undoneChanges.has(modalReviewChange.title)" @click="requestUndo(modalReviewChange.title)">
+            <CdxIcon :icon="undoneChanges.has(modalReviewChange.title) ? cdxIconCheck : filledUndoIcon" />
+            {{ undoneChanges.has(modalReviewChange.title) ? 'Undone' : 'Undo' }}
           </CdxButton>
-          <CdxButton size="medium" @click="requestThanks(modalReviewChange.title)">
-            <CdxIcon :icon="isBVersion ? cdxIconUserTalk : cdxIconHeartOutline" />
-            {{ !isBVersion && thankedChanges.has(modalReviewChange.title) ? 'Thanked' : 'Thank' }}
+          <CdxButton size="medium" :disabled="thankedChanges.has(modalReviewChange.title)" @click="requestThanks(modalReviewChange.title)">
+            <CdxIcon :icon="thankedChanges.has(modalReviewChange.title) ? cdxIconCheck : isBVersion ? cdxIconUserTalk : cdxIconHeartOutline" />
+            {{ thankedChanges.has(modalReviewChange.title) ? 'Thanked' : 'Thank' }}
           </CdxButton>
           <CdxButton v-if="!isBVersion" size="medium" @click="requestUndo(modalReviewChange.title)">
             <CdxIcon :icon="cdxIconEditUndo" /> {{ undoneChanges.has(modalReviewChange.title) ? 'Restore' : 'Undo' }}
@@ -1804,11 +1804,11 @@ const impact = {
 .desktop-review-dialog--b2 .desktop-review-dialog__user-links { margin-block: 0; line-height: 22px; }
 .desktop-b2-date { margin-inline-start: auto; white-space: nowrap; font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); color: var(--color-subtle, #54595d); }
 .desktop-b2-summary { position: relative; flex: 0 0 auto; padding: 8px 16px 12px; border-bottom: 1px solid var(--border-color-subtle, #c8ccd1); font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); font-style: italic; color: var(--color-subtle, #54595d); max-height: 130px; overflow-y: auto; }
-.desktop-b2-summary__measure { position: absolute; inset-inline: 16px; visibility: hidden; white-space: nowrap; overflow: hidden; }
+.desktop-b2-summary__measure { position: absolute; inset-inline: 16px; visibility: hidden; white-space: normal; overflow-wrap: anywhere; overflow: hidden; }
 .desktop-b2-summary p { margin: 0; }
 .desktop-b2-summary .desktop-b2-summary__toggle { display: flex; width: 100%; min-width: 0; padding: 0; min-height: 22px; gap: 8px; font: inherit; color: inherit; text-align: start; justify-content: flex-start; align-items: flex-start; }
 .desktop-b2-summary__toggle span:not(.cdx-icon) { min-width: 0; flex: 1; white-space: normal; }
-.desktop-b2-summary__toggle .desktop-b2-summary__truncated { white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; }
+.desktop-b2-summary__toggle .desktop-b2-summary__truncated { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow: hidden; overflow-wrap: anywhere; }
 .desktop-b2-summary__toggle :deep(.cdx-icon) { flex-shrink: 0; margin-top: 3px; }
 .desktop-b2-diff-actions { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; padding: 12px 16px 0; font-size: 14px; }
 .desktop-b2-diff-actions .cdx-button { padding-inline: 0; }

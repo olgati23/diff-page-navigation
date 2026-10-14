@@ -14,6 +14,7 @@ import {
 } from '@wikimedia/codex'
 import {
   cdxIconStar,
+  cdxIconCheck,
   cdxIconEditUndo,
   cdxIconEllipsis,
   cdxIconConfigure,
@@ -77,7 +78,7 @@ const summaryOverflows = ref(false)
 let summaryResizeObserver: ResizeObserver | undefined
 function measureSummary() {
   const element = summaryMeasure.value
-  summaryOverflows.value = !!element && element.scrollWidth > element.clientWidth + 1
+  summaryOverflows.value = !!element && element.scrollHeight > parseFloat(getComputedStyle(element).lineHeight) * 2 + 1
   if (!summaryOverflows.value) summaryExpanded.value = false
 }
 watch(summaryMeasure, element => {
@@ -724,20 +725,22 @@ onBeforeUnmount(() => {
         <CdxButton
           weight="quiet"
           :class="{ 'mobile-labeled-action': props.mobileVersion !== 'B' }" :icon-only="props.mobileVersion === 'B'"
-          :aria-label="props.mobileVersion === 'B' && props.undone ? 'Undone' : 'Undo'"
+          :disabled="props.undone"
+          :aria-label="props.undone ? 'Undone' : 'Undo'"
           @click="requestUndo"
         >
-          <CdxIcon :icon="filledUndoIcon" />
-          <span v-if="props.mobileVersion !== 'B'">Undo</span>
+          <CdxIcon :icon="props.undone ? cdxIconCheck : filledUndoIcon" />
+          <span v-if="props.mobileVersion !== 'B'">{{ props.undone ? 'Undone' : 'Undo' }}</span>
         </CdxButton>
         <CdxButton
           weight="quiet"
           :class="{ 'mobile-labeled-action': props.mobileVersion !== 'B' }" :icon-only="props.mobileVersion === 'B'"
-          :aria-label="props.mobileVersion === 'B' && thankedChanges.has(props.change.title) ? 'Thanked' : 'Thank'"
+          :disabled="thankedChanges.has(props.change.title)"
+          :aria-label="thankedChanges.has(props.change.title) ? 'Thanked' : 'Thank'"
           @click="requestThanks"
         >
-          <CdxIcon :icon="cdxIconUserTalk" />
-          <span v-if="props.mobileVersion !== 'B'">Thank</span>
+          <CdxIcon :icon="thankedChanges.has(props.change.title) ? cdxIconCheck : cdxIconUserTalk" />
+          <span v-if="props.mobileVersion !== 'B'">{{ thankedChanges.has(props.change.title) ? 'Thanked' : 'Thank' }}</span>
         </CdxButton>
         <CdxButton
           weight="quiet"
@@ -1332,7 +1335,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .mobile-summary-disclosure { display: flex; align-items: flex-start; gap: 8px; margin: 0 16px 12px 0; flex-shrink: 0; font-family: var(--font-family-base, sans-serif); font-size: var(--font-size-medium, 1rem); line-height: var(--line-height-medium, 1.625rem); }
 .mobile-summary-disclosure__toggle span:not(.cdx-icon) { flex: 1 1 auto; min-width: 0; margin: 3px 0; font-style: italic; overflow-wrap: anywhere; color: var(--color-subtle, #54595d); }
-.mobile-summary-disclosure__collapsed { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mobile-summary-disclosure__toggle .mobile-summary-disclosure__collapsed { display: -webkit-box !important; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow: hidden; }
 .mobile-summary-disclosure .mobile-summary-disclosure__toggle { width: 100%; max-width: none; min-width: 0; min-height: 44px; padding: 6px 0; align-items: flex-start; justify-content: flex-start; gap: 8px; white-space: normal; font-weight: var(--font-weight-normal, 400); text-align: start; }
 .mobile-summary-disclosure__toggle :deep(.cdx-icon) { flex-shrink: 0; margin-top: 8px; }
 .mobile-summary-disclosure__toggle span:not(.cdx-icon) { display: block; line-height: var(--line-height-medium, 1.625rem); }
@@ -1366,7 +1369,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .mobile-summary-disclosure { position: relative; }
-.mobile-summary-disclosure__measure { position: absolute; inset-inline: 0; top: 0; visibility: hidden; pointer-events: none; white-space: nowrap; overflow: hidden; font-style: italic; font-weight: 400; }
+.mobile-summary-disclosure__measure { position: absolute; inset-inline: 0; top: 0; visibility: hidden; pointer-events: none; white-space: normal; overflow-wrap: anywhere; overflow: hidden; font-style: italic; font-weight: 400; }
 .mobile-summary-disclosure__plain { margin: 9px 0; font-style: italic; font-weight: 400; color: var(--color-subtle, #54595d); }
 .diff-preview--mobile-c .mobile-summary-disclosure__plain { margin: 0; }
 </style>

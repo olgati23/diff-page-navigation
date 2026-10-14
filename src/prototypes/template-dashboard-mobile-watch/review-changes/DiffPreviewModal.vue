@@ -455,7 +455,7 @@ onBeforeUnmount(() => {
       aria-labelledby="diff-preview-title"
     >
       <header class="diff-preview__header">
-        <CdxProgressBar v-if="props.watchToast && diffLoading && !props.complete" class="preview-divider-loader" aria-label="Loading Wikipedia visual diff" />
+        <div v-if="props.watchToast && diffLoading && !props.complete" class="preview-divider-loader" role="status" aria-label="Loading Wikipedia visual diff"><CdxProgressBar inline /></div>
         <CdxButton
           v-if="props.page"
           class="diff-preview__back"

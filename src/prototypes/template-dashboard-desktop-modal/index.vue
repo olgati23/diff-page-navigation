@@ -125,6 +125,23 @@ function closeWatchPopover() {
   watchPopoverOpen.value = false
   pauseWatchDismiss()
 }
+let dismissWatchOnMenuClick = false
+function onWatchMenuPointerDown() {
+  dismissWatchOnMenuClick = watchPopoverOpen.value
+}
+function onWatchMenuClick(event: MouseEvent) {
+  if (!dismissWatchOnMenuClick && !watchPopoverOpen.value) return
+  dismissWatchOnMenuClick = false
+  event.preventDefault()
+  event.stopImmediatePropagation()
+  closeWatchPopover()
+}
+function onWatchMenuKeydown(event: KeyboardEvent) {
+  if (!watchPopoverOpen.value || !['Enter', ' '].includes(event.key)) return
+  event.preventDefault()
+  event.stopImmediatePropagation()
+  closeWatchPopover()
+}
 function toggleWatch(title: string) {
   if (watchedChanges.has(title)) watchedChanges.delete(title)
   else {
@@ -800,10 +817,10 @@ const impact = {
         @update:open="updateReviewModalOpen"
       >
         <template v-if="props.watchToast && !modalQueueComplete" #header>
-          <CdxProgressBar v-if="previewDiffLoading" class="preview-divider-loader" aria-label="Loading Wikipedia visual diff" />
+          <div v-if="previewDiffLoading" class="preview-divider-loader" role="status" aria-label="Loading Wikipedia visual diff"><CdxProgressBar inline /></div>
           <div class="data-dialog-heading">
             <h2>Difference: {{ modalReviewChange.title }}</h2>
-            <CdxMenuButton ref="watchAnchor" v-model:selected="b1MenuSelection" :menu-items="b1MenuItems" weight="quiet" aria-label="More options" class="desktop-b1-menu" @update:selected="selectB1Menu"><CdxIcon :icon="cdxIconEllipsis" /></CdxMenuButton>
+            <CdxMenuButton ref="watchAnchor" v-model:selected="b1MenuSelection" :menu-items="b1MenuItems" weight="quiet" aria-label="More options" class="desktop-b1-menu" @pointerdown.capture="onWatchMenuPointerDown" @keydown.capture="onWatchMenuKeydown" @click.capture="onWatchMenuClick" @update:selected="selectB1Menu"><CdxIcon :icon="cdxIconEllipsis" /></CdxMenuButton>
             <CdxButton weight="quiet" :icon-only="true" aria-label="Close" @click="updateReviewModalOpen(false)"><CdxIcon :icon="cdxIconClose" /></CdxButton>
           </div>
           <p v-if="modalReviewChange.description" class="data-dialog-description">{{ modalReviewChange.description }}</p>
@@ -887,7 +904,7 @@ const impact = {
             <span aria-hidden="true">)</span></template>
           </div>
           <span v-if="queueVersion === 'B2' || props.watchToast" class="desktop-b2-date">{{ modalRevisionDate }}</span>
-          <CdxMenuButton v-else-if="queueVersion === 'B1'" ref="watchAnchor" v-model:selected="b1MenuSelection" :menu-items="b1MenuItems" weight="quiet" aria-label="More options" class="desktop-b1-menu" @update:selected="selectB1Menu">
+          <CdxMenuButton v-else-if="queueVersion === 'B1'" ref="watchAnchor" v-model:selected="b1MenuSelection" :menu-items="b1MenuItems" weight="quiet" aria-label="More options" class="desktop-b1-menu" @pointerdown.capture="onWatchMenuPointerDown" @keydown.capture="onWatchMenuKeydown" @click.capture="onWatchMenuClick" @update:selected="selectB1Menu">
             <CdxIcon :icon="cdxIconEllipsis" />
           </CdxMenuButton>
           <div v-else class="desktop-review-dialog__page-actions">
@@ -911,7 +928,7 @@ const impact = {
         </div>
           <CdxPopover id="watch-page-popover" v-model:open="watchPopoverOpen"
             class="watch-popover--default-design"
-            :anchor="watchInFooter ? watchFooterAnchor : watchAnchor" :placement="watchInFooter ? 'top-end' : 'bottom-end'" render-in-place
+            :anchor="watchInFooter ? watchFooterAnchor : watchAnchor" :placement="watchInFooter ? 'top-end' : 'bottom-end'"
             :title="watchedChanges.has(modalReviewChange.title) ? 'Added to watchlist' : 'Removed from watchlist'"
             use-close-button close-button-label="Close watchlist popover">
             <template #header>
@@ -957,7 +974,7 @@ const impact = {
             :external-loader="props.watchToast"
             @loading="previewDiffLoading = $event"
             expand-to-content
-            :top-padding="queueVersion === 'B2' ? 12 : undefined"
+            :top-padding="props.watchToast || queueVersion === 'B2' ? 12 : undefined"
             tall
             :show-heading="false"
             :height-offset="germanMetadataWrapped ? 36 : 0"
@@ -1848,7 +1865,7 @@ const impact = {
 <style scoped>
 .desktop-review-dialog--b1 .desktop-review-dialog__meta { padding-bottom: 0; }
 .desktop-review-dialog--b1 .desktop-b2-summary,
-.desktop-review-dialog--b2 .desktop-b2-summary { padding-top: var(--spacing-75, 12px); }
+.desktop-review-dialog--b2 .desktop-b2-summary { padding-top: var(--spacing-50, 8px); }
 </style>
 
 <style scoped>
@@ -1895,9 +1912,9 @@ const impact = {
 </style>
 
 <style scoped>
-/* Match the Codex onboarding dialog header spacing and title scale. */
+/* Use the Codex title scale with 16px preview header padding. */
 :global(.desktop-review-dialog:not(.desktop-review-dialog--confirmation) .cdx-dialog__header) {
-  padding: var(--spacing-100, 16px) var(--spacing-150, 24px);
+  padding: var(--spacing-100, 16px);
 }
 :global(.desktop-review-dialog:not(.desktop-review-dialog--confirmation) .cdx-dialog__header__title) {
   font-size: var(--font-size-large, 1.125rem);
@@ -1908,4 +1925,14 @@ const impact = {
 <style scoped>
 :global(.desktop-review-dialog--data .cdx-dialog__header) { position: relative; }
 .preview-divider-loader { position: absolute; inset-inline: 0; bottom: -1px; width: 100%; max-width: none; margin: 0; }
+</style>
+
+<style scoped>
+/* Overlap the pointer's white base with the panel border to avoid a seam. */
+:global(#watch-page-popover .cdx-popover__arrow[style*="top: -9px"]) { translate: 0 1px; }
+:global(#watch-page-popover .cdx-popover__arrow[style*="bottom: -9px"]) { translate: 0 -1px; }
+</style>
+
+<style scoped>
+.desktop-review-dialog--data .desktop-review-dialog__meta { padding-top: var(--spacing-75, 12px); }
 </style>

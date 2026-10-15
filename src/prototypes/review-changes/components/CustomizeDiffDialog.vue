@@ -22,7 +22,7 @@ async function apply() {
   error.value = ''
   try {
     const edits = await fetchMatchingChanges({ ...filters }, request.signal)
-    if (!edits.length) { error.value = 'No matching edits found in the latest 5,000 edits. Try turning off a filter.'; return }
+    if (!edits.length) { error.value = 'No matching edits found in the animal and plant article histories. Try turning off a filter.'; return }
     emit('apply', version.value, { ...filters }, edits)
     emit('update:open', false)
   } catch (e) { if (e.name !== 'AbortError') error.value = e.message || 'Could not load edits. Please try again.' }

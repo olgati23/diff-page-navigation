@@ -12,17 +12,20 @@ export const matchesFilters = (edit: { comment?: string; title: string; user?: s
 export async function fetchMatchingChanges(filters: DiffFilters, signal: AbortSignal): Promise<ReviewChange[]> {
   const matches: ReviewChange[] = []
   const titles = new Set<string>()
-  let continuation: Record<string, string> = {}
-  // Bound the search to 5,000 recent edits; never silently substitute non-matching edits.
-  for (let page = 0; page < 10 && matches.length < 10; page++) {
+  const subjects = ['Giant panda', 'Orchid', 'Axolotl', 'Cactus', 'Tiger', 'Bamboo', 'Blue whale', 'Oak', 'Red panda', 'Lavender', 'Monarch butterfly', 'Sunflower', 'Sea otter', 'Snow leopard', 'Red fox']
+  // Search actual revision histories within the prototype's animal and plant subjects.
+  for (const subject of subjects) {
+    if (matches.length >= 10) break
+    if (filters.longTitles && subject.length < 40) continue
     const query = new URLSearchParams({ action: 'query', format: 'json', formatversion: '2', origin: '*',
-      list: 'recentchanges', rctype: 'edit', rcnamespace: '0', rcshow: '!bot', rclimit: '500',
-      rcprop: 'title|ids|user|timestamp|comment', ...continuation })
+      prop: 'revisions', titles: subject, rvlimit: '50', rvprop: 'ids|user|timestamp|comment' })
     const response = await fetch(`https://en.wikipedia.org/w/api.php?${query}`, { signal, headers: wikimediaApiFetchHeaders('customize-diff') })
     if (!response.ok) throw new Error('Could not load recent edits. Please try again.')
     const result = await response.json()
     if (result.error) throw new Error(result.error.info || 'Wikipedia could not return edits.')
-    for (const edit of result.query?.recentchanges ?? []) {
+    const article = result.query?.pages?.[0]
+    for (const revision of article?.revisions ?? []) {
+      const edit = { ...revision, title: article.title, old_revid: revision.parentid }
       if (!edit.revid || !edit.old_revid || !edit.user || titles.has(edit.title) || !matchesFilters(edit, filters)) continue
       const date = new Date(edit.timestamp)
       matches.push({ title: edit.title, description: '', editor: edit.user, summary: edit.comment ?? '',
@@ -31,8 +34,6 @@ export async function fetchMatchingChanges(filters: DiffFilters, signal: AbortSi
       titles.add(edit.title)
       if (matches.length === 10) break
     }
-    if (!result.continue) break
-    continuation = result.continue
   }
   if (matches.length) {
     const query = new URLSearchParams({ action: 'query', format: 'json', formatversion: '2', origin: '*', prop: 'description', titles: matches.map(edit => edit.title).join('|') })

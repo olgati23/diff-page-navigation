@@ -318,14 +318,14 @@ onBeforeUnmount(() => {
         <div class="diff-preview__article-heading">
           <h1>{{ props.change.title }}</h1>
           <p v-if="props.variant === 'toolbar'">
-            Revision from: {{ props.change.revisionDate }} (UTC)
+            {{ props.change.revisionDate }} (UTC)
           </p>
           <p v-if="props.variant !== 'toolbar'">Difference between revisions</p>
         </div>
 
         <div v-if="props.variant !== 'toolbar'" class="diff-preview__details-row">
           <p v-if="props.variant === 'card'" class="diff-preview__revision-date">
-            <strong>Revision from:</strong> {{ props.change.revisionDate }} (UTC)
+            {{ props.change.revisionDate }} (UTC)
           </p>
           <CdxButton
             v-else
@@ -379,7 +379,7 @@ onBeforeUnmount(() => {
               v-if="props.variant !== 'card'"
               class="edit-details-accordion__revision-date"
             >
-              <strong>Revision from:</strong> {{ props.change.revisionDate }} (UTC)
+              {{ props.change.revisionDate }} (UTC)
             </p>
             <section>
               <p class="edit-details-accordion__edit-summary">

@@ -1044,13 +1044,13 @@ const impact = {
             <CdxIcon :icon="watchedChanges.has(modalReviewChange.title) ? (watchPeriods[modalReviewChange.title] === 'infinite' ? cdxIconUnStar : cdxIconHalfStar) : cdxIconStar" />
             {{ watchedChanges.has(modalReviewChange.title) ? 'Unwatch' : 'Watch' }}
           </CdxButton>
-          <CdxButton v-if="isBVersion" size="medium" :disabled="undoneChanges.has(modalReviewChange.title)" @click="requestUndo(modalReviewChange.title)">
-            <CdxIcon :icon="undoneChanges.has(modalReviewChange.title) ? cdxIconCheck : filledUndoIcon" />
-            {{ undoneChanges.has(modalReviewChange.title) ? 'Undone' : 'Undo' }}
+          <CdxButton v-if="isBVersion" size="medium" @click="requestUndo(modalReviewChange.title)">
+            <CdxIcon :icon="filledUndoIcon" />
+            Undo
           </CdxButton>
-          <CdxButton size="medium" :disabled="thankedChanges.has(modalReviewChange.title)" @click="requestThanks(modalReviewChange.title)">
-            <CdxIcon :icon="thankedChanges.has(modalReviewChange.title) ? cdxIconCheck : isBVersion ? cdxIconUserTalk : cdxIconHeartOutline" />
-            {{ thankedChanges.has(modalReviewChange.title) ? 'Thanked' : 'Thank' }}
+          <CdxButton size="medium" @click="requestThanks(modalReviewChange.title)">
+            <CdxIcon :icon="isBVersion ? cdxIconUserTalk : cdxIconHeartOutline" />
+            Thank
           </CdxButton>
           <CdxButton v-if="!isBVersion" size="medium" @click="requestUndo(modalReviewChange.title)">
             <CdxIcon :icon="cdxIconEditUndo" /> {{ undoneChanges.has(modalReviewChange.title) ? 'Restore' : 'Undo' }}

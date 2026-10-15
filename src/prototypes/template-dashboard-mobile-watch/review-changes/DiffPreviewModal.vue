@@ -14,7 +14,6 @@ import {
 } from '@wikimedia/codex'
 import {
   cdxIconStar,
-  cdxIconCheck,
   cdxIconEditUndo,
   cdxIconEllipsis,
   cdxIconConfigure,
@@ -679,7 +678,7 @@ onBeforeUnmount(() => {
             </span>
           </p>
           <CdxButton action="progressive" @click="requestThanks">
-            {{ thankedChanges.has(props.change.title) ? 'Thanked' : 'Thank' }}
+            Thank
           </CdxButton>
           <CdxButton @click="requestUndo">{{ props.undone ? 'Restore' : 'Undo' }}</CdxButton>
           <CdxButton @click="markEditReviewed">
@@ -724,22 +723,20 @@ onBeforeUnmount(() => {
         <CdxButton
           weight="quiet"
           :class="{ 'mobile-labeled-action': props.mobileVersion !== 'B' }" :icon-only="props.mobileVersion === 'B'"
-          :disabled="props.undone"
-          :aria-label="props.undone ? 'Undone' : 'Undo'"
+          aria-label="Undo"
           @click="requestUndo"
         >
-          <CdxIcon :icon="props.undone ? cdxIconCheck : filledUndoIcon" />
-          <span v-if="props.mobileVersion !== 'B'">{{ props.undone ? 'Undone' : 'Undo' }}</span>
+          <CdxIcon :icon="filledUndoIcon" />
+          <span v-if="props.mobileVersion !== 'B'">Undo</span>
         </CdxButton>
         <CdxButton
           weight="quiet"
           :class="{ 'mobile-labeled-action': props.mobileVersion !== 'B' }" :icon-only="props.mobileVersion === 'B'"
-          :disabled="thankedChanges.has(props.change.title)"
-          :aria-label="thankedChanges.has(props.change.title) ? 'Thanked' : 'Thank'"
+          aria-label="Thank"
           @click="requestThanks"
         >
-          <CdxIcon :icon="thankedChanges.has(props.change.title) ? cdxIconCheck : cdxIconUserTalk" />
-          <span v-if="props.mobileVersion !== 'B'">{{ thankedChanges.has(props.change.title) ? 'Thanked' : 'Thank' }}</span>
+          <CdxIcon :icon="cdxIconUserTalk" />
+          <span v-if="props.mobileVersion !== 'B'">Thank</span>
         </CdxButton>
         <CdxButton
           weight="quiet"

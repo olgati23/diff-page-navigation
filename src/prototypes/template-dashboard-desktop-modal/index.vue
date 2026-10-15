@@ -517,7 +517,7 @@ function markEditReviewed(changeTitle?: string): void {
 }
 
 function fullDiffUrl(change: ReviewChange): string {
-  return `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(change.title)}${localeQuery()}`
+  return `https://${change.wikiHost ?? 'en.wikipedia.org'}/w/index.php?${new URLSearchParams({ title: change.title, diff: String(change.revisionId), oldid: String(change.oldRevisionId), diffmode: 'visual' })}`
 }
 
 function userPageUrl(editor: string): string {
@@ -1914,6 +1914,7 @@ const impact = {
 /* Use the Codex title scale with 16px preview header padding. */
 :global(.desktop-review-dialog:not(.desktop-review-dialog--confirmation) .cdx-dialog__header) {
   padding: var(--spacing-100, 16px);
+  padding-bottom: var(--spacing-75, 12px);
 }
 :global(.desktop-review-dialog:not(.desktop-review-dialog--confirmation) .cdx-dialog__header__title) {
   font-size: var(--font-size-large, 1.125rem);

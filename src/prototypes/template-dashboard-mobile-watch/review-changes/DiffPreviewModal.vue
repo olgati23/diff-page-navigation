@@ -135,7 +135,7 @@ function toggleWatch() {
 }
 watch(() => props.change.title, () => { watchOpen.value = false; watchToastVisible.value = false })
 function fullDifferenceUrl() {
-  return `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(props.change.title)}${localeQuery()}`
+  return `https://${props.change.wikiHost ?? 'en.wikipedia.org'}/w/index.php?${new URLSearchParams({ title: props.change.title, diff: String(props.change.revisionId), oldid: String(props.change.oldRevisionId), diffmode: 'visual' })}`
 }
 const editorCardOpen = ref(true)
 const diffUrl = ref<string | null>(null)
@@ -423,7 +423,7 @@ function openUserPage() {
 }
 
 function openFullDiff(_mobile = false) {
-  const url = `${import.meta.env.BASE_URL}template-full-diff-readonly?title=${encodeURIComponent(props.change.title)}${localeQuery()}`
+  const url = fullDifferenceUrl()
   window.open(url, '_blank', 'noopener,noreferrer')
 }
 

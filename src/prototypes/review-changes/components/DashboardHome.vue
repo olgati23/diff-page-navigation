@@ -31,7 +31,7 @@ const queueLink = (title?: string) => ({ path: '/review-changes/', query: { ...r
 <style scoped>
 .dashboard-home { padding: 24px 16px; background: #fff; min-height: calc(100dvh - 56px); color: var(--color-base); }
 h1 { font: normal 30px/1.3 var(--font-family-serif, Georgia, serif); margin: 0 0 12px; border: 0; padding: 0; }
-.home-tabs { display: flex; gap: 16px; border-bottom: 1px solid var(--border-color-base); margin-bottom: 36px; font-weight: 700; }
+.home-tabs { display: flex; gap: 16px; border-bottom: 1px solid var(--border-color-base); margin-bottom: var(--spacing-100, 16px); font-weight: 700; }
 .home-tabs > * { color: var(--color-subtle); padding-bottom: 6px; }
 .home-tabs [aria-current] { border-bottom: 2px solid var(--color-subtle); }
 header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }

@@ -24,11 +24,9 @@ const mobileVersion = computed(() => !props.standalone && ['B', 'C'].includes(St
 
 const previewVariant = ref<'card' | 'toolbar' | 'simplified'>('toolbar')
 const dashboardRoute = localizedPrototypeRoute('/template-dashboard-mobile-watch')
-const editLimit = ref(7)
 const queueChanges = (props.customChanges ?? reviewChanges).slice(0, props.customChanges ? 10 : 20)
 const customizeDiff = inject(customizeDiffKey, null)
 const customizeSelection = ref(null)
-const visibleChanges = computed(() => queueChanges.slice(0, editLimit.value))
 const openedChanges = ref(new Set<string>())
 const queueComplete = ref(false)
 const initialIndex = queueChanges.findIndex(edit => edit.title === route.query.previewTitle)
@@ -71,7 +69,6 @@ function navigateDiff(direction: -1 | 1) {
     return
   }
   if (nextIndex >= 0 && nextIndex < queueChanges.length) {
-    editLimit.value = Math.max(editLimit.value, nextIndex + 1)
     selectedChangeIndex.value = nextIndex
   }
 }
@@ -116,7 +113,7 @@ function markRestored(title: string) {
     </nav>
     <section class="review-changes-page__list" aria-label="Suggested changes to review">
       <article
-        v-for="change in visibleChanges"
+        v-for="change in queueChanges"
         :key="change.title"
         class="review-queue-card"
         :class="{ 'review-queue-card--opened': openedChanges.has(change.title) }"
@@ -139,10 +136,6 @@ function markRestored(title: string) {
         </p>
       </article>
     </section>
-    <div class="review-queue-footer">
-      <CdxButton v-if="visibleChanges.length < queueChanges.length" @click="editLimit = Math.min(editLimit + 7, 20)">Show more changes</CdxButton>
-      <p v-else>{{ mobileVersion !== 'B' ? 'There are currently no recommended changes for you to review. Check back later or explore all ' : 'There are no more changes for now. Check back later or explore ' }}<a href="https://en.wikipedia.org/wiki/Special:RecentChanges">Recent Changes</a>.</p>
-    </div>
     </template>
 
     <DiffPreviewModal
@@ -266,8 +259,6 @@ function markRestored(title: string) {
 .review-queue-card--opened:hover {
   background: var(--background-color-neutral, #eaecf0);
 }
-.review-queue-footer { padding: var(--spacing-100, 16px); }
-.review-queue-footer p { margin: 0; line-height: 1.6; }
 
 .review-queue-card:focus-visible {
   border-color: var(--border-color-progressive--focus);

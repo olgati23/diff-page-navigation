@@ -5,8 +5,8 @@ import { cdxIconPrevious, cdxIconDownload, cdxIconTrash, cdxIconMessage, cdxIcon
 definePage({ meta: { title: 'New edits email', description: 'Contribution digest linking to Wikipedia page history.' } })
 const starred = ref(false)
 const requestedVersion = new URLSearchParams(window.location.search).get('version')
-const version = ref(['A','B','C','D'].includes(requestedVersion || '') ? requestedVersion : 'C')
-const textOnly = computed(() => version.value === 'C')
+const version = ref(['A','B','C'].includes(requestedVersion || '') ? requestedVersion : 'B')
+const textOnly = computed(() => version.value === 'B')
 const textArticles = computed(() => articles.map((a, i) => ({ ...a, title: i === 2 ? 'Giant Panda' : a.title, people: [4, 8, 3][i] })))
 const loadingPage = ref('')
 const error = ref('')
@@ -33,18 +33,18 @@ const articles = [
 {title:'Giant panda',page:'Giant_panda',edits:7,people:2,views:'2,341',image:'Grosser Panda.JPG'}]
 </script>
 <template>
-<main class="email-demo" :class="{ 'email-demo--text': textOnly, 'email-demo--e': version === 'D' }" data-theme="light"><div class="screen">
+<main class="email-demo" :class="{ 'email-demo--text': textOnly, 'email-demo--e': version === 'C' }" data-theme="light"><div class="screen">
 <div class="status" aria-hidden="true"><span>✈ ▰</span><strong>14:02</strong><span>89 % ▰</span></div>
-<div class="toolbar"><CdxIcon :icon="cdxIconPrevious" aria-hidden="true"/><div><CdxIcon v-for="icon in [cdxIconDownload,cdxIconTrash,cdxIconMessage]" :icon="icon" aria-hidden="true"/><CdxMenuButton v-model:selected="version" :menu-items="[{value:'A',label:'Version A'},{value:'B',label:'Version B'},{value:'C',label:'Version C'},{value:'D',label:'Version D'}]" weight="quiet" aria-label="Switch prototype version"><CdxIcon :icon="cdxIconEllipsis"/></CdxMenuButton></div></div>
+<div class="toolbar"><CdxIcon :icon="cdxIconPrevious" aria-hidden="true"/><div><CdxIcon v-for="icon in [cdxIconDownload,cdxIconTrash,cdxIconMessage]" :icon="icon" aria-hidden="true"/><CdxMenuButton v-model:selected="version" :menu-items="[{value:'A',label:'Version A'},{value:'B',label:'Version B'},{value:'C',label:'Version C'}]" weight="quiet" aria-label="Switch prototype version"><CdxIcon :icon="cdxIconEllipsis"/></CdxMenuButton></div></div>
 <header class="subject"><h1>New {{ textOnly ? 'changes' : 'edits' }} to articles<br>you’ve edited <small>Inbox</small></h1><CdxButton weight="quiet" aria-label="Star email" :aria-pressed="starred" @click="starred=!starred"><span v-if="starred">★</span><CdxIcon v-else :icon="cdxIconStar"/></CdxButton></header>
 <article class="mail"><header class="sender"><span class="avatar"><CdxIcon :icon="cdxIconUserAvatar"/></span><div>Wikipedia <time>13. Oct</time><br><span class="muted">to me⌄</span></div><span class="unsubscribe">Unsubscribe</span><CdxIcon :icon="cdxIconEllipsis"/></header>
 <div class="brand"><img class="logo" src="https://upload.wikimedia.org/wikipedia/en/8/80/Wikipedia-logo-v2.svg" alt="Wikipedia" width="50" height="50"><div v-if="textOnly" class="wordmark"><div>W<span>IKIPEDI</span>A</div><small>The Free Encyclopedia</small></div></div>
-<p class="intro">Hello $Username,<br>In the past week, 31 new edits have been made <template v-if="version === 'D'">to articles you've contributed to. Review more changes and see where you can make further improvements.</template><template v-else>to all of the articles you've contributed to. Review the latest changes to the most edited articles and see where you can make further improvements.</template></p>
-<h2>New contributions{{ version === 'D' ? '' : ' in' }}</h2>
-<template v-if="!textOnly"><CdxCard v-for="a in articles" :key="a.page" class="article-card" :class="{ 'article-card--b': version === 'B' }" :thumbnail="{ url: 'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(a.image)+'?width=80' }" :aria-label="a.title">
-  <template #title><a v-if="version === 'D'" :href="'https://en.m.wikipedia.org/wiki/'+a.page+'?mobileaction=toggle_view_mobile'">{{ a.title }}</a><template v-else>{{ a.title }}</template></template>
+<p class="intro">Hello $Username,<br>In the past week, 31 new edits have been made <template v-if="version === 'C'">to articles you've contributed to. Review more changes and see where you can make further improvements.</template><template v-else>to all of the articles you've contributed to. Review the latest changes to the most edited articles and see where you can make further improvements.</template></p>
+<h2>New edits</h2>
+<template v-if="!textOnly"><CdxCard v-for="a in articles" :key="a.page" class="article-card"  :thumbnail="{ url: 'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(a.image)+'?width=80' }" :aria-label="a.title">
+  <template #title><span v-if="version === 'C'">{{ a.title }}</span><template v-else>{{ a.title }}</template></template>
   <template #description><strong>{{ a.edits }} new</strong> edits by {{ a.people }} contributors<br>{{ a.views }} views since your edit</template>
-  <template v-if="version !== 'D'" #supporting-text><span class="card-actions"><CdxButton class="review" size="medium" action="default" weight="normal" :disabled="!!loadingPage" :aria-label="'Review edits: '+a.title+' latest five edits'" @click="reviewEdits(a.page)">{{ loadingPage === a.page ? 'Loading…' : 'Review edits' }}</CdxButton><a v-if="version === 'B'" :href="historyUrl(a.page)" class="history-link">Visit page history</a></span></template>
+  <template v-if="version !== 'C'" #supporting-text><span class="card-actions"><CdxButton class="review" size="medium" action="default" weight="normal" :disabled="!!loadingPage" :aria-label="'Review edits: '+a.title+' latest five edits'" @click="reviewEdits(a.page)">{{ loadingPage === a.page ? 'Loading…' : 'Review edits' }}</CdxButton></span></template>
 </CdxCard></template>
 <div v-else class="text-articles">
   <section v-for="a in textArticles" :key="a.page" class="text-article" :aria-label="a.title">
@@ -54,7 +54,7 @@ const articles = [
 </div>
   </section>
 </div>
-<CdxButton v-if="version === 'D'" class="review-more" action="progressive" weight="primary" @click="reviewMore">Review more changes</CdxButton>
+<CdxButton v-if="version === 'C'" class="review-more" action="progressive" weight="primary" @click="reviewMore">Review more changes</CdxButton>
 <p v-if="error" role="alert" class="review-error">{{ error }}</p>
 <p class="thank-you">Thank you for contributing to Wikipedia!<br>Your edits support free knowledge that is viewed nearly 13 billion times every month.</p>
 <div class="muted">--</div><p class="preferences">To control which emails we send you, check your <a href="https://en.wikipedia.org/wiki/Special:Preferences#mw-prefsection-personal-email">preferences</a>.</p>
@@ -75,7 +75,7 @@ const articles = [
 .brand{display:flex;align-items:center;gap:12px;margin-bottom:12px}.brand .logo{margin-bottom:0}
 .wordmark{font-family:Georgia,'Times New Roman',serif;color:#000;line-height:25px}.wordmark>div{font-size:26px}.wordmark>div span{font-size:21px}.wordmark small{display:block;font:14px/16px Georgia,'Times New Roman',serif}
 .email-demo--text .subject{padding-bottom:24px}.email-demo--text .sender{margin-bottom:28px}.email-demo--text .brand{margin-bottom:18px}.email-demo--text h2{margin-bottom:0}
-.text-article{padding:16px 12px;margin-bottom:0;border-bottom:1px solid var(--border-color-subtle)}.text-article:last-child{border-bottom:0;margin-bottom:0}.text-article h3{margin:0 0 2px}.text-article p{font-size:16px;line-height:26px;margin:0 0 10px}.text-actions{display:flex;flex-direction:column;align-items:flex-start;gap:var(--spacing-50)}
+.text-article{width:fit-content;max-width:100%;padding:16px 0;margin-bottom:0;border-bottom:1px solid var(--border-color-subtle)}.text-article:last-child{margin-bottom:0}.text-article h3{margin:0 0 2px}.text-article p{font-size:16px;line-height:26px;margin:0 0 10px}.text-actions{display:flex;flex-direction:column;align-items:flex-start;gap:var(--spacing-50)}
 
-.email-demo--e .article-card{padding:12px;margin-bottom:8px}.email-demo--e .article-card :deep(.cdx-card__text__title){color:var(--color-progressive)}.email-demo--e .article-card :deep(.cdx-card__text__title a){color:inherit;text-decoration:none}.email-demo--e .article-card :deep(.cdx-card__text__description){color:var(--color-base);font-size:16px;line-height:26px}.review-more{width:100%;margin-top:8px}.email-demo--e .thank-you{margin-top:24px}
+.email-demo--e .article-card{padding:12px;margin-bottom:8px}.email-demo--e .article-card :deep(.cdx-card__text__title){color:var(--color-base)}.email-demo--e .article-card :deep(.cdx-card__text__title a){color:inherit;text-decoration:none}.email-demo--e .article-card :deep(.cdx-card__text__description){color:var(--color-base);font-size:16px;line-height:26px}.review-more{width:100%;margin-top:8px}.email-demo--e .thank-you{margin-top:24px}
 </style>

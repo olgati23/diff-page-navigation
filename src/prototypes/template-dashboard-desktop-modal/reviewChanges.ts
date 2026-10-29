@@ -66,12 +66,166 @@ const englishReviewChanges: ReviewChange[] = [
     revisionDate: '16 February 2026, 21:04',
     summary: 'Reframed the description of orca attacks on blue whales',
   },
+  {
+    title: 'Cactus',
+    description: 'Family of mostly succulent plants, adapted to dry environments',
+    editor: 'Gnome sort',
+    time: '6 minutes ago',
+    oldRevisionId: 1376784411,
+    revisionId: 1376819227,
+    revisionDate: '26 September 2026, 11:45',
+    summary: 'punct',
+  },
+  {
+    title: 'Red panda',
+    description: 'Species of mammal in Asia',
+    editor: 'Phatmatt12188',
+    time: '7 minutes ago',
+    oldRevisionId: 1369992964,
+    revisionId: 1374034403,
+    revisionDate: '9 September 2026, 11:58',
+    summary: '/* Distribution and habitat */ Fixed list syntax',
+  },
+  {
+    title: 'Bamboo',
+    description: 'Subfamily of plants in the grass family',
+    editor: 'Acaeton',
+    time: '8 minutes ago',
+    oldRevisionId: 1376091882,
+    revisionId: 1376206789,
+    revisionDate: '22 September 2026, 19:15',
+    summary:
+      '/* Uses */ Updated section by region and removed "{{very long section |date=July 2026}}"',
+  },
+  {
+    title: 'Oak',
+    description: 'Tree or shrub in the genus Quercus',
+    editor: 'Chiswick Chap',
+    time: '9 minutes ago',
+    oldRevisionId: 1374587402,
+    revisionId: 1374637775,
+    revisionDate: '13 September 2026, 06:58',
+    summary: 'not only white oak, see the cited text below',
+  },
+  {
+    title: 'Monarch butterfly',
+    description: 'Milkweed butterfly in the family Nymphalidae',
+    editor: 'OAbot',
+    time: '10 minutes ago',
+    oldRevisionId: 1376955049,
+    revisionId: 1377164427,
+    revisionDate: '28 September 2026, 03:53',
+    summary:
+      '[[Wikipedia:OABOT|Open access bot]]: url-access=subscription updated in citation with #oabot.',
+  },
+  {
+    title: 'Sea otter',
+    description: 'Species of marine mammal',
+    editor: 'Clayoquot',
+    time: '11 minutes ago',
+    oldRevisionId: 1377508119,
+    revisionId: 1377508571,
+    revisionDate: '29 September 2026, 19:35',
+    summary:
+      '/* Population and distribution */ Refactoring headings and re-ordering sections to put things in geographic sequence rather than political groupings.',
+  },
+  {
+    title: 'Snow leopard',
+    description: 'Species of large felid',
+    editor: 'Chipmunkdavis',
+    time: '12 minutes ago',
+    oldRevisionId: 1376862119,
+    revisionId: 1376969533,
+    revisionDate: '27 September 2026, 04:53',
+    summary:
+      'Reverted 1 edit by [[Special:Contributions/Quardom|Quardom]] ([[User talk:Quardom|talk]]): Rv, please do not edit with [[WP:LLM]]s. Please be aware of text-source integrity when moving things around.',
+  },
+  {
+    title: 'Red fox',
+    description: 'Species of mammal',
+    editor: 'Luna the Eurasian Wolf',
+    time: '13 minutes ago',
+    oldRevisionId: 1376490116,
+    revisionId: 1377019085,
+    revisionDate: '27 September 2026, 13:37',
+    summary: '/* Subspecies */ Tobolsk fox',
+  },
+  {
+    title: 'Lavender',
+    description: '',
+    editor: '99.73.230.112',
+    time: '14 minutes ago',
+    oldRevisionId: 664792805,
+    revisionId: 1273491424,
+    revisionDate: '2 February 2025, 15:30',
+    summary: '',
+  },
+  {
+    title: 'Sunflower',
+    description: '',
+    editor: '~2026-47032-64',
+    time: '15 minutes ago',
+    oldRevisionId: 1161290280,
+    revisionId: 1371930343,
+    revisionDate: '29 August 2026, 11:54',
+    summary: '',
+  },
+  {
+    "title": "Dolphin",
+    "description": "Aquatic mammal in the infraorder Cetacea",
+    "editor": "TumCool412",
+    "time": "16 minutes ago",
+    "oldRevisionId": 1374831145,
+    "revisionId": 1375794602,
+    "revisionDate": "20 September 2026, 03:01",
+    "summary": "/* Evolution{{anchor|Evolution and anatomy}} */ url-status=live and doi="
+  },
+  {
+    "title": "Giraffe",
+    "description": "Tall African hoofed mammal",
+    "editor": "Pillowcrow",
+    "time": "17 minutes ago",
+    "oldRevisionId": 1369992953,
+    "revisionId": 1372727700,
+    "revisionDate": "2 September 2026, 00:46",
+    "summary": "/* Social life */ Copyedits"
+  },
+  {
+    "title": "Polar bear",
+    "description": "Bear species native to the Arctic",
+    "editor": "Headbomb",
+    "time": "18 minutes ago",
+    "oldRevisionId": 1372402502,
+    "revisionId": 1374646513,
+    "revisionDate": "13 September 2026, 08:17",
+    "summary": "/* Conservation status */  | Altered template type. Add: series, chapter, title. | [[:en:WP:UCB|Use this tool]]. [[:en:WP:DBUG|Report bugs]]. | #UCB_Gadget"
+  },
+  {
+    "title": "Rose",
+    "description": "Flowering plant in the genus Rosa",
+    "editor": "Bella Yisraeli",
+    "time": "19 minutes ago",
+    "oldRevisionId": 1376157495,
+    "revisionId": 1376625769,
+    "revisionDate": "25 September 2026, 07:42",
+    "summary": "Luxembourg's relationship with roses"
+  },
+  {
+    "title": "Fern",
+    "description": "Group of vascular plants that reproduce through spores",
+    "editor": "~2026-47702-99",
+    "time": "20 minutes ago",
+    "oldRevisionId": 1372409446,
+    "revisionId": 1372763744,
+    "revisionDate": "2 September 2026, 04:22",
+    "summary": "/* Ecology */"
+  },
 ]
 
 export const reviewChanges: ReviewChange[] = window.location.pathname.includes('-he')
   ? hebrewReviewChanges
   : window.location.pathname.includes('-th')
     ? thaiReviewChanges
-  : /-de(?:\/|$)/.test(window.location.pathname)
-    ? germanReviewChanges
-    : englishReviewChanges
+    : /-de(?:\/|$)/.test(window.location.pathname)
+      ? germanReviewChanges
+      : englishReviewChanges

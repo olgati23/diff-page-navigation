@@ -9,19 +9,46 @@ import { buildVisualDiffDocument } from './visualDiff'
 const props = withDefaults(defineProps<{
   change: ReviewChange
   tall?: boolean
+  expandToContent?: boolean
+  externalLoader?: boolean
+  topPadding?: number
   showHeading?: boolean
   heightOffset?: number
 }>(), {
   tall: false,
+  expandToContent: false,
   showHeading: true,
   heightOffset: 0,
 })
 
+const emit = defineEmits<{ loading: [value: boolean] }>()
 const loading = ref(false)
+watch(loading, value => emit('loading', value))
 const error = ref(false)
 const documentHtml = ref('')
 const frameHeight = ref(224)
 let request: AbortController | null = null
+const diffFrame = ref<HTMLIFrameElement | null>(null)
+let contentObserver: ResizeObserver | undefined
+function fitContent() {
+  if (!props.expandToContent) return
+  const document = diffFrame.value?.contentDocument
+  if (!document) return
+  document.documentElement.style.overflow = 'hidden'
+  document.body.style.overflow = 'hidden'
+  const main = document.querySelector('main') ?? document.body
+  frameHeight.value = Math.max(160, Math.ceil(main.getBoundingClientRect().height))
+}
+function onFrameLoad() {
+  contentObserver?.disconnect()
+  if (!props.expandToContent) { resizeFrame(); return }
+  fitContent()
+  const main = diffFrame.value?.contentDocument?.querySelector('main')
+  if (main) {
+    contentObserver = new ResizeObserver(fitContent)
+    contentObserver.observe(main)
+  }
+}
 
 function firstChangedSection(diffMarkup: string): string {
   const documentModel = new DOMParser().parseFromString(
@@ -70,6 +97,7 @@ async function loadDiff(): Promise<void> {
     documentHtml.value = await buildVisualDiffDocument(markup, request.signal, {
       heading: firstChangedSection(markup),
       showHeading: props.showHeading,
+      topPadding: props.topPadding,
       wikiHost: props.change.wikiHost,
       mobile: true,
     })
@@ -81,6 +109,7 @@ async function loadDiff(): Promise<void> {
 }
 
 function resizeFrame(): void {
+  if (props.expandToContent) { fitContent(); return }
   if (!props.tall) {
     frameHeight.value = 224
     return
@@ -96,6 +125,7 @@ watch(() => props.heightOffset, resizeFrame)
 onMounted(() => window.addEventListener('resize', resizeFrame))
 onBeforeUnmount(() => {
   request?.abort()
+  contentObserver?.disconnect()
   window.removeEventListener('resize', resizeFrame)
 })
 </script>
@@ -104,19 +134,20 @@ onBeforeUnmount(() => {
   <div
     class="wikipedia-diff-content"
     :class="{ 'wikipedia-diff-content--tall': props.tall }"
-    :style="props.tall ? { height: `${frameHeight}px` } : undefined"
+    :style="{ height: props.tall || props.expandToContent ? `${frameHeight}px` : undefined, '--diff-content-height': `${frameHeight}px` }"
   >
-    <CdxProgressBar v-if="loading" aria-label="Loading Wikipedia diff" />
+    <CdxProgressBar v-if="loading && !props.externalLoader" aria-label="Loading Wikipedia diff" />
     <CdxMessage v-else-if="error" type="error" :allow-user-dismiss="false">
       The Wikipedia visual diff could not be loaded.
     </CdxMessage>
     <iframe
       v-else-if="documentHtml"
+      ref="diffFrame"
       :srcdoc="documentHtml"
       :style="{ height: `${frameHeight}px` }"
       title="Wikipedia visual diff"
       sandbox="allow-same-origin"
-      @load="resizeFrame"
+      @load="onFrameLoad"
     />
   </div>
 </template>

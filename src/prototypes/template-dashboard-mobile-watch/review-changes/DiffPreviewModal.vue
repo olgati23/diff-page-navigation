@@ -20,7 +20,6 @@ import {
   cdxIconLinkExternal,
   cdxIconUnStar,
   cdxIconHalfStar,
-  cdxIconArrowPrevious,
   cdxIconSuccess,
   cdxIconUserTalk,
   cdxIconClose,
@@ -464,7 +463,7 @@ onBeforeUnmount(() => {
         aria-label="Back to review changes"
         @click="emit('close')"
       >
-          <CdxIcon :icon="cdxIconArrowPrevious" />
+          <CdxIcon :icon="cdxIconPrevious" size="medium" />
         </CdxButton>
         <strong id="diff-preview-title">Difference</strong>
         <CdxMenuButton v-if="props.watchToast && !props.complete" ref="headerWatchAnchor" v-model:selected="overflowSelection" :menu-items="overflowItems" weight="quiet" class="data-header-menu" aria-label="More options" @update:selected="selectOverflow"><CdxIcon :icon="cdxIconEllipsis" /></CdxMenuButton>

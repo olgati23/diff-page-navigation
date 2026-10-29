@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { CdxButton, CdxIcon, CdxMenuButton } from '@wikimedia/codex'
-import { cdxIconArrowPrevious, cdxIconEllipsis, cdxIconConfigure, cdxIconUserAvatar } from '@wikimedia/codex-icons'
+import { cdxIconPrevious, cdxIconEllipsis, cdxIconConfigure, cdxIconUserAvatar } from '@wikimedia/codex-icons'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { computed, ref, watch, inject } from 'vue'
 
 import { reviewChanges, type ReviewChange } from '../reviewChanges'
 import { customizeDiffKey } from '../../review-changes/customizeDiff'
+import { compactTime } from '../../review-changes/compactTime'
 import DiffPreviewModal from './DiffPreviewModal.vue'
 import { localizedPrototypeRoute } from '../../prototypeLocale'
 
@@ -30,7 +31,9 @@ const customizeSelection = ref(null)
 const visibleChanges = computed(() => queueChanges.slice(0, editLimit.value))
 const openedChanges = ref(new Set<string>())
 const queueComplete = ref(false)
-const selectedChangeIndex = ref<number | null>(null)
+const initialIndex = queueChanges.findIndex(edit => edit.title === route.query.previewTitle)
+const selectedChangeIndex = ref<number | null>(initialIndex >= 0 ? initialIndex : null)
+if (initialIndex >= 0) openedChanges.value.add(queueChanges[initialIndex].title)
 const reviewedChanges = ref<Set<string>>(new Set())
 const undoneChanges = ref<Set<string>>(new Set())
 const selectedChange = computed(() =>
@@ -97,8 +100,8 @@ function markRestored(title: string) {
   <main class="review-changes-page">
     <template v-if="!selectedChange">
     <header class="review-changes-page__header" :class="{ 'review-changes-page__header--standalone': props.standalone }">
-      <RouterLink v-if="!props.standalone" :to="dashboardRoute" class="review-changes-page__back" aria-label="Back to dashboard">
-        <CdxIcon :icon="cdxIconArrowPrevious" />
+      <RouterLink :to="props.standalone ? { path: '/review-changes/', query: { ...route.query, view: 'home', previewTitle: undefined } } : dashboardRoute" class="review-changes-page__back" aria-label="Back to dashboard">
+        <CdxIcon :icon="cdxIconPrevious" size="medium" />
       </RouterLink>
       <h1 class="review-changes-page__title">Review changes</h1>
       <CdxMenuButton v-if="customizeDiff" v-model:selected="customizeSelection" :menu-items="[{ value: 'customize', label: 'Customize preview', icon: cdxIconConfigure }]" weight="quiet" aria-label="More options" @update:selected="customizeSelection = null; customizeDiff()"><CdxIcon :icon="cdxIconEllipsis" /></CdxMenuButton>
@@ -124,14 +127,15 @@ function markRestored(title: string) {
         @keydown.enter="openDiff(change)"
         @keydown.space.prevent="openDiff(change)"
       >
+        <div v-if="change.tags?.length" class="review-queue-card__tags"><span v-for="tag in change.tags" :key="tag">{{ tag }}</span></div>
         <div class="review-queue-card__heading">
           <h2>{{ change.title }}</h2>
         </div>
         <p class="review-queue-card__description">{{ change.description }}</p>
         <p v-if="change.summary" class="review-queue-card__summary">{{ change.summary }}</p>
         <p class="review-queue-card__editor">
-          <CdxIcon :icon="cdxIconUserAvatar" size="small" aria-hidden="true" />
-          {{ change.editor }} · {{ change.time }}
+          <span class="review-queue-card__user"><CdxIcon :icon="cdxIconUserAvatar" size="small" aria-hidden="true" />{{ change.editor }}</span>
+          <span class="review-queue-card__time">{{ compactTime(change.time) }}</span>
         </p>
       </article>
     </section>
@@ -254,7 +258,7 @@ function markRestored(title: string) {
 }
 
 .review-queue-card:hover {
-  background: var(--background-color-interactive-subtle--hover);
+  background: var(--background-color-base);
   border-color: var(--border-color-interactive--hover);
 }
 
@@ -308,8 +312,8 @@ function markRestored(title: string) {
 
 <style scoped>
 .review-changes-page__header { padding-inline: 16px; }
-.review-changes-page__header--standalone { grid-template-columns: minmax(0, 1fr) auto; }
-.review-changes-page__header--standalone .review-changes-page__title { justify-self: start; text-align: start; }
+.review-changes-page__header--standalone { grid-template-columns: minmax(32px, 1fr) auto minmax(32px, 1fr); }
+.review-changes-page__header--standalone .review-changes-page__title { justify-self: center; text-align: center; }
 </style>
 
 <style scoped>
@@ -338,4 +342,19 @@ function markRestored(title: string) {
   line-height: var(--line-height-small, 1.375rem);
 }
 .review-queue-card__editor :deep(.cdx-icon) { color: inherit; }
+</style>
+
+<style scoped>
+.review-queue-card--opened { background: var(--background-color-base); }
+.review-queue-card--opened:hover { background: var(--background-color-base); }
+.review-queue-card--opened h2 { font-weight: var(--font-weight-normal, 400); color: var(--color-subtle); }
+.review-queue-card h2, .review-queue-card__description, .review-queue-card__summary { line-height: 22px; }
+.review-queue-card__description { margin-top: 0 !important; white-space: normal; }
+.review-queue-card__summary { margin-top: 4px !important; font-style: italic; }
+.review-queue-card__editor { justify-content: space-between; gap: 12px; margin-top: 12px !important; }
+.review-queue-card__user { display: flex; align-items: center; min-width: 0; gap: 2px; }
+.review-queue-card__time { flex-shrink: 0; white-space: nowrap; }
+.review-queue-card__tags { display: flex; gap: 4px; margin-bottom: 12px; }
+.review-queue-card__tags span { border: 1px solid var(--border-color-base); border-radius: 9999px; padding: 0 6px; font-size: 14px; background: var(--background-color-neutral); }
+.review-queue-card--opened .review-queue-card__tags span { background: var(--background-color-base); color: var(--color-subtle); }
 </style>

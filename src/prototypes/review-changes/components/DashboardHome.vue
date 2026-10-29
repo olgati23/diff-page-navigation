@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CdxButton, CdxIcon } from '@wikimedia/codex'
-import { cdxIconEllipsis, cdxIconUserAvatar, cdxIconInfo } from '@wikimedia/codex-icons'
+import { cdxIconEllipsis, cdxIconUserAvatar } from '@wikimedia/codex-icons'
 import { RouterLink, useRoute } from 'vue-router'
 import { compactTime } from '../compactTime'
 import ChromeWrapper from '@/components/chrome/ChromeWrapper.vue'
@@ -24,7 +24,6 @@ const queueLink = (title?: string) => ({ path: '/review-changes/', query: { ...r
         </div>
         <RouterLink :to="queueLink()" class="show-more"><CdxButton tabindex="-1">Show more</CdxButton></RouterLink>
       </section>
-      <section class="discussions"><header><h2>Active discussions</h2><CdxIcon :icon="cdxIconInfo" icon-label="About active discussions" /></header><a class="discussion" href="https://en.wikipedia.org/wiki/Wikipedia:Village_pump">Wikipedia community discussions</a></section>
     </main>
   </ChromeWrapper>
 </template>
@@ -44,5 +43,4 @@ h2 { font: bold 18px/26px var(--font-family-base); margin: 0; border: 0; padding
 .edit-meta span:first-child { display: flex; align-items: center; min-width: 0; }
 .edit-meta span:last-child { white-space: nowrap; }
 .show-more { display: block; }.show-more :deep(button) { width: 100%; max-width: none; }
-.discussions { margin-top: 36px; }.discussion { display: block; padding: 12px; border: 1px solid var(--border-color-base); color: var(--color-base); font-weight: 700; }
 </style>

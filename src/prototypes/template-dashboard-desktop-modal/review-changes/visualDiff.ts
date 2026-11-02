@@ -1,5 +1,6 @@
 interface VisualDiffOptions {
   heading?: string | null
+  topPadding?: number
   showHeading?: boolean
   mobile?: boolean
   wikiHost?: string
@@ -46,7 +47,8 @@ async function renderWikitext(source: string, signal: AbortSignal, wikiHost = 'e
   })
   if (!response.ok) throw new Error('Could not render Wikipedia content')
   const data = await response.json()
-  return cleanRenderedText(data.parse?.text ?? '')
+  if (data.error || typeof data.parse?.text !== 'string') throw new Error('Could not render Wikipedia content')
+  return cleanRenderedText(data.parse.text)
 }
 
 function tokens(value: string): string[] {
@@ -121,16 +123,34 @@ export async function buildVisualDiffDocument(
     row.querySelector('.diff-addedline, .diff-deletedline'),
   )
 
-  const rows = await Promise.all(changedRows.map(async (row) => {
+  if (!changedRows.length) throw new Error('No changed content was returned')
+  const rows: string[] = []
+  // Render one pair at a time to avoid flooding the API for large edits.
+  for (const row of changedRows) {
     const removedSource = row.querySelector('.diff-deletedline > div')?.textContent ?? ''
     const addedSource = row.querySelector('.diff-addedline > div')?.textContent ?? ''
-    const [removed, added] = await Promise.all([
-      renderWikitext(removedSource, signal, options.wikiHost),
-      renderWikitext(addedSource, signal, options.wikiHost),
-    ])
-    if (!removed && !added) return ''
-    return `<p class="change-inline">${inlineWordDiff(removed, added)}</p>`
-  }))
+    let removed = ''
+    let added = ''
+    let sourceFallback = false
+    try {
+      ;[removed, added] = await Promise.all([
+        renderWikitext(removedSource, signal, options.wikiHost),
+        renderWikitext(addedSource, signal, options.wikiHost),
+      ])
+      // References and template-only changes may disappear when reduced to prose.
+      sourceFallback = removedSource !== addedSource && removed === added
+    } catch (error) {
+      if (signal.aborted || (error as Error).name === 'AbortError') throw error
+      sourceFallback = true
+    }
+    if (sourceFallback) {
+      removed = removedSource
+      added = addedSource
+    }
+    if (!removed && !added) continue
+    rows.push(`${sourceFallback ? '<p class="source-notice">Source comparison — this change could not be shown visually.</p>' : ''}<p class="change-inline">${inlineWordDiff(removed, added)}</p>`)
+  }
+  if (!rows.length) throw new Error('No visible changes were returned')
 
   const showHeading = options.showHeading !== false
   const heading = showHeading
@@ -142,13 +162,14 @@ export async function buildVisualDiffDocument(
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     html, body { margin: 0; color: #202122; background: ${background}; font: ${fontSize}/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Lato, Helvetica, Arial, sans-serif; }
-    main { padding: ${showHeading ? '0 16px 16px' : '16px'}; }
+    main { padding: ${showHeading ? '0 16px 16px' : `${options.topPadding ?? 16}px 16px 16px`}; }
     h2 { margin: 0 -16px 12px; padding: 12px 16px 0; ${headingBorder}
       color: #54595d; background: transparent; font-size: 14px; font-weight: 700; line-height: 1.5; }
     .ve-ui-diffElement { position: relative; }
     .ve-ui-diffElement::after { content: ''; clear: both; display: block; }
     .ve-ui-diffElement-content { position: relative; overflow-x: auto; margin-left: -5px; padding-left: 5px; }
-    .change-inline { margin: 0 0 12px; padding: 0; }
+    .source-notice { font-size: 14px; color: #54595d; margin: 0 0 8px; }
+    .change-inline { overflow-wrap: anywhere; margin: 0 0 12px; padding: 0; }
     [data-diff-action='none'] { opacity: 0.4; }
     [data-diff-action='insert'], [data-diff-action='remove'] {
       position: relative; z-index: 1; text-decoration: inherit; white-space: break-spaces;

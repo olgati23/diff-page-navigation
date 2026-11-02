@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ReviewChangesMenu from '../../review-changes/components/ReviewChangesMenu.vue'
 import { CdxButton, CdxIcon, CdxMenuButton } from '@wikimedia/codex'
 import { cdxIconPrevious, cdxIconEllipsis, cdxIconConfigure, cdxIconUserAvatar } from '@wikimedia/codex-icons'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
@@ -101,7 +102,7 @@ function markRestored(title: string) {
         <CdxIcon :icon="cdxIconPrevious" size="medium" />
       </RouterLink>
       <h1 class="review-changes-page__title">Review changes</h1>
-      <CdxMenuButton v-if="customizeDiff" v-model:selected="customizeSelection" :menu-items="[{ value: 'customize', label: 'Customize preview', icon: cdxIconConfigure }]" weight="quiet" aria-label="More options" @update:selected="customizeSelection = null; customizeDiff()"><CdxIcon :icon="cdxIconEllipsis" /></CdxMenuButton>
+      <ReviewChangesMenu v-if="customizeDiff" />
       <CdxIcon v-else :icon="cdxIconEllipsis" aria-label="More options" />
     </header>
 

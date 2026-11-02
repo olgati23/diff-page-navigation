@@ -11,7 +11,7 @@ import MobileQueue from '../template-dashboard-mobile-watch/review-changes/index
 definePage({ meta: { title: 'Review changes', description: 'Standalone review queue and difference preview: mobile A and desktop B1.' } })
 const route = useRoute()
 const router = useRouter()
-const showLocalFrame = computed(() => route.query.localFrame !== '1')
+const showLocalFrame = computed(() => route.query.frame === '1' && route.query.localFrame !== '1')
 const isLocalFramedContent = computed(() => route.query.localFrame === '1')
 const localFrameUrl = computed(() => router.resolve({ path: route.path, query: { ...route.query, localFrame: '1' } }).href)
 const watchToast = computed(() => route.query.version !== 'Older')
@@ -27,9 +27,13 @@ async function applyCustomization(version: string, selectedFilters: DiffFilters,
   queueKey.value++
 }
 const previewScale = ref(Math.min(1, window.innerWidth / 412, window.innerHeight / 790))
-const mobile = ref(window.innerWidth < 768)
+const mobile = ref(window.innerWidth < 800)
+const desktopPreview = computed(() => !mobile.value && !!route.query.previewTitle)
+function closeDesktopPreview() {
+  router.replace({ path: route.path, query: { ...route.query, view: 'home', previewTitle: undefined } })
+}
 const updateViewport = () => {
-  mobile.value = window.innerWidth < 768
+  mobile.value = window.innerWidth < 800
   previewScale.value = Math.min(1, window.innerWidth / 412, window.innerHeight / 790)
 }
 onMounted(() => window.addEventListener('resize', updateViewport))
@@ -43,9 +47,9 @@ onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
     </div>
   </div>
   <div v-else :class="{ 'local-framed-content': isLocalFramedContent }">
-  <DashboardHome v-if="route.query.view === 'home'" :edits="edits" />
-  <MobileQueue v-else-if="mobile" :key="queueKey" :custom-changes="edits" standalone :watch-toast="watchToast" />
-  <DesktopQueue v-else :key="queueKey" :custom-changes="edits" standalone standalone-version="B1" :watch-toast="watchToast" />
+  <DashboardHome v-if="desktopPreview || (route.query.view !== 'queue' && !route.query.previewTitle)" :edits="edits" />
+  <MobileQueue v-if="mobile && (route.query.view === 'queue' || !!route.query.previewTitle)" :key="queueKey" :custom-changes="edits" standalone :watch-toast="watchToast" />
+  <DesktopQueue v-if="!mobile && (route.query.view === 'queue' || !!route.query.previewTitle)" :overlay-only="desktopPreview" @preview-closed="closeDesktopPreview" :key="`${queueKey}-${route.query.previewTitle ?? 'queue'}`" :custom-changes="edits" standalone standalone-version="B1" :watch-toast="watchToast" />
   <CustomizeDiffDialog v-model:open="customizationOpen" :version="watchToast ? 'Default' : 'Older'" :filters="filters" @apply="applyCustomization" />
   </div>
 </template>

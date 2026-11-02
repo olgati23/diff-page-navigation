@@ -16,6 +16,7 @@ import {
   cdxIconStar,
   cdxIconEditUndo,
   cdxIconEllipsis,
+  cdxIconAppearance,
   cdxIconConfigure,
   cdxIconLinkExternal,
   cdxIconUnStar,
@@ -108,7 +109,7 @@ const customizeDiff = inject(customizeDiffKey, null)
 const overflowItems = computed(() => [
   { value: 'watch', label: watchPeriods[props.change.title] ? 'Unwatch' : 'Watch', icon: watchPeriods[props.change.title] ? cdxIconUnStar : cdxIconStar },
   { value: 'full', label: 'Full difference', icon: cdxIconLinkExternal, url: fullDifferenceUrl(), urlNewTab: true },
-  ...(customizeDiff ? [{ value: 'customize', label: 'Customize preview', icon: cdxIconConfigure }] : []),
+  ...(customizeDiff ? [{ value: 'customize', label: 'Customize preview', icon: cdxIconAppearance }] : []),
 ])
 function selectOverflow(value: unknown) {
   if (value === 'customize') { emit('close'); customizeDiff?.() }

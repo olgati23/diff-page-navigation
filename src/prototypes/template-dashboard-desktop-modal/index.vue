@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ReviewChangesMenu from '../review-changes/components/ReviewChangesMenu.vue'
 import {
   CdxButton,
   CdxMenuButton,
@@ -22,6 +23,7 @@ import {
   cdxIconUnStar,
   cdxIconReload,
   cdxIconEllipsis,
+  cdxIconAppearance,
   cdxIconConfigure,
   cdxIconLinkExternal,
   cdxIconPushPin,
@@ -63,7 +65,8 @@ definePage({
   },
 })
 
-const props = defineProps<{ standalone?: boolean; customChanges?: ReviewChange[]; watchToast?: boolean; standaloneVersion?: 'B1' | 'B2'; thankExperiment?: 'panel' | 'sheet' | 'bar' }>()
+const props = defineProps<{ overlayOnly?: boolean; standalone?: boolean; customChanges?: ReviewChange[]; watchToast?: boolean; standaloneVersion?: 'B1' | 'B2'; thankExperiment?: 'panel' | 'sheet' | 'bar' }>()
+const emit = defineEmits<{ previewClosed: [] }>()
 const { pageTitle } = useConfig()
 const dashboardView: Skin = 'desktop'
 const isGermanPrototype = /-de(?:\/|$)/.test(window.location.pathname)
@@ -349,7 +352,13 @@ function updateViewportWidth(): void {
   viewportWidth.value = window.innerWidth
 }
 
-onMounted(() => window.addEventListener('resize', updateViewportWidth))
+onMounted(() => {
+  window.addEventListener('resize', updateViewportWidth)
+  if (props.standalone && typeof route.query.previewTitle === 'string') {
+    const index = desktopReviewChanges.findIndex(change => change.title === route.query.previewTitle)
+    if (index >= 0) openReviewModal(index)
+  }
+})
 onBeforeUnmount(() => window.removeEventListener('resize', updateViewportWidth))
 
 const desktopReviewChanges = reviewChanges
@@ -379,7 +388,7 @@ const b1MenuSelection = ref(null)
 const b1MenuItems = computed(() => [
   { value: 'watch', label: watchedChanges.has(modalReviewChange.value.title) ? 'Unwatch' : 'Watch', icon: watchedChanges.has(modalReviewChange.value.title) ? cdxIconUnStar : cdxIconStar },
   { value: 'full', label: 'Full difference', icon: cdxIconLinkExternal, url: fullDiffUrl(modalReviewChange.value), urlNewTab: true },
-  ...(customizeDiff ? [{ value: 'customize', label: 'Customize preview', icon: cdxIconConfigure }] : []),
+  ...(customizeDiff ? [{ value: 'customize', label: 'Customize preview', icon: cdxIconAppearance }] : []),
 ])
 function selectB1Menu(value: unknown) {
   if (value === 'customize') { updateReviewModalOpen(false); customizeDiff?.() }
@@ -438,6 +447,7 @@ function updateReviewModalOpen(open: boolean): void {
     modalReviewIndex.value = null
     modalQueueComplete.value = false
     modalConfirmation.value = null
+    if (props.overlayOnly) emit('previewClosed')
   }
 }
 
@@ -563,7 +573,7 @@ const impact = {
 </script>
 
 <template>
-  <ChromeWrapper :skin="dashboardView" :last-edited-notice="false">
+  <ChromeWrapper v-show="!props.overlayOnly" :skin="dashboardView" :last-edited-notice="false">
     <SpecialPageWrapper :title="showAllEdits ? null : pageTitle" :actions="!showAllEdits">
       <template v-if="!showAllEdits" #actions>
         <div class="dashboard-view-control">
@@ -599,7 +609,7 @@ const impact = {
           <header id="review-changes" class="all-review-heading">
             <CdxButton v-if="!props.standalone" weight="quiet" :icon-only="true" aria-label="Back to dashboard" @click="returnToDashboard"><CdxIcon :icon="cdxIconPrevious" /></CdxButton>
             <h2>Review changes</h2>
-            <CdxMenuButton v-if="customizeDiff" class="queue-more-menu" v-model:selected="customizeSelection" :menu-items="[{ value: 'customize', label: 'Customize preview', icon: cdxIconConfigure }]" weight="quiet" aria-label="More options" @update:selected="customizeSelection = null; customizeDiff()"><CdxIcon :icon="cdxIconEllipsis" /></CdxMenuButton>
+            <ReviewChangesMenu v-if="customizeDiff" />
             <CdxIcon v-else-if="props.standalone" class="queue-more-icon" :icon="cdxIconEllipsis" aria-label="More options" />
             <CdxButton v-if="queueVersion === 'C'" class="queue-refresh-button" weight="quiet" :action="queueVersion === 'C' ? 'progressive' : 'default'" :icon-only="queueVersion !== 'C'"
               aria-label="Refresh edits" title="Refresh edits" @click="requestBQueueRefresh">
